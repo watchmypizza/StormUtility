@@ -10,7 +10,7 @@ namespace Stormtility.config
     public static class vars
     {
         public static bool commandTriggered { get; set; } = false;
-
-        public static ulong modLogs = 1445401844611547356;
+        public static ulong modLogs { get; } = 1445401844611547356;
+        public static ulong blacklistRole { get; } = 1397404869702320260;
     }
 }
