@@ -57,7 +57,7 @@ namespace Stormtility.commands
                 }
             }
 
-            var mod_log_ch = ctx.Guild.GetChannel(1373144394382966834);
+            var mod_log_ch = ctx.Guild.GetChannel(vars.modLogs);
 
             var message = new DiscordEmbedBuilder
             {
@@ -149,7 +149,7 @@ namespace Stormtility.commands
                 return;
             }
 
-            var mod_log_ch = ctx.Guild.GetChannel(1373144394382966834);
+            var mod_log_ch = ctx.Guild.GetChannel(vars.modLogs);
 
             var message = new DiscordEmbedBuilder
             {

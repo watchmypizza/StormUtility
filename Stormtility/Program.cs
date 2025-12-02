@@ -34,7 +34,6 @@ namespace Stormtility
             Client.GuildMemberUpdated += Client_GuildMemberUpdated;
             Client.MessageCreated += Client_MessageCreated;
 
-            // CommandsNext (prefix commands)
             var commandsConfig = new CommandsNextConfiguration()
             {
                 StringPrefixes = new[] { jsonReader.prefix },
@@ -45,7 +44,6 @@ namespace Stormtility
             CommandBuilder = Client.UseCommandsNext(commandsConfig);
             CommandBuilder.RegisterCommands<TestCommands>();
 
-            // Slash commands (only ONE call!)
             Slash = Client.UseSlashCommands();
             Slash.RegisterCommands<slashcommands>();
 
