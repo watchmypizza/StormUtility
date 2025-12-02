@@ -134,11 +134,11 @@ namespace Stormtility
                 return Task.CompletedTask;
             }
 
-            const ulong blacklist = 1397404869702320260;
+            var blacklist = args.Guild.GetRole(1397404869702320260);
             var blacklists = "blacklists.json";
 
-            bool hadBefore = args.RolesBefore.Any(r => r.Id == blacklist);
-            bool hasAfter = args.RolesAfter.Any(r => r.Id == blacklist);
+            bool hadBefore = args.RolesBefore.Any(r => r.Id == blacklist.Id);
+            bool hasAfter = args.RolesAfter.Any(r => r.Id == blacklist.Id);
 
             var jsonText = File.ReadAllText(blacklists);
             var json = JObject.Parse(jsonText);
@@ -164,17 +164,21 @@ namespace Stormtility
                 return Task.CompletedTask;
             }
 
-            var entry = new JObject
+            if (!hadBefore && hasAfter)
             {
-                [args.Member.Id.ToString()] = new JObject
+                var entry = new JObject
                 {
-                    ["reason"] = "Role has been given manually."
-                }
-            };
+                    [args.Member.Id.ToString()] = new JObject
+                    {
+                        ["reason"] = "Role has been given manually."
+                    }
+                };
 
-            ((JArray)json["blacklist"]).Add(entry);
+                ((JArray)json["blacklist"]).Add(entry);
 
-            File.WriteAllText(blacklists, json.ToString());
+                File.WriteAllText(blacklists, json.ToString());
+                return Task.CompletedTask;
+            }
 
             return Task.CompletedTask;
         }
