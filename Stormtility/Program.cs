@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using Stormtility.commands;
 using Stormtility.config;
 using System.Diagnostics.Tracing;
+using System.Runtime.ConstrainedExecution;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -150,7 +151,10 @@ namespace Stormtility
                 if (args.Guild == null) return;
                 if (member.IsBot) return;
                 if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers))
+                {
+                    Console.WriteLine("ts = this but staff");
                     return;
+                }
 
                 var jsonText = File.ReadAllText("mutecounter.json");
                 var json = JObject.Parse(jsonText);
@@ -167,25 +171,30 @@ namespace Stormtility
                         break;
                     }
                 }
-
-                if (entry == null)
+                try
                 {
-                    entry = new JObject
+                    if (entry == null)
                     {
-                        [userId] = new JObject
+                        entry = new JObject
                         {
-                            ["mutes"] = 1
-                        }
-                    };
+                            [userId] = new JObject
+                            {
+                                ["mutes"] = 1
+                            }
+                        };
 
-                    mutes.Add(entry);
-                }
-                else
+                        mutes.Add(entry);
+                    }
+                    else
+                    {
+                        int current = entry[userId]["mutes"].Value<int>();
+                        entry[userId]["mutes"] = current + 1;
+                    }
+                } catch (OverflowException e)
                 {
-                    int current = entry[userId]["mutes"].Value<int>();
-                    entry[userId]["mutes"] = current + 1;
+                    Console.WriteLine("Welp thats a big number (2,147,483,647)");
                 }
-
+                Console.WriteLine("Muted for wrong use of ts");
                 File.WriteAllText("mutecounter.json", json.ToString());
 
                 await member.TimeoutAsync(DateTimeOffset.UtcNow.AddMinutes(1), "wrong use of ts");
