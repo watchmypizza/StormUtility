@@ -7,6 +7,7 @@ using Stormtility.config;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -482,6 +483,95 @@ namespace Stormtility.commands
                     await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
                     return;
                 }
+            }
+
+            [SlashCommand("setmoney", "Set money, admin only command")]
+            public async Task setmoney(InteractionContext ctx, [Option("Amount", "The amount to set it to")] double amt, [Option("User", "The user to modify the amount of money")] DiscordUser? user = null)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                {
+                    var PermissionErrorEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - No Permissions",
+                        Description = "You do not have the necessary permissions to use this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(PermissionErrorEmbed).AsEphemeral());
+
+                    return;
+                }
+
+                var targetUserId = user?.Id.ToString() ?? ctx.User.Id.ToString();
+                var targetMember = (DiscordMember)user ?? ctx.Member;
+
+                if (amt > 9007199254740991.00)
+                {
+                    var overflowEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "500 - Overflow",
+                        Description = "You put too much in a water kettle, now it overflowed. Please try again with a smaller number",
+                        Color = DiscordColor.Orange
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(overflowEmbed).AsEphemeral());
+
+                    return;
+                }
+
+                var jsonText = File.ReadAllText("economy.json");
+                var json = JObject.Parse(jsonText);
+                var entries = (JArray)json!["economy"];
+
+                bool found = false;
+
+                JObject? activeUserData = null;
+
+                foreach (JObject entry in entries)
+                {
+                    if(entry.ContainsKey(targetUserId))
+                    {
+                        activeUserData = entry[targetUserId] as JObject;
+                        found = true;
+                        break;
+                    }
+                }
+
+                double amountRounded = Math.Round(amt);
+                int amount = (int)amountRounded;
+
+                if (found)
+                {
+                    int money = activeUserData!["money"].Value<int>();
+
+                    money = amount;
+
+                    activeUserData["money"] = money;
+                } else
+                {
+                    JObject newUser = new JObject
+                    {
+                        [targetUserId] = new JObject
+                        {
+                            ["money"] = amount,
+                            ["streak"] = 0,
+                            ["lastclaimed"] = 0
+                        }
+                    };
+
+                    entries.Add(newUser);
+                }
+
+                DiscordEmbed success = new DiscordEmbedBuilder
+                {
+                    Title = "Economy - Admin Commands",
+                    Description = $"Successfully set {targetMember.Mention}'s money to {amountRounded} Stormy Coin(s)",
+                    Color = DiscordColor.Green
+                };
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(success).AsEphemeral());
+
+                File.WriteAllText("economy.json", json.ToString());
             }
         }
     }
