@@ -1,14 +1,17 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormtility.config;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Stormtility.commands
 {
@@ -268,6 +271,218 @@ namespace Stormtility.commands
             };
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+        }
+
+        [SlashCommandGroup("economy", "Economy commands")]
+        public class economy : ApplicationCommandModule
+        {
+            [SlashCommand("daily", "Daily reward")]
+            public async Task daily(InteractionContext ctx)
+            {
+                bool boosterRole = ctx.Member.Roles.Any(r => r.Id == 1373145844303527937);
+
+                if (vars.nitroOnlyTest)
+                {
+                    if (!boosterRole && !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                    {
+                        Console.WriteLine("Not a booster");
+                        var Boosterembed = new DiscordEmbedBuilder
+                        {
+                            Title = "Booster only",
+                            Description = "This function is currently only available for <@&1373145844303527937> and will become available for everyone else later on!"
+                        };
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(Boosterembed).AsEphemeral());
+                        return;
+                    }
+                }
+
+                await ctx.DeferAsync(ephemeral: true);
+
+                string userId = ctx.User.Id.ToString();
+                string economyPath = "./economy.json";
+
+                var jsonText = File.ReadAllText(economyPath);
+                var json = JObject.Parse(jsonText);
+                var entries = (JArray)json["economy"];
+
+                JObject? foundEntry = null;
+                JObject? activeUserData = null;
+
+                foreach (JObject entry in entries)
+                {
+                    if (entry.ContainsKey(userId))
+                    {
+                        foundEntry = entry;
+                        activeUserData = entry[userId] as JObject;
+                        break;
+                    }
+                }
+
+                DateTime now = DateTime.UtcNow;
+
+                if (foundEntry != null)
+                {
+                    DateTime lastClaimed = foundEntry[userId]?["lastclaimed"]?.Value<DateTime>()
+                                           ?? DateTime.MinValue;
+
+                    if (now < lastClaimed.AddDays(1))
+                    {
+                        var remaining = lastClaimed.AddDays(1) - now;
+
+                        var lastClaimedEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "Uh oh..",
+                            Description = $"You must wait {remaining.Hours}h {remaining.Minutes}m before claiming again.",
+                            Color = DiscordColor.Red
+                        };
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(lastClaimedEmbed));
+                        return;
+                    }
+
+                    if (now > lastClaimed.AddDays(2))
+                    {
+                        int streakbreak = foundEntry[userId]!["streak"]!.Value<int>();
+                        streakbreak = 0;
+                        foundEntry[userId]!["streak"] = streakbreak;
+
+                        Console.WriteLine("Removed user's streak.");
+                    }
+
+                    int money = foundEntry[userId]!["money"]!.Value<int>();
+                    int streak = foundEntry[userId]!["streak"]!.Value<int>();
+
+                    streak += 1;
+                    money += 125;
+
+                    foundEntry[userId]!["money"] = money;
+                    foundEntry[userId]!["streak"] = streak;
+                    foundEntry[userId]!["lastclaimed"] = now;
+
+                    Console.WriteLine($"{money}, {streak}, {ctx.User.Username}");
+                }
+                else
+                {
+                    var newEntry = new JObject
+                    {
+                        [userId] = new JObject
+                        {
+                            ["money"] = 125,
+                            ["streak"] = 1,
+                            ["lastclaimed"] = now
+                        }
+                    };
+
+                    entries.Add(newEntry);
+                    activeUserData = newEntry[userId] as JObject;
+                }
+
+                File.WriteAllText(economyPath, json.ToString(Formatting.Indented));
+
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = "Daily Bonus",
+                    Description = $"You have successfully claimed your daily bonus of 125 Stormy Coins! Your new balance is {activeUserData!["money"]} with a streak of {activeUserData!["streak"]} day(s)!",
+                    Color = DiscordColor.Green
+                };
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+            }
+
+            [SlashCommand("balance", "Check your current balance!")]
+            public async Task balance(InteractionContext ctx, [Option("User", "View the balance of a user")] DiscordUser? user = null)
+            {
+                if (vars.nitroOnlyTest)
+                {
+                    bool boosterRole = ctx.Member.Roles.Any(r => r.Id == 1373145844303527937);
+
+                    if (!boosterRole && !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                    {
+                        Console.WriteLine("Not a booster");
+                        var Boosterembed = new DiscordEmbedBuilder
+                        {
+                            Title = "Booster only",
+                            Description = "This function is currently only available for <@&1373145844303527937> and will become available for everyone else later on!"
+                        };
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(Boosterembed).AsEphemeral());
+                        return;
+                    }
+                }
+
+                var targetUserId = user?.Id.ToString() ?? ctx.User.Id.ToString();
+
+                var jsonText = File.ReadAllText("economy.json");
+                var json = JObject.Parse(jsonText);
+                var entries = (JArray)json!["economy"];
+
+                JObject? foundEntry = null;
+                JObject? activeUser = null;
+
+                foreach(JObject entry in entries)
+                {
+                    if(entry.ContainsKey(targetUserId))
+                    {
+                        foundEntry = entry;
+                        activeUser = entry[targetUserId] as JObject;
+                        break;
+                    }
+                }
+
+                if (foundEntry != null)
+                {
+                    var embed = new DiscordEmbedBuilder
+                    {
+                        Title = "Economy - Balance",
+                        Color = DiscordColor.Green,
+                    };
+                    embed.AddField("Money", $"{activeUser!["money"]} Stormy Coins", inline: false);
+                    embed.AddField("Streak", $"{activeUser!["streak"]} day(s)", inline: false);
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                    return;
+                }
+                else
+                {
+                    if (targetUserId != ctx.User.Id.ToString())
+                    {
+                        var ERRORembed = new DiscordEmbedBuilder
+                        {
+                            Title = "404 - Nothing here",
+                            Description = "This user does not have any economy data.",
+                            Color = DiscordColor.Red
+                        };
+
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(ERRORembed).AsEphemeral());
+
+                        return;
+                    }
+
+                    var newUser = new JObject
+                    {
+                        [targetUserId] = new JObject
+                        {
+                            ["money"] = 0,
+                            ["streak"] = 0,
+                        }
+                    };
+
+                    entries.Add(newUser);
+                    activeUser = newUser[targetUserId] as JObject;
+
+                    File.WriteAllText("economy.json", json.ToString());
+
+                    var embed = new DiscordEmbedBuilder
+                    {
+                        Title = "Economy - Balance",
+                        Color = DiscordColor.Green,
+                    };
+                    embed.AddField("Money", $"{activeUser!["money"]} Stormy Coins", inline: false);
+                    embed.AddField("Streak", $"{activeUser!["streak"]} day(s)", inline: false);
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                    return;
+                }
+            }
         }
     }
 }

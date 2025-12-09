@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
     <PackageReference Include="DSharpPlus" Version="4.5.1" />
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.5.1" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.5.1" />
@@ -23,6 +24,12 @@
     <Resource Include="config\config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="config\economy.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
