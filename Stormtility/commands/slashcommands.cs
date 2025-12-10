@@ -11,6 +11,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -370,7 +371,8 @@ namespace Stormtility.commands
                         {
                             ["money"] = 125,
                             ["streak"] = 1,
-                            ["lastclaimed"] = now
+                            ["lastclaimed"] = now,
+                            ["job"] = ""
                         }
                     };
 
@@ -464,6 +466,8 @@ namespace Stormtility.commands
                         {
                             ["money"] = 0,
                             ["streak"] = 0,
+                            ["lastclaimed"] = 0,
+                            ["job"] = ""
                         }
                     };
 
@@ -555,9 +559,10 @@ namespace Stormtility.commands
                         {
                             ["money"] = amount,
                             ["streak"] = 0,
-                            ["lastclaimed"] = 0
+                            ["lastclaimed"] = 0,
+                            ["job"] = ""
                         }
-                    };
+                    }; 
 
                     entries.Add(newUser);
                 }
@@ -572,6 +577,73 @@ namespace Stormtility.commands
                 await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(success).AsEphemeral());
 
                 File.WriteAllText("economy.json", json.ToString());
+            }
+        }
+
+        [SlashCommand("work", "Get a job.")]
+        public async Task work(InteractionContext ctx, [Option("Job", "Yea, I'm aware that j*b is a very bad word.. and I couldn't care less.", autocomplete:true)][Autocomplete(typeof(JobA))] string job)
+        {
+            if (vars.nitroOnlyTest)
+            {
+                bool booster = ctx.Member.Roles.Any(r => r.Id == 1373145844303527937);
+                if(!booster || !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                {
+                    DiscordEmbed permissionsEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - No Permissions",
+                        Description = "You do not have the necessary permissions to use this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsEmbed).AsEphemeral());
+                    return;
+                }
+            }
+
+            var jsonText = File.ReadAllText("jobs.json");
+            var jobRoot = JObject.Parse(jsonText);
+            var jobsDict = (JArray)jobRoot!["jobs"];
+
+            job = job.ToLower();
+
+            foreach(var entry in jobsDict)
+            {
+                if(!entry.Contains(job))
+                {
+                    DiscordEmbed jobNotExist = new DiscordEmbedBuilder
+                    {
+                        Title = "500 - Job doesn't exist",
+                        Description = "The job you selected does not exist.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(jobNotExist).AsEphemeral());
+                    return;
+                }
+            }
+
+            var userJson = File.ReadAllText("economy.json");
+            var userRoot = JObject.Parse(userJson);
+            var userDict = (JArray)userRoot!["economy"];
+
+            foreach(JObject entry in userDict)
+            {
+                if(!entry.ContainsKey(ctx.User.Id.ToString()))
+                {
+                    DiscordEmbed userNotFound = new DiscordEmbedBuilder
+                    {
+                        Title = "500 - Please create a userprofile first.",
+                        Description = "In order to do that please execute /economy daily or /economy balance first.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(userNotFound).AsEphemeral());
+                    return;
+                } else
+                {
+                    // Implementing saving logic here later when I am back home.
+                    // VERY IMPORTANT!!!: Do not forget to add lastChanged so the user can't spam job changes.
+                }
             }
         }
     }

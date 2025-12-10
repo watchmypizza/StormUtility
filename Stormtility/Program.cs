@@ -37,6 +37,8 @@ namespace Stormtility
             Client.GuildMemberUpdated += Client_GuildMemberUpdated;
             Client.MessageCreated += Client_MessageCreated;
 
+            JobCache.Load();
+
             var commandsConfig = new CommandsNextConfiguration()
             {
                 StringPrefixes = new[] { jsonReader.prefix },
