@@ -38,6 +38,7 @@ namespace Stormtility
             Client.MessageCreated += Client_MessageCreated;
 
             JobCache.Load();
+            _ = JobPayout.RunDailyJobAsyncPayout();
 
             var commandsConfig = new CommandsNextConfiguration()
             {

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <None Remove="config\config.json" />
+    <None Remove="config\jobs.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +25,7 @@
     <Resource Include="config\config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="config\jobs.json" />
   </ItemGroup>
 
   <ItemGroup>

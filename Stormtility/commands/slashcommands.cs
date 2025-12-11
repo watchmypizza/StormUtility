@@ -1,4 +1,5 @@
-﻿using DSharpPlus;
+﻿using DiscordRPC;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Newtonsoft.Json;
@@ -372,7 +373,8 @@ namespace Stormtility.commands
                             ["money"] = 125,
                             ["streak"] = 1,
                             ["lastclaimed"] = now,
-                            ["job"] = ""
+                            ["job"] = "",
+                            ["lastChanged"] = 0
                         }
                     };
 
@@ -401,7 +403,6 @@ namespace Stormtility.commands
 
                     if (!boosterRole && !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
                     {
-                        Console.WriteLine("Not a booster");
                         var Boosterembed = new DiscordEmbedBuilder
                         {
                             Title = "Booster only",
@@ -416,14 +417,14 @@ namespace Stormtility.commands
 
                 var jsonText = File.ReadAllText("economy.json");
                 var json = JObject.Parse(jsonText);
-                var entries = (JArray)json!["economy"];
+                var entries = (JArray)json["economy"];
 
                 JObject? foundEntry = null;
                 JObject? activeUser = null;
 
-                foreach(JObject entry in entries)
+                foreach (JObject entry in entries)
                 {
-                    if(entry.ContainsKey(targetUserId))
+                    if (entry.ContainsKey(targetUserId))
                     {
                         foundEntry = entry;
                         activeUser = entry[targetUserId] as JObject;
@@ -433,60 +434,77 @@ namespace Stormtility.commands
 
                 if (foundEntry != null)
                 {
-                    var embed = new DiscordEmbedBuilder
-                    {
-                        Title = "Economy - Balance",
-                        Color = DiscordColor.Green,
-                    };
-                    embed.AddField("Money", $"{activeUser!["money"]} Stormy Coins", inline: false);
-                    embed.AddField("Streak", $"{activeUser!["streak"]} day(s)", inline: false);
-
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
-                    return;
-                }
-                else
-                {
                     if (targetUserId != ctx.User.Id.ToString())
                     {
-                        var ERRORembed = new DiscordEmbedBuilder
+                        var embedOther = new DiscordEmbedBuilder
                         {
-                            Title = "404 - Nothing here",
-                            Description = "This user does not have any economy data.",
-                            Color = DiscordColor.Red
+                            Title = "Economy - Balance",
+                            Color = DiscordColor.Green,
                         };
+                        embedOther.AddField("Money", $"{activeUser["money"]} Stormy Coins");
+                        embedOther.AddField("Streak", $"{activeUser["streak"]} day(s)");
 
-                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(ERRORembed).AsEphemeral());
-
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embedOther).AsEphemeral());
                         return;
                     }
 
-                    var newUser = new JObject
-                    {
-                        [targetUserId] = new JObject
-                        {
-                            ["money"] = 0,
-                            ["streak"] = 0,
-                            ["lastclaimed"] = 0,
-                            ["job"] = ""
-                        }
-                    };
-
-                    entries.Add(newUser);
-                    activeUser = newUser[targetUserId] as JObject;
+                    if (activeUser["job"] == null) activeUser["job"] = "";
+                    if (activeUser["lastChanged"] == null) activeUser["lastChanged"] = 0;
+                    if (activeUser["lastclaimed"] == null) activeUser["lastclaimed"] = DateTime.UtcNow;
 
                     File.WriteAllText("economy.json", json.ToString());
 
-                    var embed = new DiscordEmbedBuilder
+                    var embedSelf = new DiscordEmbedBuilder
                     {
                         Title = "Economy - Balance",
                         Color = DiscordColor.Green,
                     };
-                    embed.AddField("Money", $"{activeUser!["money"]} Stormy Coins", inline: false);
-                    embed.AddField("Streak", $"{activeUser!["streak"]} day(s)", inline: false);
+                    embedSelf.AddField("Money", $"{activeUser["money"]} Stormy Coins");
+                    embedSelf.AddField("Streak", $"{activeUser["streak"]} day(s)");
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embedSelf).AsEphemeral());
                     return;
                 }
+
+                if (targetUserId != ctx.User.Id.ToString())
+                {
+                    var ERRORembed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - Nothing here",
+                        Description = "This user does not have any economy data.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(ERRORembed).AsEphemeral());
+                    return;
+                }
+
+                var newUser = new JObject
+                {
+                    [targetUserId] = new JObject
+                    {
+                        ["money"] = 0,
+                        ["streak"] = 0,
+                        ["lastclaimed"] = DateTime.UtcNow,
+                        ["job"] = "",
+                        ["lastChanged"] = 0
+                    }
+                };
+
+                entries.Add(newUser);
+                activeUser = newUser[targetUserId] as JObject;
+
+                File.WriteAllText("economy.json", json.ToString());
+
+                var embedNew = new DiscordEmbedBuilder
+                {
+                    Title = "Economy - Balance",
+                    Color = DiscordColor.Green,
+                };
+                embedNew.AddField("Money", $"{activeUser["money"]} Stormy Coins");
+                embedNew.AddField("Streak", $"{activeUser["streak"]} day(s)");
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embedNew).AsEphemeral());
             }
 
             [SlashCommand("setmoney", "Set money, admin only command")]
@@ -533,7 +551,7 @@ namespace Stormtility.commands
 
                 foreach (JObject entry in entries)
                 {
-                    if(entry.ContainsKey(targetUserId))
+                    if (entry.ContainsKey(targetUserId))
                     {
                         activeUserData = entry[targetUserId] as JObject;
                         found = true;
@@ -551,7 +569,8 @@ namespace Stormtility.commands
                     money = amount;
 
                     activeUserData["money"] = money;
-                } else
+                }
+                else
                 {
                     JObject newUser = new JObject
                     {
@@ -560,9 +579,10 @@ namespace Stormtility.commands
                             ["money"] = amount,
                             ["streak"] = 0,
                             ["lastclaimed"] = 0,
-                            ["job"] = ""
+                            ["job"] = "",
+                            ["lastChanged"] = 0
                         }
-                    }; 
+                    };
 
                     entries.Add(newUser);
                 }
@@ -578,71 +598,119 @@ namespace Stormtility.commands
 
                 File.WriteAllText("economy.json", json.ToString());
             }
-        }
 
-        [SlashCommand("work", "Get a job.")]
-        public async Task work(InteractionContext ctx, [Option("Job", "Yea, I'm aware that j*b is a very bad word.. and I couldn't care less.", autocomplete:true)][Autocomplete(typeof(JobA))] string job)
-        {
-            if (vars.nitroOnlyTest)
+            [SlashCommand("work", "Get a job.")]
+            public async Task work(InteractionContext ctx, [Option("Job", "Yea, I'm aware that j*b is a very bad word.. and I couldn't care less.", autocomplete: true)][Autocomplete(typeof(JobAutoCompleteProvider))] string job)
             {
-                bool booster = ctx.Member.Roles.Any(r => r.Id == 1373145844303527937);
-                if(!booster || !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                try
                 {
-                    DiscordEmbed permissionsEmbed = new DiscordEmbedBuilder
+                    if (vars.nitroOnlyTest)
                     {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                        bool booster = ctx.Member.Roles.Any(r => r.Id == 1373145844303527937);
+                        if (!booster && !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                        {
+                            DiscordEmbed permissionsEmbed = new DiscordEmbedBuilder
+                            {
+                                Title = "404 - No Permissions",
+                                Description = "You do not have the necessary permissions to use this command.",
+                                Color = DiscordColor.Red
+                            };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsEmbed).AsEphemeral());
-                    return;
-                }
-            }
+                            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsEmbed).AsEphemeral());
+                            return;
+                        }
+                    }
 
-            var jsonText = File.ReadAllText("jobs.json");
-            var jobRoot = JObject.Parse(jsonText);
-            var jobsDict = (JArray)jobRoot!["jobs"];
+                    var jsonText = File.ReadAllText("jobs.json");
+                    var jobRoot = JObject.Parse(jsonText);
+                    var jobsDict = (JObject)jobRoot["jobs"];
 
-            job = job.ToLower();
+                    job = job.ToLower();
 
-            foreach(var entry in jobsDict)
-            {
-                if(!entry.Contains(job))
-                {
-                    DiscordEmbed jobNotExist = new DiscordEmbedBuilder
+                    if (!jobsDict.ContainsKey(job))
                     {
-                        Title = "500 - Job doesn't exist",
-                        Description = "The job you selected does not exist.",
-                        Color = DiscordColor.Red
-                    };
+                        DiscordEmbed jobNotExist = new DiscordEmbedBuilder
+                        {
+                            Title = "500 - Job doesn't exist",
+                            Description = "The job you selected does not exist.",
+                            Color = DiscordColor.Red
+                        };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(jobNotExist).AsEphemeral());
-                    return;
-                }
-            }
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
+                            .AddEmbed(jobNotExist)
+                            .AsEphemeral());
+                        return;
+                    }
 
-            var userJson = File.ReadAllText("economy.json");
-            var userRoot = JObject.Parse(userJson);
-            var userDict = (JArray)userRoot!["economy"];
+                    var userJson = File.ReadAllText("economy.json");
+                    var userRoot = JObject.Parse(userJson);
+                    var userDict = (JArray)userRoot!["economy"];
 
-            foreach(JObject entry in userDict)
-            {
-                if(!entry.ContainsKey(ctx.User.Id.ToString()))
-                {
-                    DiscordEmbed userNotFound = new DiscordEmbedBuilder
+                    JObject? userWrapper = userDict
+                        .OfType<JObject>()
+                        .FirstOrDefault(o => o.ContainsKey(ctx.User.Id.ToString()));
+
+                    if (userWrapper == null)
                     {
-                        Title = "500 - Please create a userprofile first.",
-                        Description = "In order to do that please execute /economy daily or /economy balance first.",
-                        Color = DiscordColor.Red
-                    };
+                        DiscordEmbed userNotFound = new DiscordEmbedBuilder
+                        {
+                            Title = "500 - Please create a userprofile first.",
+                            Description = "In order to do that please execute /economy daily or /economy balance first.",
+                            Color = DiscordColor.Red
+                        };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(userNotFound).AsEphemeral());
-                    return;
-                } else
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(userNotFound).AsEphemeral());
+                        return;
+                    }
+                    else
+                    {
+                        // Implementing saving logic here later when I am back home.
+                        // VERY IMPORTANT!!!: Do not forget to add lastChanged so the user can't spam job changes.
+                        var usrIdStr = ctx.User.Id.ToString();
+                        var userData = (JObject)userWrapper[usrIdStr];
+                        DateTime lastChanged;
+
+                        if (userData["lastChanged"] == null || userData["lastChanged"].Type != JTokenType.Date)
+                        {
+                            lastChanged = DateTime.MinValue;
+                        }else
+                        {
+                            lastChanged = userData["lastChanged"].ToObject<DateTime>();
+                        }
+
+                        TimeSpan cooldown = TimeSpan.FromHours(24);
+                        bool changeJobInvalid = DateTime.UtcNow - lastChanged < cooldown;
+
+                        var now = lastChanged.CompareTo(DateTime.UtcNow);
+                        if (changeJobInvalid)
+                        {
+                            DiscordEmbed changeTooEarly = new DiscordEmbedBuilder
+                            {
+                                Title = "404 - You change jobs too quickly!",
+                                Description = "Please calm down a bit and try again later.",
+                                Color = DiscordColor.Red
+                            };
+
+                            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(changeTooEarly).AsEphemeral());
+                            return;
+                        }
+
+                        userData["job"] = job;
+                        userData["lastChanged"] = DateTime.UtcNow;
+
+                        DiscordEmbed successEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "200 - Success",
+                            Description = $"Successfully changed your job to `{job}`.",
+                            Color = DiscordColor.Green
+                        };
+
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+                    }
+                    File.WriteAllText("economy.json", userRoot.ToString());
+                } catch (Exception e)
                 {
-                    // Implementing saving logic here later when I am back home.
-                    // VERY IMPORTANT!!!: Do not forget to add lastChanged so the user can't spam job changes.
+                    Console.WriteLine(e);
                 }
             }
         }
