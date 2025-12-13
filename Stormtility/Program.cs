@@ -270,7 +270,7 @@ namespace Stormtility
 
                     foreach(var type in ticketTypes)
                     {
-                        var regex = new Regex($@"^{type}-(\d+)$");
+                        var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
                         var match = regex.Match(channelName);
 
                         if (match.Success)

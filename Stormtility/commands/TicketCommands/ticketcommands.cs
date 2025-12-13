@@ -162,7 +162,7 @@ namespace Stormtility.commands.TicketCommands
 
                 foreach (var type in ticketTypes)
                 {
-                    var regex = new Regex($@"^{type}-(\d+)$");
+                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
                     var match = regex.Match(channelName);
 
                     if (match.Success)
@@ -189,6 +189,71 @@ namespace Stormtility.commands.TicketCommands
                 };
 
                 await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(closeBtn).AsEphemeral());
+            }
+
+            [SlashCommand("claim", "Claim the ticket you are currently in.")]
+            public async Task claim(InteractionContext ctx)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                {
+                    var permissionErrorEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - No Permissions",
+                        Description = "You do not have the necessary permissions to use this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                    return;
+                }
+
+                var channelName = ctx.Interaction.Channel.Name;
+                string[] ticketTypes = { "support", "giveaway", "speedtypist" };
+
+                string matchedPrefix = null;
+                int ticketId = 0;
+
+                bool regExChannelName = false;
+
+                //bool regExChannelName = Regex.IsMatch(channelName, @"^support-\d+$");
+                //var match = Regex.Match(channelName, @"^support-(\d+)$");
+
+                foreach (var type in ticketTypes)
+                {
+                    var regex = new Regex($@"^{type}-(\d+)$");
+                    var match = regex.Match(channelName);
+
+                    if (match.Success)
+                    {
+                        matchedPrefix = type;
+                        regExChannelName = true;
+                        ticketId = int.Parse(match.Groups[1].Value);
+                        break;
+                    }
+                }
+
+                if (!regExChannelName)
+                {
+                    var noTicketEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Please use this inside of an open ticket.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    return;
+                }
+
+                var successEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Successfully claimed the ticket."
+                };
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+                successEmbed.Title = $"{ctx.Member.Nickname} has claimed this ticket.";
+                successEmbed.Color = DiscordColor.Gold;
+                await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(successEmbed));
+                await ctx.Interaction.Channel.ModifyAsync(c => c.Name = $"{ctx.User.Username}-{matchedPrefix}-{ticketId}");
+                return;
             }
         }
     }
