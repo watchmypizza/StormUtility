@@ -275,5 +275,33 @@ namespace Stormtility.commands
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
         }
+
+        [SlashCommand("debug", "Toggle debug mode")]
+        public async Task debugMode(InteractionContext ctx)
+        {
+            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.All))
+            {
+                var errorEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "404 - No Permissions",
+                    Description = "You do not have the necessary permissions to use this command.",
+                    Color = DiscordColor.Red
+                };
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                return;
+            }
+
+            if (!vars.debugMode)
+            {
+                vars.debugMode = true;
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Enabled debug mode").AsEphemeral());
+                return;
+            } else
+            {
+                vars.debugMode = false;
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Disabled debug mode").AsEphemeral());
+                return;
+            }
+        }
     }
 }

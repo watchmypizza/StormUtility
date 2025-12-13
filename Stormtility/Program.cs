@@ -2,10 +2,13 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Net.Models;
 using DSharpPlus.SlashCommands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormtility.commands;
+using Stormtility.commands.EconomyCommands;
+using Stormtility.commands.TicketCommands;
 using Stormtility.config;
 using System.Diagnostics.Tracing;
 using System.Runtime.ConstrainedExecution;
@@ -36,6 +39,7 @@ namespace Stormtility
             Client.Ready += Client_Ready;
             Client.GuildMemberUpdated += Client_GuildMemberUpdated;
             Client.MessageCreated += Client_MessageCreated;
+            Client.ComponentInteractionCreated += Client_ComponentInteractionCreated;
 
             JobCache.Load();
             _ = JobPayout.RunDailyJobAsyncPayout();
@@ -52,9 +56,336 @@ namespace Stormtility
 
             Slash = Client.UseSlashCommands();
             Slash.RegisterCommands<slashcommands>();
+            Slash.RegisterCommands<EconomyCommands>();
+            Slash.RegisterCommands<ticketcommands>();
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
+        }
+
+        private static async Task Client_ComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
+        {
+            try
+            {
+                if (args.Id == "ticketoptions")
+                {
+                    var selected = args.Values.FirstOrDefault();
+
+                    if (selected == "support")
+                    {
+                        int ticketId = 0;
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating support channel...").AsEphemeral());
+
+                        var jsonText = File.ReadAllText("tickets.json");
+                        var json = JObject.Parse(jsonText);
+                        var entries = (JArray)json["tickets"];
+
+                        foreach (JObject entry in entries)
+                        {
+                            var supportObj = entry["support"];
+                            if (supportObj != null)
+                            {
+                                ticketId = supportObj["id"]!.Value<int>();
+                                ticketId += 1;
+                                supportObj["id"] = ticketId;
+                            }
+                            break;
+                        }
+
+                        File.WriteAllText("tickets.json", json.ToString());
+
+                        ulong catId = 1429871426386526310;
+                        var cat = args.Interaction.Guild.GetChannel(catId);
+                        ulong staffRole = 1370422448763437207;
+                        var staff = args.Interaction.Guild.GetRole(staffRole);
+                        ulong ticketRole = 1387529661323677827;
+                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                        var member = (DiscordMember)args.Interaction.User;
+
+                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                        var channel = await args.Interaction.Guild.CreateChannelAsync($"support-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                        var supportEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "Support Ticket",
+                            Description = "Staff will assist you shortly, please give us a few minutes to respond.",
+                            Color = DiscordColor.Aquamarine
+                        };
+
+                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                        if (!vars.debugMode)
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                        } else
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                        }
+
+                        return;
+                    }
+                    else if (selected == "speedtypist")
+                    {
+                        int ticketId = 0;
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating speedtypist channel...").AsEphemeral());
+
+                        var jsonText = File.ReadAllText("tickets.json");
+                        var json = JObject.Parse(jsonText);
+                        var entries = (JArray)json["tickets"];
+
+                        foreach (JObject entry in entries)
+                        {
+                            var supportObj = entry["speedtypist"];
+                            if (supportObj != null)
+                            {
+                                ticketId = supportObj["id"]!.Value<int>();
+                                ticketId += 1;
+                                supportObj["id"] = ticketId;
+                            }
+                            break;
+                        }
+
+                        File.WriteAllText("tickets.json", json.ToString());
+
+                        ulong catId = 1429871426386526310;
+                        var cat = args.Interaction.Guild.GetChannel(catId);
+                        ulong staffRole = 1370422448763437207;
+                        var staff = args.Interaction.Guild.GetRole(staffRole);
+                        ulong ticketRole = 1387529661323677827;
+                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                        var member = (DiscordMember)args.Interaction.User;
+
+                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                        var channel = await args.Interaction.Guild.CreateChannelAsync($"speedtypist-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                        var supportEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "Speedtypist Application",
+                            Description = "Staff will assist you shortly, please give us a few minutes to respond.",
+                            Color = DiscordColor.Aquamarine
+                        };
+
+                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                        if (!vars.debugMode)
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                        } else
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                        }
+
+                            return;
+                    } else if (selected == "giveaway")
+                    {
+                        int ticketId = 0;
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating giveaway channel...").AsEphemeral());
+
+                        var jsonText = File.ReadAllText("tickets.json");
+                        var json = JObject.Parse(jsonText);
+                        var entries = (JArray)json["tickets"];
+
+                        foreach (JObject entry in entries)
+                        {
+                            var supportObj = entry["giveaway"];
+                            if (supportObj != null)
+                            {
+                                ticketId = supportObj["id"]!.Value<int>();
+                                ticketId += 1;
+                                supportObj["id"] = ticketId;
+                            }
+                            break;
+                        }
+
+                        File.WriteAllText("tickets.json", json.ToString());
+
+                        ulong catId = 1429871426386526310;
+                        var cat = args.Interaction.Guild.GetChannel(catId);
+                        ulong staffRole = 1370422448763437207;
+                        var staff = args.Interaction.Guild.GetRole(staffRole);
+                        ulong ticketRole = 1387529661323677827;
+                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                        var member = (DiscordMember)args.Interaction.User;
+
+                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                        var channel = await args.Interaction.Guild.CreateChannelAsync($"giveaway-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                        var supportEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "Giveaway Support",
+                            Description = "Staff will assist you shortly, please give us a few minutes to respond.",
+                            Color = DiscordColor.Aquamarine
+                        };
+
+                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
+
+                        if (!vars.debugMode)
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                        } else
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                        }
+
+                        return;
+                    }
+                }
+
+                if(args.Id == "closeticket")
+                {
+                    var channelName = args.Interaction.Channel.Name;
+                    string[] ticketTypes = { "support", "giveaway", "speedtypist" };
+
+                    string matchedPrefix = null;
+                    int ticketId = 0;
+
+                    bool regExChannelName = false;
+
+                    //bool regExChannelName = Regex.IsMatch(channelName, @"^support-\d+$");
+                    //var match = Regex.Match(channelName, @"^support-(\d+)$");
+
+                    foreach(var type in ticketTypes)
+                    {
+                        var regex = new Regex($@"^{type}-(\d+)$");
+                        var match = regex.Match(channelName);
+
+                        if (match.Success)
+                        {
+                            matchedPrefix = type;
+                            regExChannelName = true;
+                            ticketId = int.Parse(match.Groups[1].Value);
+                            break;
+                        }
+                    }
+
+                    if (regExChannelName)
+                    {
+                        ulong closedCat = 1429871639658762281;
+                        var closedCategory = args.Interaction.Guild.GetChannel(closedCat);
+                        var member = (DiscordMember)args.Interaction.User;
+                        if (member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                        {
+                            var embed = new DiscordEmbedBuilder
+                            {
+                                Title = "Closing Ticket...",
+                                Description = "Adding transcript to log and then closing...",
+                                Color = DiscordColor.Red
+                            };
+                            var newChName = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
+
+                            ulong staff = 1370422448763437207;
+                            var staffRole = args.Interaction.Guild.GetRole(staff);
+                            var staffOverwrites = new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
+                            var defaultOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                            await args.Interaction.Channel.ModifyAsync(ch => ch.Name = newChName);
+                            await args.Interaction.Channel.ModifyAsync(ch => ch.Parent = closedCategory);
+                            await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites]);
+                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
+                            await args.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(embed));
+
+                            var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
+                            JObject json;
+
+                            if (string.IsNullOrEmpty(jsonText))
+                            {
+                                json = new JObject
+                                {
+                                    ["transcripts"] = new JObject()
+                                };
+                            }
+                            else
+                            {
+                                json = JObject.Parse(jsonText);
+
+                                if (json["transcripts"]?.Type == JTokenType.Array)
+                                {
+                                    json["transcripts"] = new JObject();
+                                }
+                            }
+
+                            JObject transcripts = (JObject)(json["transcripts"] ?? new JObject());
+
+                            var messages = await args.Interaction.Channel.GetMessagesAsync(1000);
+                            var orderedMessages = messages.Reverse().ToList();
+
+                            JObject ticketTranscript = new JObject();
+                            
+                            foreach(var msg in orderedMessages)
+                            {
+                                if (string.IsNullOrWhiteSpace(msg.Content))
+                                {
+                                    continue;
+                                }
+                                if(msg.Author.IsBot)
+                                {
+                                    continue;
+                                }
+
+                                string userId = msg.Author.Id.ToString();
+                                if (ticketTranscript[userId] == null)
+                                {
+                                    ticketTranscript[userId] = new JObject
+                                    {
+                                        ["messages"] = new JArray()
+                                    };
+                                }
+
+                                ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
+                                {
+                                    ["username"] = msg.Author.Username,
+                                    ["content"] = msg.Content,
+                                    ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
+                                });
+                            }
+
+                            transcripts[$"{matchedPrefix}-{ticketId}"] = ticketTranscript;
+                            json["transcripts"] = transcripts;
+
+                            File.WriteAllText("transcripts.json", json.ToString());
+
+                            return;
+                        } else
+                        {
+                            var permissionErrorEmbed = new DiscordEmbedBuilder
+                            {
+                                Title = "404 - No Permissions",
+                                Description = "You do not have the necessary permissions to perform this action.",
+                                Color = DiscordColor.Red
+                            };
+                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
         private static async Task<bool> checkMessage(DiscordMessage message)

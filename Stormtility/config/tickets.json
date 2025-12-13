@@ -1,0 +1,15 @@
+{
+  "tickets": [
+    {
+      "support": {
+        "id": 0
+      },
+      "speedtypist": {
+        "id": 0
+      },
+      "giveaway": {
+        "id": 0
+      }
+    }
+  ]
+}

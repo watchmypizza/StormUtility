@@ -453,6 +453,71 @@ namespace Stormtility.commands.EconomyCommands
                     Console.WriteLine(e);
                 }
             }
+
+            [SlashCommand("leaderboard", "Show the leaderboard of the richest members in the server.")]
+            public async Task leaderboard(InteractionContext ctx)
+            {
+                if(vars.nitroOnlyTest)
+                {
+                    bool boosterRole = ctx.Member.Roles.Any(r => r.Id == 1373145844303527937);
+
+                    if(!boosterRole && !ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+                    {
+                        var permissionsEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "404 - No Permissions",
+                            Description = "You do not have the necessary permissions to use this command.",
+                            Color = DiscordColor.Red
+                        };
+
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsEmbed).AsEphemeral());
+                        return;
+                    }
+                }
+
+                await ctx.DeferAsync(ephemeral:true);
+
+                var jsonText = File.ReadAllText("economy.json");
+                var json = JObject.Parse(jsonText);
+                var entries = (JArray)json["economy"];
+
+                var userBal = new List<(string userId, int money)>();
+
+                var allUsersObject = entries[0] as JObject;
+
+                foreach(var property in allUsersObject.Properties())
+                {
+                    string userId = property.Name;
+                    var userData = property.Value as JObject;
+
+                    if(userData != null && userData["money"] != null)
+                    {
+                        int money = userData["money"].Value<int>();
+                        userBal.Add((userId, money));
+                    }
+                }
+
+                var topUser = userBal.OrderByDescending(x => x.money).Take(10).ToList();
+                var leaderEmbed = new DiscordEmbedBuilder().WithTitle("Economy - Leaderboards").WithColor(DiscordColor.Gold);
+                DiscordMember user;
+
+                for (int i = 0; i < topUser.Count; i++)
+                {
+                    try
+                    {
+                        user = await ctx.Guild.GetMemberAsync(ulong.Parse(topUser[i].userId));
+                    }
+                    catch
+                    {
+                        user = null;
+                    }
+
+                    string mention = user != null ? user.Username : $"User ID {topUser[i].userId}";
+                    leaderEmbed.AddField($"#{i + 1} - {mention}", $"{topUser[i].money} Stormy Coins", false);
+                }
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(leaderEmbed));
+            }
         }
     }
 }
