@@ -258,6 +258,19 @@ namespace Stormtility
                 if(args.Id == "closeticket")
                 {
                     var channelName = args.Interaction.Channel.Name;
+
+                    if(channelName.Contains("closed-"))
+                    {
+                        var closedEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "This ticket is already closed.",
+                            Color = DiscordColor.Red
+                        };
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(closedEmbed).AsEphemeral());
+                        return;
+                    }
+
                     string[] ticketTypes = { "support", "giveaway", "speedtypist" };
 
                     string matchedPrefix = null;
