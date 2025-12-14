@@ -547,6 +547,37 @@ namespace Stormtility
                 await member.TimeoutAsync(DateTimeOffset.UtcNow.AddMinutes(1), "wrong use of ts");
             }
 
+            string[] ticketTypes = { "support", "giveaway", "speedtypist" };
+
+            var channelName = args.Channel.Name;
+
+            string matchedPrefix = null;
+            int ticketId = 0;
+
+            bool staffRole = member.Roles.Any(r => r.Id == 1370422448763437207);
+
+            bool regExChannelName = false;
+
+            foreach (var type in ticketTypes)
+            {
+                var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                var match = regex.Match(channelName);
+
+                if (match.Success)
+                {
+                    matchedPrefix = type;
+                    ticketId = int.Parse(match.Groups[1].Value);
+
+                    if (channelName.Count(c => c == '-') >= 2) break;
+
+                    if (staffRole)
+                    {
+                        await args.Channel.ModifyAsync(c => c.Name = $"{args.Author.Username}-{matchedPrefix}-{ticketId}");
+                        break;
+                    }
+                }
+            }
+
             return;
         }
 

@@ -38,7 +38,7 @@ namespace Stormtility.commands.TicketCommands
 
                     var select = new DiscordSelectComponent(
                         customId: "ticketoptions",
-                        placeholder: "Balls...",
+                        placeholder: "Choose an option...",
                         options: new List<DiscordSelectComponentOption>()
                         {
                             new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
@@ -48,7 +48,7 @@ namespace Stormtility.commands.TicketCommands
 
                     var supportEmbed = new DiscordEmbedBuilder
                     {
-                        Title = "Support",
+                        Title = "Stormy's Shelter Support",
                         Description = "To create a ticket, make a selection below.",
                         Color = DiscordColor.Gold
                     };
