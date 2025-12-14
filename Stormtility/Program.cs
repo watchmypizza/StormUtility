@@ -7,6 +7,7 @@ using DSharpPlus.SlashCommands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormtility.commands;
+using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.EconomyCommands;
 using Stormtility.commands.TicketCommands;
 using Stormtility.config;
@@ -58,6 +59,7 @@ namespace Stormtility
             Slash.RegisterCommands<slashcommands>();
             Slash.RegisterCommands<EconomyCommands>();
             Slash.RegisterCommands<ticketcommands>();
+            Slash.RegisterCommands<antiraidcommands>();
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
