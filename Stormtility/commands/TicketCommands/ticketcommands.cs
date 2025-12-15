@@ -43,7 +43,6 @@ namespace Stormtility.commands.TicketCommands
                         {
                             new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
                             new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
-                            new("Giveaway Help", "giveaway", "Want to host or inquire about a giveaway?", emoji:new DiscordComponentEmoji("🎉")) // emoji:new DiscordComponentEmoji("🎉")
                         });
 
                     var supportEmbed = new DiscordEmbedBuilder
