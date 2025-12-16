@@ -307,6 +307,21 @@ namespace Stormtility.commands.TicketCommands
                     await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
                     return;
                 }
+
+                bool overwrites = ctx.Interaction.Channel.PermissionOverwrites.Any(o => o.Id == member.Id);
+
+                if (overwrites)
+                {
+                    var failEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "User is already added to the ticket.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
+                    return;
+                }
+
                 var allowPerms = Permissions.AccessChannels | Permissions.ReadMessageHistory | Permissions.AttachFiles | Permissions.AddReactions | Permissions.EmbedLinks | Permissions.SendMessages;
 
                 await ctx.Interaction.Channel.AddOverwriteAsync(member, allowPerms, Permissions.None);
@@ -371,6 +386,20 @@ namespace Stormtility.commands.TicketCommands
                     };
 
                     await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    return;
+                }
+
+                bool overwrites = ctx.Interaction.Channel.PermissionOverwrites.Any(o => o.Id == member.Id);
+
+                if (!overwrites)
+                {
+                    var failEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "User is not added to the ticket.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
                     return;
                 }
 
