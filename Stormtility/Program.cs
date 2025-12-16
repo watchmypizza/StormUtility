@@ -580,6 +580,15 @@ namespace Stormtility
                 }
             }
 
+            if (args.Channel.Id == 1450164600384258058)
+            {
+                bool staff = member.Roles.Any(r => r.Id == 1370422448763437207);
+                if (args.Author.IsBot) return;
+                if (staff) return;
+                if (args.Message.Attachments.Count <= 0) await args.Message.DeleteAsync();
+                else return;
+            }
+
             return;
         }
 
