@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -252,6 +253,137 @@ namespace Stormtility.commands.TicketCommands
                 successEmbed.Color = DiscordColor.Gold;
                 await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(successEmbed));
                 await ctx.Interaction.Channel.ModifyAsync(c => c.Name = $"{ctx.User.Username}-{matchedPrefix}-{ticketId}");
+                return;
+            }
+
+            [SlashCommand("add", "Add a user to the current ticket.")]
+            public async Task addUser(InteractionContext ctx, [Option("user", "The user to add to the ticket.")] DiscordUser user)
+            {
+                if(!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                {
+                    var permissionErrorEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - No Permissions",
+                        Description = "You do not have the necessary permissions to use this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                    return;
+                }
+
+                var member = (DiscordMember)user;
+
+                var channelName = ctx.Interaction.Channel.Name;
+                string[] ticketTypes = { "support", "giveaway", "speedtypist" };
+
+                string matchedPrefix = null;
+                int ticketId = 0;
+
+                bool regExChannelName = false;
+
+                foreach (var type in ticketTypes)
+                {
+                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                    var match = regex.Match(channelName);
+
+                    if (match.Success)
+                    {
+                        matchedPrefix = type;
+                        regExChannelName = true;
+                        ticketId = int.Parse(match.Groups[1].Value);
+                        break;
+                    }
+                }
+
+                if (!regExChannelName)
+                {
+                    var noTicketEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Please use this inside of an open ticket.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    return;
+                }
+                var allowPerms = Permissions.AccessChannels | Permissions.ReadMessageHistory | Permissions.AttachFiles | Permissions.AddReactions | Permissions.EmbedLinks | Permissions.SendMessages;
+
+                await ctx.Interaction.Channel.AddOverwriteAsync(member, allowPerms, Permissions.None);
+
+                var successEmbed = new DiscordEmbedBuilder
+                {
+                    Title = $"Successfully added {member.Username} to the ticket.",
+                    Color = DiscordColor.Gold
+                };
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+
+                return;
+            }
+
+            [SlashCommand("remove", "Remove a user from the current ticket")]
+            public async Task removeUser(InteractionContext ctx, [Option("User", "The user to remove")] DiscordUser user)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                {
+                    var permissionErrorEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - No Permissions",
+                        Description = "You do not have the necessary permissions to use this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                    return;
+                }
+
+                var member = (DiscordMember)user;
+
+                var channelName = ctx.Interaction.Channel.Name;
+                string[] ticketTypes = { "support", "giveaway", "speedtypist" };
+
+                string matchedPrefix = null;
+                int ticketId = 0;
+
+                bool regExChannelName = false;
+
+                foreach (var type in ticketTypes)
+                {
+                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                    var match = regex.Match(channelName);
+
+                    if (match.Success)
+                    {
+                        matchedPrefix = type;
+                        regExChannelName = true;
+                        ticketId = int.Parse(match.Groups[1].Value);
+                        break;
+                    }
+                }
+
+                if (!regExChannelName)
+                {
+                    var noTicketEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Please use this inside of an open ticket.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    return;
+                }
+
+                await ctx.Interaction.Channel.DeleteOverwriteAsync(member);
+
+                var successEmbed = new DiscordEmbedBuilder
+                {
+                    Title = $"Successfully removed {member.Username} to the ticket.",
+                    Color = DiscordColor.Gold
+                };
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+
                 return;
             }
         }

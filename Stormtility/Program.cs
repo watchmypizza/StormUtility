@@ -584,6 +584,7 @@ namespace Stormtility
             {
                 bool staff = member.Roles.Any(r => r.Id == 1370422448763437207);
                 if (args.Author.IsBot) return;
+                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers)) return;
                 if (staff) return;
                 if (args.Message.Attachments.Count <= 0) await args.Message.DeleteAsync();
                 else return;
