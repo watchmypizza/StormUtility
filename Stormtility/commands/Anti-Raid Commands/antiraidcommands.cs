@@ -237,7 +237,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 await antiRaidActions(channels.ToList());
 
-                Thread.Sleep(1000);
+                await Task.Delay(10000);
 
                 HashSet<ulong> StaffCategoryIds = new()
                     {
