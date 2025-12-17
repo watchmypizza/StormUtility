@@ -71,7 +71,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
             [SlashCommand("massban", "Raid cleanup command, mass ban anyone and delete their minutes in a specified time frame.")]
             public async Task massban(InteractionContext ctx, [Option("Duration", "The people to ban that joined in that duration")] string duration)
             {
-                if(!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.All))
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.All))
                 {
                     var permissionsError = new DiscordEmbedBuilder
                     {
@@ -85,7 +85,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     return;
                 }
 
-                if(duration.Length < 2 || !int.TryParse(duration[..^1], out int value))
+                if (duration.Length < 2 || !int.TryParse(duration[..^1], out int value))
                 {
                     await ctx.CreateResponseAsync("Invalid duration format.");
                     return;
@@ -114,14 +114,14 @@ namespace Stormtility.commands.Anti_Raid_Commands
                 int banned = 0;
                 const int BAN_LIMIT = 50;
 
-                foreach(var member in ctx.Guild.Members.Values)
+                foreach (var member in ctx.Guild.Members.Values)
                 {
-                    if(banned >= BAN_LIMIT)
+                    if (banned >= BAN_LIMIT)
                     {
                         return;
                     }
 
-                    if(member.JoinedAt == null)
+                    if (member.JoinedAt == null)
                     {
                         return;
                     }
@@ -140,7 +140,8 @@ namespace Stormtility.commands.Anti_Raid_Commands
                             banned++;
 
                             await Task.Delay(1000);
-                        } catch (Exception e)
+                        }
+                        catch (Exception e)
                         {
                             Console.WriteLine(e);
                         }
@@ -148,6 +149,39 @@ namespace Stormtility.commands.Anti_Raid_Commands
                 }
 
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Massban complete. Banned **{banned}** users."));
+            }
+
+            [SlashCommand("lift", "Lift slowmode of all channels again")]
+            public async Task lift(InteractionContext ctx)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.Administrator))
+                {
+                    var permissionsError = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - Permission Error",
+                        Description = "You do not have the necessary permissions to execute this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsError).AsEphemeral());
+
+                    return;
+                }
+                HashSet<ulong> StaffCategoryIds = new()
+                    {
+                        1373974093191315527,
+                        1370149123692560577,
+                        1373979817174634576
+                    };
+
+                HashSet<ulong> channelsToSkip = new()
+                    {
+                        1450164600384258058,
+                        1323692478301470752,
+                        1322350501081124977,
+                        1391814759418171645
+                    };
+
             }
         }
     }

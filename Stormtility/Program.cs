@@ -442,6 +442,40 @@ namespace Stormtility
             return false;
         }
 
+        public static async Task<bool> antiRaidActions(List<DiscordChannel> channels)
+        {
+            bool antiraid = false;
+
+            HashSet<ulong> StaffCategoryIds = new()
+            {
+                1373974093191315527,
+                1370149123692560577,
+                1373979817174634576
+            };
+
+            HashSet<ulong> channelsToSkip = new()
+            {
+                1450164600384258058,
+                1323692478301470752,
+                1322350501081124977,
+                1391814759418171645
+            };
+
+            foreach(DiscordChannel channel in channels)
+            {
+                TimeSpan duration = TimeSpan.FromMinutes(5);
+
+                if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
+                if(channelsToSkip.Contains(channel.Id)) { continue; }
+
+                await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int)duration.TotalSeconds);
+            }
+
+            antiraid = true;
+
+            return antiraid;
+        }
+
         private static async Task Client_MessageCreated(DiscordClient sender, MessageCreateEventArgs args)
         {
             bool result = await checkMessage(message: args.Message);
@@ -588,6 +622,15 @@ namespace Stormtility
                 if (staff) return;
                 if (args.Message.Attachments.Count <= 0) await args.Message.DeleteAsync();
                 else return;
+            }
+
+            if(args.Channel.Id == 1315142575857864846)
+            {
+                if(args.Message.MessageType == MessageType.AutoModAlert)
+                {
+                    var channels = await args.Guild.GetChannelsAsync();
+                    await antiRaidActions(channels.ToList());
+                }
             }
 
             return;
