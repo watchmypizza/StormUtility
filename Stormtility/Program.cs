@@ -193,7 +193,7 @@ namespace Stormtility
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                         }
 
-                            return;
+                        return;
                     } else if (selected == "giveaway")
                     {
                         int ticketId = 0;

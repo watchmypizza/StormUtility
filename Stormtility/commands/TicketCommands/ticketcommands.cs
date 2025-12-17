@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices.Marshalling;
@@ -17,23 +18,31 @@ namespace Stormtility.commands.TicketCommands
         [SlashCommandGroup("ticket", "ticket system")]
         public class ticketingCommands : ApplicationCommandModule
         {
+            public static async Task<bool> permissionCheck(InteractionContext ctx)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                {
+                    var permissionErrorEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "404 - No Permissions",
+                        Description = "You do not have the necessary permissions to use this command.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                    return false;
+                }
+                return true;
+            }
+
             [SlashCommand("setup", "Set the ticket system up")]
             public async Task ticketsetup(InteractionContext ctx)
             {
                 try
                 {
-                    if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.All))
-                    {
-                        var permissionError = new DiscordEmbedBuilder
-                        {
-                            Title = "404 - No Permissions",
-                            Description = "You do not have the necessary permissions to use this command.",
-                            Color = DiscordColor.Red
-                        };
+                    var check = await permissionCheck(ctx);
 
-                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionError).AsEphemeral());
-                        return;
-                    }
+                    if(!check) { return; }
 
                     await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Setting up...").AsEphemeral());
 
@@ -66,18 +75,9 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("transcript", "View the transcript of a ticket")]
             public async Task viewTranscript(InteractionContext ctx, [Option("ID", "The ID of the ticket transcript to view.")] string ticketId)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
-                {
-                    var permissionErrorEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                var check = await permissionCheck(ctx);
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                    return;
-                }
+                if (!check) { return; }
 
                 await ctx.DeferAsync(ephemeral: false);
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Preparing transcript..."));
@@ -136,18 +136,9 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("close", "Prompt to close the ticket")]
             public async Task closeTicket(InteractionContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
-                {
-                    var permissionErrorEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                var check = await permissionCheck(ctx);
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                    return;
-                }
+                if (!check) { return; }
 
                 var channelName = ctx.Interaction.Channel.Name;
                 string[] ticketTypes = { "support", "giveaway", "speedtypist" };
@@ -194,18 +185,9 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("claim", "Claim the ticket you are currently in.")]
             public async Task claim(InteractionContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
-                {
-                    var permissionErrorEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                var check = await permissionCheck(ctx);
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                    return;
-                }
+                if (!check) { return; }
 
                 var channelName = ctx.Interaction.Channel.Name;
                 string[] ticketTypes = { "support", "giveaway", "speedtypist" };
@@ -259,18 +241,9 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("add", "Add a user to the current ticket.")]
             public async Task addUser(InteractionContext ctx, [Option("user", "The user to add to the ticket.")] DiscordUser user)
             {
-                if(!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
-                {
-                    var permissionErrorEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                var check = await permissionCheck(ctx);
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                    return;
-                }
+                if (!check) { return; }
 
                 var member = (DiscordMember)user;
 
@@ -340,18 +313,9 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("remove", "Remove a user from the current ticket")]
             public async Task removeUser(InteractionContext ctx, [Option("User", "The user to remove")] DiscordUser user)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
-                {
-                    var permissionErrorEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                var check = await permissionCheck(ctx);
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                    return;
-                }
+                if (!check) { return; }
 
                 var member = (DiscordMember)user;
 
@@ -414,6 +378,58 @@ namespace Stormtility.commands.TicketCommands
                 await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
 
                 return;
+            }
+
+            [SlashCommand("staff", "Create a plain ticket.")]
+            public async Task staffTicket(InteractionContext ctx)
+            {
+                var check = await permissionCheck(ctx);
+
+                if (!check) { return; }
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Creating channel...").AsEphemeral());
+
+                var openStaffTicketCategory = ctx.Interaction.Guild.GetChannel(1429871426386526310);
+
+                if (openStaffTicketCategory == null) { return; }
+
+                int ticketId = 0;
+
+                var jsonText = File.ReadAllText("tickets.json");
+                var json = JObject.Parse(jsonText);
+                var entries = (JArray)json["tickets"];
+
+                foreach (JObject entry in entries)
+                {
+                    var supportObj = entry["support"];
+                    if (supportObj != null)
+                    {
+                        ticketId = supportObj["id"]!.Value<int>();
+                        ticketId += 1;
+                        supportObj["id"] = ticketId;
+                    }
+                    break;
+                }
+
+                ulong staffRole = 1370422448763437207;
+                var staff = ctx.Interaction.Guild.GetRole(staffRole);
+
+                var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                var defaultRoleOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                var channel = await ctx.Guild.CreateTextChannelAsync($"support-{ticketId}", openStaffTicketCategory, overwrites: [staffOverwrites, defaultRoleOverwrites]);
+
+                var supportEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Support Ticket",
+                    Description = "Staff will assist you shortly, please give us a few minutes to respond.",
+                    Color = DiscordColor.Aquamarine
+                };
+
+                var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created in {channel.Mention}."));
             }
         }
     }

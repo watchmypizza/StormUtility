@@ -15,8 +15,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
         [SlashCommandGroup("antiraid", "Raid prevention commands")]
         public class antiraidcmds : ApplicationCommandModule
         {
-            [SlashCommand("slowmode", "Set a custom slowmode for the channel this command is executed in.")]
-            public async Task slowmode(InteractionContext ctx, [Option("Duration", "The duration of the slowmode")] string duration)
+            public static async Task<bool> permissionCheck(InteractionContext ctx)
             {
                 if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ManageChannels))
                 {
@@ -29,8 +28,17 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                     await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsError).AsEphemeral());
 
-                    return;
+                    return false;
                 }
+                return true;
+            }
+
+            [SlashCommand("slowmode", "Set a custom slowmode for the channel this command is executed in.")]
+            public async Task slowmode(InteractionContext ctx, [Option("Duration", "The duration of the slowmode")] string duration)
+            {
+                var check = await permissionCheck(ctx);
+
+                if(!check) { return; }
 
                 int value;
 
@@ -71,19 +79,9 @@ namespace Stormtility.commands.Anti_Raid_Commands
             [SlashCommand("massban", "Raid cleanup command, mass ban anyone and delete their minutes in a specified time frame.")]
             public async Task massban(InteractionContext ctx, [Option("Duration", "The people to ban that joined in that duration")] string duration)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.All))
-                {
-                    var permissionsError = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - Permission Error",
-                        Description = "You do not have the necessary permissions to execute this command.",
-                        Color = DiscordColor.Red
-                    };
+                var check = await permissionCheck(ctx);
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsError).AsEphemeral());
-
-                    return;
-                }
+                if (!check) { return; }
 
                 if (duration.Length < 2 || !int.TryParse(duration[..^1], out int value))
                 {
@@ -154,19 +152,12 @@ namespace Stormtility.commands.Anti_Raid_Commands
             [SlashCommand("lift", "Lift slowmode of all channels again")]
             public async Task lift(InteractionContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.Administrator))
-                {
-                    var permissionsError = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - Permission Error",
-                        Description = "You do not have the necessary permissions to execute this command.",
-                        Color = DiscordColor.Red
-                    };
+                await ctx.DeferAsync();
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsError).AsEphemeral());
+                var check = await permissionCheck(ctx);
 
-                    return;
-                }
+                if (!check) { return; }
+
                 HashSet<ulong> StaffCategoryIds = new()
                     {
                         1373974093191315527,
@@ -182,6 +173,102 @@ namespace Stormtility.commands.Anti_Raid_Commands
                         1391814759418171645
                     };
 
+                var channels = await ctx.Guild.GetChannelsAsync();
+                foreach(DiscordChannel channel in channels)
+                {
+                    if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
+                    if (channelsToSkip.Contains(channel.Id)) { continue; }
+
+                    await channel.ModifyAsync(mod => mod.PerUserRateLimit = 0);
+                }
+
+                var successEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Lifted slowmode of all channels.",
+                    Color = DiscordColor.Gold
+                };
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(successEmbed));
+            }
+            public static async Task<bool> antiRaidActions(List<DiscordChannel> channels)
+            {
+                bool antiraid = false;
+
+                HashSet<ulong> StaffCategoryIds = new()
+                {
+                    1373974093191315527,
+                    1370149123692560577,
+                    1373979817174634576
+                };
+
+                    HashSet<ulong> channelsToSkip = new()
+                {
+                    1450164600384258058,
+                    1323692478301470752,
+                    1322350501081124977,
+                    1391814759418171645
+                };
+
+                foreach (DiscordChannel channel in channels)
+                {
+                    TimeSpan duration = TimeSpan.FromMinutes(5);
+
+                    if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
+                    if (channelsToSkip.Contains(channel.Id)) { continue; }
+
+                    await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int)duration.TotalSeconds);
+                }
+
+                antiraid = true;
+
+                return antiraid;
+            }
+
+            [SlashCommand("test", "Test the automatic slowmode feature.")]
+            public async Task antiraidTest(InteractionContext ctx)
+            {
+                await ctx.DeferAsync(true);
+
+                var check = await permissionCheck(ctx);
+
+                if (!check) { return; }
+
+                var channels = await ctx.Interaction.Guild.GetChannelsAsync();
+
+                await antiRaidActions(channels.ToList());
+
+                Thread.Sleep(1000);
+
+                HashSet<ulong> StaffCategoryIds = new()
+                    {
+                        1373974093191315527,
+                        1370149123692560577,
+                        1373979817174634576
+                    };
+
+                HashSet<ulong> channelsToSkip = new()
+                    {
+                        1450164600384258058,
+                        1323692478301470752,
+                        1322350501081124977,
+                        1391814759418171645
+                    };
+
+                foreach (DiscordChannel channel in channels)
+                {
+                    if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
+                    if (channelsToSkip.Contains(channel.Id)) { continue; }
+
+                    await channel.ModifyAsync(mod => mod.PerUserRateLimit = 0);
+                }
+
+                var successEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Lifted slowmode of all channels.",
+                    Color = DiscordColor.Gold
+                };
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(successEmbed));
             }
         }
     }
