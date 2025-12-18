@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Stormtility.commands;
 using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.EconomyCommands;
+using Stormtility.commands.MakeItAQuote;
 using Stormtility.commands.TicketCommands;
 using Stormtility.config;
 using System.Collections.Generic;
