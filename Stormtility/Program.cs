@@ -713,6 +713,7 @@ namespace Stormtility
 
         private static Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
         {
+            Console.WriteLine($"Logged in as {Client.CurrentUser.Username}#{Client.CurrentUser.Discriminator}");
             return Task.CompletedTask;
         }
     }
