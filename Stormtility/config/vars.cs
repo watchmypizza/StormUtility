@@ -14,5 +14,6 @@ namespace Stormtility.config
         public static ulong modLogs { get; } = 1445401844611547356;
         public static ulong blacklistRole { get; } = 1397404869702320260;
         public static bool debugMode { get; set; } = false;
+        public static Dictionary<string, (bool isBad, DateTime expiresAt)> inviteCache = [];
     }
 }

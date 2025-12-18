@@ -11,7 +11,9 @@ using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.EconomyCommands;
 using Stormtility.commands.TicketCommands;
 using Stormtility.config;
+using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -411,32 +413,47 @@ namespace Stormtility
 
             Regex inviteRegex = new Regex(@"https://discord\.gg/([a-zA-Z0-9]+)");
 
-            Match match = inviteRegex.Match(content);
-            if (!match.Success)
-                return false;
-
-            string inviteCode = match.Groups[1].Value;
-
-            string url = $"https://discord.com/api/v10/invites/{inviteCode}?with_counts=true";
-
-            using var http = new HttpClient();
-            var response = await http.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
-                return false;
-
-            string jsonText = await response.Content.ReadAsStringAsync();
-            var json = JObject.Parse(jsonText);
-
-            string? guildName = json["guild"]?["name"]?.ToString();
-
-            if (guildName == null)
-                return false;
-
-            foreach (string word in blacklistedWords)
+            var matches = inviteRegex.Matches(content);
+            foreach (Match match in matches)
             {
-                if (guildName.Contains(word, StringComparison.OrdinalIgnoreCase))
-                    return true;
+                if (!match.Success)
+                    continue;
+
+                string inviteCode = match.Groups[1].Value;
+
+                if (vars.inviteCache.TryGetValue(inviteCode, out var cacheEntry))
+                {
+                    if (DateTime.UtcNow < cacheEntry.expiresAt)
+                    {
+                        return cacheEntry.isBad;
+                    }
+                    else
+                    {
+                        vars.inviteCache.Remove(inviteCode);
+                    }
+                }
+
+                string url = $"https://discord.com/api/v10/invites/{inviteCode}?with_counts=true";
+
+                using var http = new HttpClient();
+                var response = await http.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                    continue;
+
+                string jsonText = await response.Content.ReadAsStringAsync();
+                var json = JObject.Parse(jsonText);
+
+                string? guildName = json["guild"]?["name"]?.ToString();
+
+                if (guildName == null)
+                    continue;
+
+                bool isBad = blacklistedWords.Any(word => guildName.Contains(word, StringComparison.OrdinalIgnoreCase));
+
+                vars.inviteCache[inviteCode] = (isBad, DateTime.UtcNow.AddMinutes(10));
+
+                return isBad;
             }
 
             return false;
