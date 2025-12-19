@@ -38,7 +38,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
             {
                 var check = await permissionCheck(ctx);
 
-                if(!check) { return; }
+                if (!check) { return; }
 
                 int value;
 
@@ -174,7 +174,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     };
 
                 var channels = await ctx.Guild.GetChannelsAsync();
-                foreach(DiscordChannel channel in channels)
+                foreach (DiscordChannel channel in channels)
                 {
                     if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
                     if (channelsToSkip.Contains(channel.Id)) { continue; }
@@ -201,7 +201,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     1373979817174634576
                 };
 
-                    HashSet<ulong> channelsToSkip = new()
+                HashSet<ulong> channelsToSkip = new()
                 {
                     1450164600384258058,
                     1323692478301470752,
