@@ -711,10 +711,11 @@ namespace Stormtility
         }
 
 
-        private static Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
+        private static async Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
         {
+            await sender.UpdateStatusAsync(new DiscordActivity("WATCHING STORMYXV", ActivityType.Watching), UserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
             Console.WriteLine($"Logged in as {Client.CurrentUser.Username}#{Client.CurrentUser.Discriminator}");
-            return Task.CompletedTask;
+            return;
         }
     }
 }
