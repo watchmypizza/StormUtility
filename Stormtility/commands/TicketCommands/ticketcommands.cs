@@ -431,6 +431,86 @@ namespace Stormtility.commands.TicketCommands
                 await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created in {channel.Mention}."));
             }
+
+            public async Task<bool> checkChannelName(InteractionContext ctx, DiscordChannel channel)
+            {
+                var channelName = ctx.Interaction.Channel.Name;
+                string[] ticketTypes = { "support", "giveaway", "speedtypist" };
+
+                string matchedPrefix = null;
+                int ticketId = 0;
+
+                bool regExChannelName = false;
+
+                foreach (var type in ticketTypes)
+                {
+                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                    var match = regex.Match(channelName);
+
+                    if (match.Success)
+                    {
+                        matchedPrefix = type;
+                        regExChannelName = true;
+                        ticketId = int.Parse(match.Groups[1].Value);
+                        break;
+                    }
+                }
+
+                if (!regExChannelName)
+                {
+                    var noTicketEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Please use this inside of an open ticket.",
+                        Color = DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    return false;
+                }
+                return true;
+            }
+
+            [SlashCommand("addrole", "Add a role to the current ticket.")]
+            public async Task addrole(InteractionContext ctx, [Option("role", "The role to add to the current ticket.")] DiscordRole role)
+            {
+                await ctx.DeferAsync(true);
+
+                bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
+
+                if (!isTicket) { return; }
+
+                await ctx.Interaction.Channel.AddOverwriteAsync(role, allow: Permissions.SendMessages | Permissions.AccessChannels | Permissions.AttachFiles | Permissions.EmbedLinks, deny: Permissions.None);
+
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = $"Added role {role.Name} to the channel",
+                    Color = DiscordColor.Gold
+                };
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                return;
+            }
+
+            [SlashCommand("removerole", "Remove a role from the current ticket")]
+            public async Task removerole(InteractionContext ctx, [Option("role", "The role to remove from the current ticket.")] DiscordRole role)
+            {
+                await ctx.DeferAsync(true);
+
+                bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
+
+                if (!isTicket) return;
+
+                await ctx.Interaction.Channel.DeleteOverwriteAsync(role);
+
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = $"Removed role {role.Name} from the channel",
+                    Color = DiscordColor.Gold
+                };
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                return;
+            }
         }
     }
 }
