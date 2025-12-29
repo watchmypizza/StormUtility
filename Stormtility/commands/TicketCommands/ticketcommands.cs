@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.Marshalling;
@@ -285,7 +286,14 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("close", "Prompt to close the ticket")]
             public async Task closeTicket(InteractionContext ctx)
             {
-                await transcript(ctx, "close");
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title="Close Ticket",
+                    Color=DiscordColor.Red
+                };
+                var button = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(button).AsEphemeral());
             }
 
             [SlashCommand("delete", "Delete the current ticket.")]
