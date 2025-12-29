@@ -713,7 +713,7 @@ namespace Stormtility
 
         private static async Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
         {
-            await sender.UpdateStatusAsync(new DiscordActivity("Watching stitchy", ActivityType.Watching), UserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
+            await sender.UpdateStatusAsync(new DiscordActivity("Playing Genshin Impact | Rolling for Furina", ActivityType.Playing), UserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
             Console.WriteLine($"Logged in as {Client.CurrentUser.Username}#{Client.CurrentUser.Discriminator}");
             return;
         }
