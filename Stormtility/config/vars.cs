@@ -15,5 +15,7 @@ namespace Stormtility.config
         public static ulong blacklistRole { get; } = 1397404869702320260;
         public static bool debugMode { get; set; } = false;
         public static Dictionary<string, (bool isBad, DateTime expiresAt)> inviteCache = [];
+        public static Dictionary<ulong, Queue<string>> levenshteinsCache = [];
+        public static int levenshteinmessages = 0;
     }
 }

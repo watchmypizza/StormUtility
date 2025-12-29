@@ -14,6 +14,7 @@ using Stormtility.commands.TicketCommands;
 using Stormtility.config;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Text.RegularExpressions;
@@ -601,6 +602,47 @@ namespace Stormtility
                 await member.TimeoutAsync(DateTimeOffset.UtcNow.AddMinutes(1), "wrong use of ts");
             }
 
+            try
+            {
+                if(args.Channel.Id == 1178834894399471627)
+                {
+                    return;
+                }
+
+                if (!vars.levenshteinsCache.TryGetValue(args.Author.Id, out var queue))
+                {
+                    queue = new Queue<string>();
+                    vars.levenshteinsCache[args.Author.Id] = queue;
+                }
+
+                if (queue.Count >= 1)
+                {
+                    // get previous message (NOT the one we're about to add)
+                    string prevMsg = queue.Last();
+
+                    double levenshteinresult =
+                        calculationsanddumbassmath.LevenshteinRatio(prevMsg, content);
+
+                    if (levenshteinresult >= 0.825)
+                    {
+                        vars.levenshteinmessages++;
+                        if (vars.levenshteinmessages >= 3)
+                            await args.Message.DeleteAsync();
+                    }
+                    else
+                    {
+                        vars.levenshteinmessages = 0;
+                    }
+                }
+
+                // ADD MESSAGE LAST — AFTER COMPARISON
+                addMessageToLevenshteinCache(args.Author.Id, content);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
             string[] ticketTypes = { "support", "giveaway", "speedtypist" };
 
             var channelName = args.Channel.Name;
@@ -652,6 +694,22 @@ namespace Stormtility
             }
 
             return;
+        }
+
+        public static async void addMessageToLevenshteinCache(ulong userId, string messageContent)
+        {
+            if(!vars.levenshteinsCache.TryGetValue(userId, out var queue))
+            {
+                queue = new Queue<string>();
+                vars.levenshteinsCache[userId] = queue;
+            }
+
+            if(queue.Count >= 5)
+            {
+                queue.Dequeue();
+            }
+
+            queue.Enqueue(messageContent);
         }
 
         private static Task Client_GuildMemberUpdated(DiscordClient sender, GuildMemberUpdateEventArgs args)
