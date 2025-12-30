@@ -11,6 +11,7 @@ using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.EconomyCommands;
 using Stormtility.commands.MakeItAQuote;
 using Stormtility.commands.TicketCommands;
+using Stormtility.commands.UtilityCommands;
 using Stormtility.config;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
@@ -64,6 +65,7 @@ namespace Stormtility
             Slash.RegisterCommands<EconomyCommands>();
             Slash.RegisterCommands<ticketcommands>();
             Slash.RegisterCommands<antiraidcommands>();
+            Slash.RegisterCommands<utilitycommands>();
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
