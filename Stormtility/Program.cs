@@ -10,6 +10,7 @@ using Stormtility.commands;
 using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.EconomyCommands;
 using Stormtility.commands.MakeItAQuote;
+using Stormtility.commands.TicketCommands.autocompletehelper;
 using Stormtility.commands.TicketCommands;
 using Stormtility.commands.UtilityCommands;
 using Stormtility.config;
@@ -20,6 +21,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
 
 namespace Stormtility
 {
@@ -389,6 +391,8 @@ namespace Stormtility
 
                             File.WriteAllText("transcripts.json", json.ToString());
 
+                            autocompletehandler.LoadTranscriptCache("transcripts.json");
+
                             return;
                         } else
                         {
@@ -622,8 +626,7 @@ namespace Stormtility
                     // get previous message (NOT the one we're about to add)
                     string prevMsg = queue.Last();
 
-                    double levenshteinresult =
-                        calculationsanddumbassmath.LevenshteinRatio(prevMsg, content);
+                    double levenshteinresult = calculationsanddumbassmath.LevenshteinRatio(prevMsg, content);
 
                     if (levenshteinresult >= 0.825)
                     {
@@ -775,6 +778,8 @@ namespace Stormtility
         {
             await sender.UpdateStatusAsync(new DiscordActivity("Playing Genshin Impact | Rolling for Furina", ActivityType.Playing), UserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
             Console.WriteLine($"Logged in as {Client.CurrentUser.Username}#{Client.CurrentUser.Discriminator}");
+            autocompletehandler.LoadTranscriptCache("transcripts.json");
+            autocompletehandler.fileSysWatcher("/transcripts.json");
             return;
         }
     }

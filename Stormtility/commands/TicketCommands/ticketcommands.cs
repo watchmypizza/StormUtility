@@ -7,10 +7,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Stormtility.commands.TicketCommands.autocompletehelper;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -76,7 +78,7 @@ namespace Stormtility.commands.TicketCommands
             }
 
             [SlashCommand("transcript", "View the transcript of a ticket")]
-            public async Task viewTranscript(InteractionContext ctx, [Option("ID", "The ID of the ticket transcript to view.")] string ticketId)
+            public async Task viewTranscript(InteractionContext ctx, [Option("ticketId", "The ID of the ticket to view")] [Autocomplete(typeof(autocompletehandler))] string ticketId)
             {
                 var check = await permissionCheck(ctx);
 
@@ -279,6 +281,8 @@ namespace Stormtility.commands.TicketCommands
                 json["transcripts"] = transcripts;
 
                 File.WriteAllText("transcripts.json", json.ToString());
+
+                autocompletehandler.LoadTranscriptCache("transcripts.json");
 
                 return;
             }
