@@ -67,6 +67,7 @@ namespace Stormtility
             Slash.RegisterCommands<ticketcommands>();
             Slash.RegisterCommands<antiraidcommands>();
             Slash.RegisterCommands<utilitycommands>();
+            Slash.RegisterCommands<HelpCommand>();
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
