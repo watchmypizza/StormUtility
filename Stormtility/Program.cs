@@ -415,7 +415,7 @@ namespace Stormtility
 
         private static async Task<bool> checkMessage(DiscordMessage message)
         {
-            List<string> blacklistedWords = new List<string> {"18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", "erp", "erotic", "hanime", "hentai"};
+            List<string> blacklistedWords = new List<string> {"18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", "erp", "erotic", "hanime", "hentai", "uttp"};
 
             string content = message.Content;
 
