@@ -265,8 +265,10 @@ namespace Stormtility
                     }
                 }
 
-                if(args.Id == "closeticket")
+                if (args.Id == "closeticket")
                 {
+                    List<string> imageURL = [];
+
                     var channelName = args.Interaction.Channel.Name;
 
                     if(channelName.Contains("closed-"))
@@ -360,6 +362,10 @@ namespace Stormtility
                             
                             foreach(var msg in orderedMessages)
                             {
+                                foreach (var attachments in msg.Attachments)
+                                {
+                                    imageURL.Add(attachments.Url);
+                                }
                                 if (string.IsNullOrWhiteSpace(msg.Content))
                                 {
                                     continue;
@@ -381,7 +387,7 @@ namespace Stormtility
                                 ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
                                 {
                                     ["username"] = msg.Author.Username,
-                                    ["content"] = msg.Content,
+                                    ["content"] = $"{msg.Content} {string.Join(" ", imageURL)}",
                                     ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
                                 });
                             }

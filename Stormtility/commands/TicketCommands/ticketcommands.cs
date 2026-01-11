@@ -230,35 +230,47 @@ namespace Stormtility.commands.TicketCommands
 
                 var messages = await ctx.Interaction.Channel.GetMessagesAsync(1000);
                 var orderedMessages = messages.Reverse().ToList();
+                List<string> imageURL = [];
 
                 JObject ticketTranscript = new JObject();
 
-                foreach (var msg in orderedMessages)
+                try
                 {
-                    if (string.IsNullOrWhiteSpace(msg.Content))
+                    foreach (var msg in orderedMessages)
                     {
-                        continue;
-                    }
-                    if (msg.Author.IsBot)
-                    {
-                        continue;
-                    }
-
-                    string userId = msg.Author.Id.ToString();
-                    if (ticketTranscript[userId] == null)
-                    {
-                        ticketTranscript[userId] = new JObject
+                        foreach (var attachments in msg.Attachments)
                         {
-                            ["messages"] = new JArray()
-                        };
-                    }
+                            imageURL.Add(attachments.Url);
+                        }
 
-                    ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
-                    {
-                        ["username"] = msg.Author.Username,
-                        ["content"] = msg.Content,
-                        ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
-                    });
+                        if (string.IsNullOrWhiteSpace(msg.Content))
+                        {
+                            continue;
+                        }
+                        if (msg.Author.IsBot)
+                        {
+                            continue;
+                        }
+
+                        string userId = msg.Author.Id.ToString();
+                        if (ticketTranscript[userId] == null)
+                        {
+                            ticketTranscript[userId] = new JObject
+                            {
+                                ["messages"] = new JArray()
+                            };
+                        }
+
+                        ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
+                        {
+                            ["username"] = msg.Author.Username,
+                            ["content"] = $"{msg.Content} {string.Join("\n", imageURL)}",
+                            ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
+                        });
+                    }
+                } catch(Exception e)
+                {
+                    Console.WriteLine(e);
                 }
 
                 var transcriptKey = $"{matchedPrefix}-{ticketId}";
