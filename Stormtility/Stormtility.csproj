@@ -8,34 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="config\config.json" />
-    <None Remove="config\jobs.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
     <PackageReference Include="DSharpPlus" Version="4.5.1" />
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.5.1" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.5.1" />
     <PackageReference Include="DSharpPlus.SlashCommands" Version="4.5.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="config\config.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="config\jobs.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="config\economy.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="commands\Utility\" />
   </ItemGroup>
 
 </Project>
