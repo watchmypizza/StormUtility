@@ -1,4 +1,6 @@
 ﻿using DSharpPlus;
+using DSharpPlus.SlashCommands;
+using Stormtility.commands;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Nodes;
 
@@ -6,28 +8,48 @@ namespace gamebot
 {
     public class Program
     {
-        private static string getEnv(string envFilePath)
+        public static string apiKey { get; set; }
+        private static Dictionary<string, string> ReadEnv(string envFilePath)
         {
-            if(File.Exists(envFilePath))
+            var env = new Dictionary<string, string>();
+
+            if (!File.Exists(envFilePath))
+                return env;
+
+            foreach (var line in File.ReadAllLines(envFilePath))
             {
-                var lines = File.ReadAllLines(envFilePath);
-                foreach(var line in lines)
-                {
-                    var parts = line.Split('=', 2);
-                    if(parts.Length == 2 && parts[0] == "DISCORD_BOT_TOKEN")
-                    {
-                        return parts[1];
-                    }
-                }
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                    continue;
+
+                var parts = line.Split('=', 2);
+                if (parts.Length != 2)
+                    continue;
+
+                env[parts[0].Trim()] = parts[1].Trim();
             }
-            return "";
+
+            return env;
         }
 
-        string Token = getEnv(".env");
-        
-        DiscordClient client = new DiscordClient(new DiscordConfiguration()
+        static async Task Main(string[] args)
         {
-            Token = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-        });
+            var env = ReadEnv(".env");
+            string token = env["DISCORD_BOT_TOKEN"];
+            apiKey = env["API_KEY"];
+
+            DiscordClient client = new DiscordClient(new DiscordConfiguration()
+            {
+                Token = token,
+                AutoReconnect = true,
+                LogUnknownEvents = false,
+                Intents=DiscordIntents.All
+            });
+
+            var sc = client.UseSlashCommands();
+            sc.RegisterCommands<gamecommands>();
+
+            await client.ConnectAsync();
+            await Task.Delay(-1);
+        }
     }
 }
