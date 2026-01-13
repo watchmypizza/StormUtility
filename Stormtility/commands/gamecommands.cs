@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Stormtility.commands
 {
@@ -271,7 +272,7 @@ namespace Stormtility.commands
                     bool isActive = doc.RootElement.GetProperty("gameJoinRestriction").GetProperty("active").GetBoolean();
                     string reason = doc.RootElement.GetProperty("gameJoinRestriction").GetProperty("displayReason").ToString();
 
-                    if(isActive)
+                    if (isActive)
                     {
                         var activeEmbed = new DiscordEmbedBuilder
                         {
@@ -293,6 +294,115 @@ namespace Stormtility.commands
                 else
                 {
                     await ctx.CreateResponseAsync($"There was an error completing the request.", true);
+                }
+            }
+
+            [SlashCommand("tempban", "Temporarily ban someone")]
+            public async Task tempban(InteractionContext ctx, [Option("UserID", "The User ID for the user to ban.")] long userId, [Option("Reason", "The reason for the ban")] string reason, [Option("Duration", "The duration of the ban")] string duration)
+            {
+                bool isAdmin = await getAdmin(ctx);
+                if(!isAdmin)
+                {
+                    return;
+                }
+
+                Regex regex = new Regex(@"(\d+)(y|mo|[dhms])");
+
+                TimeSpan total = TimeSpan.Zero;
+                int parsedTime = 0;
+
+                foreach (Match match in regex.Matches(duration))
+                {
+                    int value = int.Parse(match.Groups[1].Value);
+                    string unit = match.Groups[2].Value;
+
+                    switch (unit)
+                    {
+                        case "y":
+                            parsedTime = value * 365;
+                            total += TimeSpan.FromDays(parsedTime);
+                            break;
+                        case "mo":
+                            parsedTime = value * 30;
+                            total += TimeSpan.FromDays(parsedTime);
+                            break;
+                        case "d":
+                            total += TimeSpan.FromDays(value);
+                            break;
+                        case "h":
+                            total += TimeSpan.FromHours(value);
+                            break;
+                        case "m":
+                            total += TimeSpan.FromMinutes(value);
+                            break;
+                        case "s":
+                            total += TimeSpan.FromSeconds(value);
+                            break;
+                        default:
+                            await ctx.CreateResponseAsync("Invalid duration.", true);
+                            return;
+                    }
+                }
+
+                var apiRequest = $"https://apis.roblox.com/cloud/v2/universes/9439461291/user-restrictions/{userId}";
+                var httpClient = new HttpClient();
+                var payload = new
+                {
+                    path = $"universes/9439461291/user-restrictions/{userId}",
+                    gameJoinRestriction = new
+                    {
+                        active = true,
+                        duration = (int)total.TotalSeconds + "s",
+                        privateReason = reason,
+                        displayReason = reason,
+                        excludeAltAccounts = false
+                    }
+                };
+                var totalAmt = "";
+                if (total.TotalSeconds >= 3.154e+7)
+                {
+                    totalAmt = $"~{Math.Round(total.TotalDays / 365, 2)} years";
+                }
+                else if (total.TotalSeconds >= 2628e+6)
+                {
+                    totalAmt = $"~{Math.Round(total.TotalDays / 30, 2)} months";
+                }
+                else if (total.TotalSeconds >= 86400)
+                {
+                    totalAmt = $"{Math.Round(total.TotalDays, 2)} days";
+                }
+                else if (total.TotalSeconds >= 3600)
+                {
+                    totalAmt = $"{Math.Round(total.TotalHours, 2)} hours";
+                }
+                else if (total.TotalSeconds >= 60)
+                {
+                    totalAmt = $"{Math.Round(total.TotalMinutes, 2)} minutes";
+                }
+                else
+                {
+                    totalAmt = $"{Math.Round(total.TotalSeconds, 2)} seconds";
+                }
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
+                var request = await httpClient.PatchAsync(apiRequest, content);
+                var responseContent = await request.Content.ReadAsStringAsync();
+                Console.WriteLine(responseContent);
+                if (request.IsSuccessStatusCode)
+                {
+                    var successEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Success!",
+                        Description = $"{userId} has been banned for {totalAmt}",
+                        Color=DiscordColor.Red
+                    };
+                    await ctx.CreateResponseAsync(successEmbed.Build(), true);
+                    return;
+                } else
+                {
+                    await ctx.CreateResponseAsync("An error has occured. Are we rate limited?", true);
+                    return;
                 }
             }
         }
