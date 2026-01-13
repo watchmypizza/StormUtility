@@ -405,6 +405,49 @@ namespace Stormtility.commands
                     return;
                 }
             }
+
+            [SlashCommand("kick", "Kick an user from the game")]
+            public async Task kick(InteractionContext ctx, [Option("userId", "User to kick")] long user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
+            {
+                bool hasAdmin = await getAdmin(ctx);
+                if (!hasAdmin)
+                {
+                    return;
+                }
+                var API_KEY = Program.apiKey;
+                var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/user-restrictions/{user}";
+                var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
+                var payload = new
+                {
+                    path = $"universes/9439461291/user-restrictions/{user}",
+                    gameJoinRestriction = new
+                    {
+                        active = true,
+                        privateReason = "Moderator action",
+                        displayReason = $"{reason}",
+                        excludeAltAccounts = false,
+                        duration = "1s"
+                    }
+                };
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PatchAsync(url, content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var kickEmbed = new DiscordEmbedBuilder()
+                    {
+                        Title = "Kick",
+                        Description = $"{user} has been kicked for `{reason}`",
+                        Color = DiscordColor.Orange
+                    };
+                    await ctx.CreateResponseAsync(kickEmbed.Build(), true);
+                }
+                else
+                {
+                    await ctx.CreateResponseAsync($"There was an error completing the request. {response.StatusCode}", true);
+                }
+            }
         }
     }
 }
