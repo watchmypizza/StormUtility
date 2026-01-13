@@ -48,8 +48,16 @@ namespace gamebot
             var sc = client.UseSlashCommands();
             sc.RegisterCommands<gamecommands>();
 
+            client.Ready += Client_Ready;
+
             await client.ConnectAsync();
             await Task.Delay(-1);
+        }
+
+        private static Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs args)
+        {
+            Console.WriteLine($"Logged in as {sender.CurrentUser.Username}#{sender.CurrentUser.Discriminator}");
+            return Task.CompletedTask;
         }
     }
 }

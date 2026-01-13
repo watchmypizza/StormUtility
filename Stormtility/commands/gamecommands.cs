@@ -148,7 +148,7 @@ namespace Stormtility.commands
             public async Task test(InteractionContext ctx)
             {
                 bool hasAdmin = await getAdmin(ctx);
-                if(!hasAdmin)
+                if (!hasAdmin)
                 {
                     return;
                 }
@@ -156,10 +156,10 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("ban", "Ban an user")]
-            public async Task ban(InteractionContext ctx, [Option("userId", "User to ban")] long user, [Option("reason", "Reason for the kick")] string ?reason = "No reason provided")
+            public async Task ban(InteractionContext ctx, [Option("userId", "User to ban")] long user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
                 bool hasAdmin = await getAdmin(ctx);
-                if(!hasAdmin)
+                if (!hasAdmin)
                 {
                     return;
                 }
@@ -167,10 +167,17 @@ namespace Stormtility.commands
                 bool requestAnswer = await sendRequest("ban", user, reason);
                 if (requestAnswer)
                 {
-                    await ctx.CreateResponseAsync($"{user} has been banned.", true);
-                } else
+                    var banEmbed = new DiscordEmbedBuilder()
+                    {
+                        Title = "Ban",
+                        Description = $"{user} has been banned for `{reason}`",
+                        Color = DiscordColor.Red
+                    };
+                    await ctx.CreateResponseAsync(banEmbed.Build(), true);
+                }
+                else
                 {
-                    await ctx.CreateResponseAsync($"There was an error completing the request.", true);
+                    await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
                 }
             }
 
@@ -186,11 +193,17 @@ namespace Stormtility.commands
                 bool requestAnswer = await sendRequest("unban", user);
                 if (requestAnswer)
                 {
-                    await ctx.CreateResponseAsync($"{user} has been unbanned.", true);
+                    var unbanEmbed = new DiscordEmbedBuilder()
+                    {
+                        Title = "Ban",
+                        Description = $"{user} has been unbanned.",
+                        Color = DiscordColor.Green
+                    };
+                    await ctx.CreateResponseAsync(unbanEmbed.Build(), true);
                 }
                 else
                 {
-                    await ctx.CreateResponseAsync($"There was an error completing the request.", true);
+                    await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
                 }
             }
 
@@ -230,9 +243,56 @@ namespace Stormtility.commands
                     }
 
                     await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder).AsEphemeral());
-                } catch(Exception e)
+                }
+                catch (Exception e)
                 {
                     Console.WriteLine(e);
+                }
+            }
+
+            [SlashCommand("getuser", "Gets a specific user by their UserID")]
+            public async Task getuser(InteractionContext ctx, [Option("userId", "User to get")] long user)
+            {
+                bool hasAdmin = await getAdmin(ctx);
+                if (!hasAdmin)
+                {
+                    return;
+                }
+
+                var API_KEY = Program.apiKey;
+                var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/places/72498860452823/user-restrictions/{user}";
+                var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
+                var response = await httpClient.GetAsync(url);
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var doc = JsonDocument.Parse(json);
+                    bool isActive = doc.RootElement.GetProperty("gameJoinRestriction").GetProperty("active").GetBoolean();
+                    string reason = doc.RootElement.GetProperty("gameJoinRestriction").GetProperty("displayReason").ToString();
+
+                    if(isActive)
+                    {
+                        var activeEmbed = new DiscordEmbedBuilder
+                        {
+                            Description = $"{user} is banned for `{reason}`",
+                            Color = DiscordColor.Red
+                        };
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(activeEmbed).AsEphemeral());
+                    }
+                    else
+                    {
+                        var activeEmbed = new DiscordEmbedBuilder
+                        {
+                            Description = $"{user} is not banned.",
+                            Color = DiscordColor.Green
+                        };
+                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(activeEmbed).AsEphemeral());
+                    }
+                }
+                else
+                {
+                    await ctx.CreateResponseAsync($"There was an error completing the request.", true);
                 }
             }
         }
