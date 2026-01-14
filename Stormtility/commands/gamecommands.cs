@@ -142,7 +142,7 @@ namespace Stormtility.commands
             return logsList;
         }
 
-        public static async Task<bool> logAction(InteractionContext ctx, DiscordMember user, long userId, string? reason = null, DiscordColor color, string action, string? duration = null)
+        public static async Task<bool> logAction(InteractionContext ctx, DiscordMember user, long userId, DiscordColor color, string action, string? reason = null, string ? duration = null)
         {
             ulong channel = Program.logChannel;
             var channels = await ctx.Interaction.Guild.GetChannelsAsync();
@@ -173,13 +173,21 @@ namespace Stormtility.commands
             {
                 logEmbed = new DiscordEmbedBuilder
                 {
-                    Title = action, // Continue here tomorrow writing logging system
+                    Title = action,
                     Description = $"{user.Mention} {action} {userId}",
                     Color = color
                 };
             }
 
-            await logChannel.SendMessageAsync(logEmbed);
+            try
+            {
+                var message = await logChannel.SendMessageAsync(logEmbed);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return false;
+            }
             return true;
         } 
 
@@ -216,11 +224,7 @@ namespace Stormtility.commands
                         Color = DiscordColor.Red
                     };
                     await ctx.CreateResponseAsync(banEmbed.Build(), true);
-                    bool actionLog = await logAction(ctx, ctx.Member, user, reason, DiscordColor.Red, "banned", "permanently");
-                    if(!actionLog)
-                    {
-                        Console.WriteLine("Error sending message to log channel");
-                    }
+                    _ = await logAction(ctx, ctx.Member, user, DiscordColor.Red, "banned", reason);
                 }
                 else
                 {
@@ -247,11 +251,7 @@ namespace Stormtility.commands
                         Color = DiscordColor.Green
                     };
                     await ctx.CreateResponseAsync(unbanEmbed.Build(), true);
-                    bool actionLog = await logAction(ctx, ctx.Member, user, );
-                    if (!actionLog)
-                    {
-                        Console.WriteLine("Error sending message to log channel");
-                    }
+                    _ = await logAction(ctx, ctx.Member, user, DiscordColor.Green, "unbanned");
                 }
                 else
                 {
@@ -449,6 +449,7 @@ namespace Stormtility.commands
                         Color=DiscordColor.Red
                     };
                     await ctx.CreateResponseAsync(successEmbed.Build(), true);
+                    _ = await logAction(ctx, ctx.Member, userId, DiscordColor.Red, "temporarily banned", reason, totalAmt);
                     return;
                 } else
                 {
@@ -493,10 +494,13 @@ namespace Stormtility.commands
                         Color = DiscordColor.Orange
                     };
                     await ctx.CreateResponseAsync(kickEmbed.Build(), true);
+                    _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
+                    return;
                 }
                 else
                 {
                     await ctx.CreateResponseAsync($"There was an error completing the request. {response.StatusCode}", true);
+                    return;
                 }
             }
         }

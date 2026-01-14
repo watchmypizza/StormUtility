@@ -1,4 +1,5 @@
 ﻿using DSharpPlus;
+using DSharpPlus.CommandsNext;
 using DSharpPlus.SlashCommands;
 using Stormtility.commands;
 using System.Reflection.Metadata.Ecma335;
@@ -9,7 +10,7 @@ namespace gamebot
     public class Program
     {
         public static string apiKey { get; set; }
-        public static ulong logChannel { get; } = 1;
+        public static ulong logChannel { get; } = 1315142575857864846;
         private static Dictionary<string, string> ReadEnv(string envFilePath)
         {
             var env = new Dictionary<string, string>();
@@ -43,10 +44,19 @@ namespace gamebot
                 Token = token,
                 AutoReconnect = true,
                 LogUnknownEvents = false,
-                Intents=DiscordIntents.All
+                Intents=DiscordIntents.All,
+                ReconnectIndefinitely = true,
             });
 
+            var prefix = new CommandsNextConfiguration
+            {
+                EnableDefaultHelp = false,
+            };
+
+            client.UseCommandsNext(prefix);
+
             var sc = client.UseSlashCommands();
+            sc.RegisterCommands<helpcommand>();
             sc.RegisterCommands<gamecommands>();
 
             client.Ready += Client_Ready;
