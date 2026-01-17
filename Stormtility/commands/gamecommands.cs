@@ -151,44 +151,61 @@ namespace Stormtility.commands
                 return false;
             }
 
-            DiscordEmbed logEmbed;
-            var logChannel = ctx.Interaction.Guild.GetChannel(channel);
-            if (duration != null) {
-                logEmbed = new DiscordEmbedBuilder
-                {
-                    Title = action,
-                    Description = $"{user.Mention} {action} {userId} for `{reason}` and for a timeframe of `{duration}`",
-                    Color=color
-                };
-            } else
-            {
-                logEmbed = new DiscordEmbedBuilder
-                {
-                    Title = action,
-                    Description = $"{user.Mention} {action} {userId} for `{reason}`",
-                    Color = color
-                };
-            }
-            if(reason == null)
-            {
-                logEmbed = new DiscordEmbedBuilder
-                {
-                    Title = action,
-                    Description = $"{user.Mention} {action} {userId}",
-                    Color = color
-                };
-            }
-
             try
             {
-                var message = await logChannel.SendMessageAsync(logEmbed);
-            }
-            catch (Exception e)
+                var json = File.ReadAllText("games.json");
+                var doc = JsonDocument.Parse(json);
+                var caseNumber = doc.RootElement.GetProperty("games").GetInt32() + 1;
+                var newGameCase = $"Game #{caseNumber}";
+
+                DiscordEmbed logEmbed;
+                var logChannel = ctx.Interaction.Guild.GetChannel(channel);
+                if (duration != null)
+                {
+                    logEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = newGameCase,
+                        Description = $"{user.Mention} {action} {userId} for `{reason}` and for a timeframe of `{duration}`",
+                        Color = color
+                    };
+                }
+                else
+                {
+                    logEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = newGameCase,
+                        Description = $"{user.Mention} {action} {userId} for `{reason}`",
+                        Color = color
+                    };
+                }
+                if (reason == null)
+                {
+                    logEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = newGameCase,
+                        Description = $"{user.Mention} {action} {userId}",
+                        Color = color
+                    };
+                }
+
+                var updatedJson = JsonSerializer.Serialize(new { games = caseNumber });
+                File.WriteAllText("games.json", updatedJson);
+
+                try
+                {
+                    var message = await logChannel.SendMessageAsync(logEmbed);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    return false;
+                }
+                return true;
+            } catch (Exception e)
             {
                 Console.WriteLine(e);
                 return false;
             }
-            return true;
         } 
 
         [SlashCommandGroup("game", "Moderation commands related to the game")]
