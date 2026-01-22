@@ -34,6 +34,8 @@ namespace Stormtility.commands
             public string DisplayReason { get; set; } = "";
             public DateTime CreateTime { get; set; }
             public bool Active { get; set; }
+            public static ulong placeId { get; } = 72498860452823;
+            public static ulong universeId { get; } = 9439461291;
         }
 
         public static async Task<bool> sendRequest(string requestType, long userId, string? reason = "")
@@ -41,7 +43,7 @@ namespace Stormtility.commands
             if (requestType.ToLower() == "ban")
             {
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/places/72498860452823/user-restrictions/{userId}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/places/{BanLogEntry.placeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
 
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
@@ -65,7 +67,7 @@ namespace Stormtility.commands
             } else if (requestType.ToLower() == "unban")
             {
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/places/72498860452823/user-restrictions/{userId}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/places/{BanLogEntry.placeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
 
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
@@ -90,7 +92,7 @@ namespace Stormtility.commands
         public static async Task<string> GetUserRestrictionLogsAsync(string? pageToken = null)
         {
             var apiKey = Program.apiKey;
-            var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/user-restrictions:listLogs";
+            var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions:listLogs";
 
             if (!string.IsNullOrEmpty(pageToken))
                 url += $"&pageToken={pageToken}";
@@ -329,7 +331,7 @@ namespace Stormtility.commands
                 }
 
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/places/72498860452823/user-restrictions/{user}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/places/{BanLogEntry.placeId}/user-restrictions/{user}";
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
                 var response = await httpClient.GetAsync(url);
@@ -412,11 +414,11 @@ namespace Stormtility.commands
                     }
                 }
 
-                var apiRequest = $"https://apis.roblox.com/cloud/v2/universes/9439461291/user-restrictions/{userId}";
+                var apiRequest = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
                 var payload = new
                 {
-                    path = $"universes/9439461291/user-restrictions/{userId}",
+                    path = $"universes/{BanLogEntry.universeId}/user-restrictions/{userId}",
                     gameJoinRestriction = new
                     {
                         active = true,
@@ -484,12 +486,12 @@ namespace Stormtility.commands
                     return;
                 }
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/9439461291/user-restrictions/{user}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{user}";
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
                 var payload = new
                 {
-                    path = $"universes/9439461291/user-restrictions/{user}",
+                    path = $"universes/{BanLogEntry.universeId}/user-restrictions/{user}",
                     gameJoinRestriction = new
                     {
                         active = true,
