@@ -20,7 +20,7 @@ namespace Stormtility.commands
     {
         public static async Task<bool> getAdmin(InteractionContext ctx)
         {
-            if(!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator))
+            if(!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
             {
                 await ctx.DeferAsync(true);
                 return false;
@@ -34,8 +34,8 @@ namespace Stormtility.commands
             public string DisplayReason { get; set; } = "";
             public DateTime CreateTime { get; set; }
             public bool Active { get; set; }
-            public static ulong placeId { get; } = 72498860452823;
-            public static ulong universeId { get; } = 9439461291;
+            public static ulong placeId { get; } = 119475035626185;
+            public static ulong universeId { get; set; } = 9439461291;
         }
 
         public static async Task<bool> sendRequest(string requestType, long userId, string? reason = "")

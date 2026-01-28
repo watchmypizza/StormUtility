@@ -68,6 +68,13 @@ namespace gamebot
         private static Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs args)
         {
             Console.WriteLine($"Logged in as {sender.CurrentUser.Username}#{sender.CurrentUser.Discriminator}");
+
+            var httpService = new HttpClient();
+            var response = httpService.GetAsync($"https://apis.roblox.com/universes/v1/places/{gamecommands.BanLogEntry.placeId}/universe").Result;
+            var json = JsonObject.Parse(response.Content.ReadAsStringAsync().Result);
+            gamecommands.BanLogEntry.universeId = json!["universeId"].GetValue<ulong>();
+            
+
             return Task.CompletedTask;
         }
     }
