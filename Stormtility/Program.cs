@@ -73,7 +73,6 @@ namespace gamebot
             var response = httpService.GetAsync($"https://apis.roblox.com/universes/v1/places/{gamecommands.BanLogEntry.placeId}/universe").Result;
             var json = JsonObject.Parse(response.Content.ReadAsStringAsync().Result);
             gamecommands.BanLogEntry.universeId = json!["universeId"].GetValue<ulong>();
-            
 
             return Task.CompletedTask;
         }
