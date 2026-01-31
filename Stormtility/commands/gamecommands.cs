@@ -3,6 +3,7 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using gamebot;
+using Stormtility.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -478,17 +479,18 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("kick", "Kick an user from the game")]
-            public async Task kick(InteractionContext ctx, [Option("userId", "User to kick")] long user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
+            public async Task kick(
+            InteractionContext ctx, [Option("userId", "User to kick")] long user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
                 bool hasAdmin = await getAdmin(ctx);
                 if (!hasAdmin)
-                {
                     return;
-                }
-                var API_KEY = Program.apiKey;
+
                 var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{user}";
-                var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
+
                 var payload = new
                 {
                     path = $"universes/{BanLogEntry.universeId}/user-restrictions/{user}",
@@ -496,30 +498,64 @@ namespace Stormtility.commands
                     {
                         active = true,
                         privateReason = "Moderator action",
-                        displayReason = $"{reason}",
+                        displayReason = reason,
                         excludeAltAccounts = false,
                         duration = "1s"
                     }
                 };
+
                 var json = JsonSerializer.Serialize(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await httpClient.PatchAsync(url, content);
-                if (response.IsSuccessStatusCode)
+
+                var request = new HttpRequestMessage(HttpMethod.Patch, url)
                 {
-                    var kickEmbed = new DiscordEmbedBuilder()
+                    Content = content
+                };
+
+                HttpResponseMessage response;
+
+                try
+                {
+                    response = await httpClient.SendAsync(request);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        await HttpLogger.LogHttpErrorAsync(
+                            request,
+                            response,
+                            json
+                        );
+
+                        await ctx.CreateResponseAsync(
+                            $"Roblox API error: `{(int)response.StatusCode} {response.StatusCode}`",
+                            true
+                        );
+                        return;
+                    }
+
+                    var kickEmbed = new DiscordEmbedBuilder
                     {
                         Title = "Kick",
                         Description = $"{user} has been kicked for `{reason}`",
                         Color = DiscordColor.Orange
                     };
+
                     await ctx.CreateResponseAsync(kickEmbed.Build(), true);
                     _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
-                    return;
                 }
-                else
+                catch (Exception ex)
                 {
-                    await ctx.CreateResponseAsync($"There was an error completing the request. {response.StatusCode}", true);
-                    return;
+                    await HttpLogger.LogHttpErrorAsync(
+                        request,
+                        new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError),
+                        json,
+                        ex
+                    );
+
+                    await ctx.CreateResponseAsync(
+                        "Internal error while contacting Roblox API.",
+                        true
+                    );
                 }
             }
         }
