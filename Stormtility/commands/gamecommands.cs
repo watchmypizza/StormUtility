@@ -1,4 +1,4 @@
-﻿using DiscordRPC;
+using DiscordRPC;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
@@ -44,7 +44,7 @@ namespace Stormtility.commands
             if (requestType.ToLower() == "ban")
             {
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/places/{BanLogEntry.placeId}/user-restrictions/{userId}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
 
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
@@ -68,7 +68,7 @@ namespace Stormtility.commands
             } else if (requestType.ToLower() == "unban")
             {
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/places/{BanLogEntry.placeId}/user-restrictions/{userId}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
 
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
