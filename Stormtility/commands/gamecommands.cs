@@ -3,7 +3,6 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using gamebot;
-using Stormtility.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -332,7 +331,7 @@ namespace Stormtility.commands
                 }
 
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/places/{BanLogEntry.placeId}/user-restrictions/{user}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{user}";
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
                 var response = await httpClient.GetAsync(url);
@@ -514,49 +513,21 @@ namespace Stormtility.commands
 
                 HttpResponseMessage response;
 
-                try
-                {
-                    response = await httpClient.SendAsync(request);
+                bool response = await httpClient.SendAsync(request);
 
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        await HttpLogger.LogHttpErrorAsync(
-                            request,
-                            response,
-                            json
-                        );
-
-                        await ctx.CreateResponseAsync(
-                            $"Roblox API error: `{(int)response.StatusCode} {response.StatusCode}`",
-                            true
-                        );
-                        return;
-                    }
-
-                    var kickEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Kick",
-                        Description = $"{user} has been kicked for `{reason}`",
-                        Color = DiscordColor.Orange
-                    };
-
-                    await ctx.CreateResponseAsync(kickEmbed.Build(), true);
-                    _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
+                if (response == false) {
+                    return
                 }
-                catch (Exception ex)
-                {
-                    await HttpLogger.LogHttpErrorAsync(
-                        request,
-                        new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError),
-                        json,
-                        ex
-                    );
 
-                    await ctx.CreateResponseAsync(
-                        "Internal error while contacting Roblox API.",
-                        true
-                    );
-                }
+                var kickEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Kick",
+                    Description = $"{user} has been kicked for `{reason}`",
+                    Color = DiscordColor.Orange
+                };
+
+                await ctx.CreateResponseAsync(kickEmbed.Build(), true);
+                _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
             }
         }
     }
