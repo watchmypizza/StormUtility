@@ -513,9 +513,9 @@ namespace Stormtility.commands
 
                 HttpResponseMessage response;
 
-                bool response = await httpClient.SendAsync(request);
+                response = await httpClient.SendAsync(request);
 
-                if (response == false) {
+                if (!response.IsSuccessStatusCode) {
                     return;
                 }
 
