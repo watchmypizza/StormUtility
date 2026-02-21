@@ -516,7 +516,7 @@ namespace Stormtility.commands
                 bool response = await httpClient.SendAsync(request);
 
                 if (response == false) {
-                    return
+                    return;
                 }
 
                 var kickEmbed = new DiscordEmbedBuilder
