@@ -20,7 +20,7 @@ namespace Stormtility.commands
     {
         public static async Task<bool> getAdmin(InteractionContext ctx)
         {
-            if(!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
+            if(!ctx.Member.Roles.Any(r => r.Id == Program.staffId))
             {
                 await ctx.DeferAsync(true);
                 return false;

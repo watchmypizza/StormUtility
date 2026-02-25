@@ -11,6 +11,7 @@ namespace gamebot
     {
         public static string apiKey { get; set; }
         public static ulong logChannel { get; } = 1373144394382966834;
+        public static ulong staffId { get; } = 1474165198947356793;
         private static Dictionary<string, string> ReadEnv(string envFilePath)
         {
             var env = new Dictionary<string, string>();
