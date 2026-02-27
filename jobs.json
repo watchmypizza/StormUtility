@@ -1,0 +1,75 @@
+{
+  "jobs": {
+    "mcdonalds": { "salary": 550 },
+    "kfc": { "salary": 560 },
+    "burger_king": { "salary": 570 },
+    "starbucks": { "salary": 600 },
+    "subway": { "salary": 580 },
+    "pizza_hut": { "salary": 590 },
+
+    "programmer": { "salary": 1600 },
+    "web_dev": { "salary": 1700 },
+    "frontend_dev": { "salary": 1800 },
+    "backend_dev": { "salary": 2000 },
+    "software_engineer": { "salary": 1900 },
+    "devops": { "salary": 2300 },
+
+    "nvidia": { "salary": 2600 },
+    "amd": { "salary": 2500 },
+    "intel": { "salary": 2400 },
+
+    "stormy": { "salary": 5000 },
+
+    "discord_mod": { "salary": 800 },
+    "streamer": { "salary": 1400 },
+    "youtuber": { "salary": 1700 },
+    "twitch_editor": { "salary": 1300 },
+
+    "game_tester": { "salary": 1200 },
+    "qa_engineer": { "salary": 1900 },
+    "indie_game_dev": { "salary": 2100 },
+    "game_producer": { "salary": 2600 },
+
+    "esports_player": { "salary": 3000 },
+    "esports_coach": { "salary": 2400 },
+
+    "cybersecurity_analyst": { "salary": 2600 },
+    "ethical_hacker": { "salary": 2800 },
+    "pentester": { "salary": 3000 },
+    "reverse_engineer": { "salary": 3200 },
+    "malware_analyst": { "salary": 3100 },
+
+    "graphics_designer": { "salary": 2000 },
+    "video_editor": { "salary": 1900 },
+    "vfx_artist": { "salary": 2600 },
+    "3d_artist": { "salary": 2400 },
+    "vinyl_designer": { "salary": 2200 },
+
+    "mechanic": { "salary": 1600 },
+    "car_tuner": { "salary": 2100 },
+    "rally_driver": { "salary": 2900 },
+    "f1_engineer": { "salary": 3400 },
+
+    "quad_guide": { "salary": 2000 },
+    "stunt_rider": { "salary": 2800 },
+
+    "electrician": { "salary": 1800 },
+    "plumber": { "salary": 1700 },
+    "construction_worker": { "salary": 1500 },
+
+    "doctor": { "salary": 3600 },
+    "surgeon": { "salary": 4200 },
+    "nurse": { "salary": 2200 },
+    "paramedic": { "salary": 2400 },
+
+    "chemist": { "salary": 2500 },
+    "pharmacist": { "salary": 2600 },
+
+    "teacher": { "salary": 1900 },
+    "professor": { "salary": 2600 },
+
+    "police_officer": { "salary": 2000 },
+    "detective": { "salary": 2600 },
+    "firefighter": { "salary": 2300 }
+  }
+}
