@@ -12,12 +12,13 @@ using System.Threading.Tasks;
 using Stormtility.config;
 using Stormtility.commands.TicketCommands.autocompletehelper;
 using Newtonsoft.Json;
+using DSharpPlus.Net;
 
 namespace Stormtility.events {
     public class InteractionCreated
     {
         public static DiscordClient Client;
-        public static async Task sender_ComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
+        public static async Task Client_ComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
             try
             {
@@ -394,7 +395,7 @@ namespace Stormtility.events {
                                 });
                             }
 
-                            var botId = sender.CurrentUser.Id.ToString() ?? "0";
+                            var botId = sender?.CurrentUser?.Id.ToString() ?? "0";
 
                             if (vars.debugMode)
                             {
