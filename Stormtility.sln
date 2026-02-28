@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36221.1 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormtility", "Stormtility\Stormtility.csproj", "{215F212A-D459-424B-9CAF-C1BE2708301F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StormUtility", "Stormtility/Stormtility.csproj", "{215F212A-D459-424B-9CAF-C1BE2708301F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

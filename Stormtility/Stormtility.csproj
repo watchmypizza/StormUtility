@@ -8,11 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove=".env" />
+    <None Remove=".config" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include=".env">
+    <Content Include=".config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="games.json">

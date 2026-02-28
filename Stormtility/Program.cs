@@ -10,7 +10,7 @@ namespace gamebot
     public class Program
     {
         public static string apiKey { get; set; }
-        public static ulong logChannel { get; } = 1373144394382966834;
+        public static ulong logChannel { get; } = 1477086071266218094;
         public static ulong staffId { get; } = 1474165198947356793;
         private static Dictionary<string, string> ReadEnv(string envFilePath)
         {
