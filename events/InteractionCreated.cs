@@ -79,7 +79,7 @@ namespace Stormtility.events {
                         if (!vars.debugMode)
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
                         } else
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
@@ -140,7 +140,7 @@ namespace Stormtility.events {
                         if (!vars.debugMode)
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
                         } else
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
@@ -200,7 +200,7 @@ namespace Stormtility.events {
                         if (!vars.debugMode)
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
                         } else
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
@@ -260,7 +260,7 @@ namespace Stormtility.events {
                         if (!vars.debugMode)
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}"));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
                         } else
                         {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
@@ -317,7 +317,7 @@ namespace Stormtility.events {
                         ulong closedCat = 1429871639658762281;
                         var closedCategory = args.Interaction.Guild.GetChannel(closedCat);
                         var member = (DiscordMember)args.Interaction.User;
-                        if (member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                        if (member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers) || member.Roles.Any(r => r.Id == 1474165198947356793))
                         {
                             var embed = new DiscordEmbedBuilder
                             {
@@ -411,7 +411,7 @@ namespace Stormtility.events {
 
                             ((JArray)ticketTranscript[botId]!["messages"]).Add(new JObject
                             {
-                                ["username"] = sender.CurrentUser.Username.ToString(),
+                                ["username"] = sender?.CurrentUser?.Username.ToString() ?? "No Username",
                                 ["content"] = $"{args.Interaction.User.Username.ToString()} Closed the ticket.",
                                 ["timestamp"] = args.Interaction.CreationTimestamp.UtcDateTime.ToString("o")
                             });
