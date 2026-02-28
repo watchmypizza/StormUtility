@@ -41,6 +41,7 @@ namespace Stormtility
                 Token = envLines,
                 TokenType = TokenType.Bot,
                 AutoReconnect = true,
+                LogUnknownEvents = false
             };
 
             Client = new DiscordClient(discordConfig);
