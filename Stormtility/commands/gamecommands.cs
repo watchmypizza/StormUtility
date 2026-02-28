@@ -208,7 +208,37 @@ namespace Stormtility.commands
                 Console.WriteLine(e);
                 return false;
             }
-        } 
+        }
+
+        public static async Task<bool> sendMessagingServiceRequest(string topicString, string messageString)
+        {
+            try {
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}:publishMessage";
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
+                
+                var body = new
+                {
+                    topic = topicString,
+                    message = messageString
+                };
+
+                var json = JsonSerializer.Serialize(body);
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = httpClient.PostAsync(url, content).Result;
+            } catch (Exception e)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("--- STACK BEGIN ---");
+                Console.WriteLine(e);
+                Console.WriteLine("--- STACK END ---");
+                Console.ResetColor();
+                return false;
+            }
+            return true;
+        }
 
         [SlashCommandGroup("game", "Moderation commands related to the game")]
         public class gameCommands : ApplicationCommandModule
@@ -236,6 +266,11 @@ namespace Stormtility.commands
                 bool requestAnswer = await sendRequest("ban", user, reason);
                 if (requestAnswer)
                 {
+                    bool messagingServiceAnswer = await sendMessagingServiceRequest("userBanned", $"{user}");
+                    if (!messagingServiceAnswer)
+                    {
+                        await ctx.CreateResponseAsync($"There was an error removing user from leaderboards the request. {messagingServiceAnswer}", true);
+                    }
                     var banEmbed = new DiscordEmbedBuilder()
                     {
                         Title = "Ban",
@@ -263,6 +298,11 @@ namespace Stormtility.commands
                 bool requestAnswer = await sendRequest("unban", user);
                 if (requestAnswer)
                 {
+                    bool messagingServiceAnswer = await sendMessagingServiceRequest("userUnbanned", $"{user}");
+                    if (!messagingServiceAnswer)
+                    {
+                        await ctx.CreateResponseAsync($"There was an error removing user from leaderboards the request. {messagingServiceAnswer}", true);
+                    }
                     var unbanEmbed = new DiscordEmbedBuilder()
                     {
                         Title = "Ban",
@@ -528,6 +568,31 @@ namespace Stormtility.commands
 
                 await ctx.CreateResponseAsync(kickEmbed.Build(), true);
                 _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
+            }
+
+            [SlashCommand("announce", "Make a global announcement in all game servers. THE MESSAGE WILL BE FILTERED BY ROBLOX!")]
+            public async Task announce(InteractionContext ctx, [Option("message", "The message to announce")] string message)
+            {
+                bool hasAdmin = await getAdmin(ctx);
+                if (!hasAdmin)
+                    return;
+
+                bool requestAnswer = await sendMessagingServiceRequest("announcement", message);
+                if (requestAnswer)
+                {
+                    var announceEmbed = new DiscordEmbedBuilder()
+                    {
+                        Title = "Success!",
+                        Description = $"Your announcement has been sent successfully.",
+                        Color = DiscordColor.Green
+                    };
+                    announceEmbed.AddField("Content", message);
+                    await ctx.CreateResponseAsync(announceEmbed.Build(), true);
+                }
+                else
+                {
+                    await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
+                }
             }
         }
     }

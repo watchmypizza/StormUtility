@@ -23,7 +23,7 @@ namespace Stormtility.commands
                 Title = "Commands",
                 Color = DiscordColor.Gold
             };
-            helpEmbed.AddField("/game", "ban <UserID> <Reason>\ngetbans\ntempban <UserID> <Reason> <Duration>\nunban <UserId>\ngetuser <UserId>\nkick <UserId> <Reason>\ntest");
+            helpEmbed.AddField("/game", "ban <UserID> <Reason>\ngetbans\ntempban <UserID> <Reason> <Duration>\nunban <UserId>\ngetuser <UserId>\nkick <UserId> <Reason>\ntest\nannounce <Message>");
             helpEmbed.AddField("Legend", "Purple: Admin+\nBlue: Moderator\nGreen: Trial");
 
             if(command == null)
@@ -102,6 +102,16 @@ namespace Stormtility.commands
                     };
 
                     await ctx.CreateResponseAsync(gameInfo, true);
+                    break;
+                case "/game announce":
+                    var gameAnnounce = new DiscordEmbedBuilder
+                    {
+                        Title = "/game announce",
+                        Description = "Announce a message in all games using the messaging service. This message will be filtered by ROBLOX before sending in chat.\nThis command takes one argument.\nMessage: The message to announce in all games.",
+                        Color = DiscordColor.Blue
+                    };
+
+                    await ctx.CreateResponseAsync(gameAnnounce, true);
                     break;
                 default:
                     await ctx.CreateResponseAsync($"There is no command named `{command}`", true);
