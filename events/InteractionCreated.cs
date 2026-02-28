@@ -394,7 +394,6 @@ namespace Stormtility.events {
                                     ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
                                 });
                             }
-
                             var botId = sender?.CurrentUser?.Id.ToString() ?? "0";
 
                             if (vars.debugMode)
