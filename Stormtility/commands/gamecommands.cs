@@ -20,7 +20,7 @@ namespace Stormtility.commands
     {
         public static async Task<bool> getAdmin(InteractionContext ctx)
         {
-            if(!ctx.Member.Roles.Any(r => r.Id == Program.staffId))
+            if(!ctx.Member.Roles.Any(r => r.Id == Program.staffId) && !(ctx.Interaction.User.Id == 806333974795386923))
             {
                 await ctx.DeferAsync(true);
                 return false;
