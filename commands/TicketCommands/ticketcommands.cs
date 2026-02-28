@@ -27,7 +27,8 @@ namespace Stormtility.commands.TicketCommands
         {
             public static async Task<bool> permissionCheck(InteractionContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                bool gamemodRole = ctx.Member.Roles.Any(r => r.Id == 1474165198947356793);
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers) && !gamemodRole)
                 {
                     var permissionErrorEmbed = new DiscordEmbedBuilder
                     {

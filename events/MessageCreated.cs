@@ -260,6 +260,7 @@ namespace Stormtility.events
             int ticketId = 0;
 
             bool staffRole = member.Roles.Any(r => r.Id == 1370422448763437207);
+            bool gamemodRole = member.Roles.Any(r => r.Id == 1474165198947356793);
 
             bool regExChannelName = false;
 
@@ -275,7 +276,7 @@ namespace Stormtility.events
 
                     if (channelName.Count(c => c == '-') >= 2) break;
 
-                    if (staffRole)
+                    if (staffRole || gamemodRole)
                     {
                         await args.Channel.ModifyAsync(c => c.Name = $"{args.Author.Username}-{matchedPrefix}-{ticketId}");
                         break;
@@ -285,10 +286,9 @@ namespace Stormtility.events
 
             if (args.Channel.Id == 1450164600384258058)
             {
-                bool staff = member.Roles.Any(r => r.Id == 1370422448763437207);
                 if (args.Author.IsBot) return;
                 if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers)) return;
-                if (staff) return;
+                if (staffRole) return;
                 if (args.Message.Attachments.Count <= 0) await args.Message.DeleteAsync();
                 else return;
             }
