@@ -13,6 +13,7 @@ using Stormtility.config;
 using Stormtility.commands.TicketCommands.autocompletehelper;
 using Newtonsoft.Json;
 using DSharpPlus.Net;
+using System.Security.Cryptography;
 
 namespace Stormtility.events {
     public class InteractionCreated
@@ -266,6 +267,37 @@ namespace Stormtility.events {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                         }
 
+                        return;
+                    }
+                }
+
+                if (args.Id == "bulkdelete")
+                {
+                    var member = (DiscordMember)args.Interaction.User;
+                    if(member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                    {
+                        await args.Interaction.DeferAsync(true);
+                        var category = args.Guild.GetChannel(1429871639658762281);
+                        if(category.Children.Count == 0)
+                        {
+                            await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("No channels to delete."));
+                            return;
+                        }
+                        foreach(DiscordChannel channel in category.Children)
+                        {
+                            await channel.DeleteAsync($"Bulk delete triggered by {args.Interaction.User.Username}#{args.Interaction.User.Discriminator}");
+                        }
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Bulk delete completed."));
+                        return;
+                    } else
+                    {
+                        var permissionErrorEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "404 - No Permissions",
+                            Description = "You do not have the necessary permissions to perform this action.",
+                            Color = DiscordColor.Red
+                        };
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
                         return;
                     }
                 }

@@ -716,6 +716,25 @@ namespace Stormtility.commands.TicketCommands
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
                 return;
             }
+
+            [SlashCommand("bulkdelete", "Bulk delete closed tickets in the closed tickets category.")]
+            public async Task bulkDelete(InteractionContext ctx)
+            {
+                bool permissions = await permissionCheck(ctx);
+                await ctx.DeferAsync(true);
+
+                if (!permissions) { return; }
+
+                var button = new DiscordButtonComponent(ButtonStyle.Danger, "bulkdelete", "Confirm Bulk Delete", emoji: new DiscordComponentEmoji("⚠️"));
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = "Bulk Delete Closed Tickets",
+                    Description = "This will bulk delete all closed tickets in the closed tickets category. This action cannot be undone. Are you sure you want to proceed?",
+                    Color = DiscordColor.Red
+                };
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).AddComponents(button));
+                return;
+            }
         }
     }
 }
