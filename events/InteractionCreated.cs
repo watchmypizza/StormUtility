@@ -331,10 +331,17 @@ namespace Stormtility.events {
                             var staffRole = args.Interaction.Guild.GetRole(staff);
                             var staffOverwrites = new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
                             var defaultOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+                            var gamemodoverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.GetRole(1474165198947356793)).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
 
                             await args.Interaction.Channel.ModifyAsync(ch => ch.Name = newChName);
                             await args.Interaction.Channel.ModifyAsync(ch => ch.Parent = closedCategory);
-                            await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites]);
+                            if(matchedPrefix == "exploiter" || matchedPrefix == "appeal")
+                            {
+                                await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites, gamemodoverwrites]);
+                            } else
+                            {
+                                await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites]);
+                            }
                             await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
                             await args.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(embed));
 
