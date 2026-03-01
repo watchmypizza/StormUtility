@@ -319,118 +319,127 @@ namespace Stormtility.events {
                         var member = (DiscordMember)args.Interaction.User;
                         if (member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers) || member.Roles.Any(r => r.Id == 1474165198947356793))
                         {
-                            var embed = new DiscordEmbedBuilder
-                            {
-                                Title = "Closing Ticket...",
-                                Description = "Adding transcript to log and then closing...",
-                                Color = DiscordColor.Red
-                            };
-                            var newChName = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
-
-                            ulong staff = 1370422448763437207;
-                            var staffRole = args.Interaction.Guild.GetRole(staff);
-                            var staffOverwrites = new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
-                            var defaultOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-                            var gamemodoverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.GetRole(1474165198947356793)).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
-
-                            await args.Interaction.Channel.ModifyAsync(ch => ch.Name = newChName);
-                            await args.Interaction.Channel.ModifyAsync(ch => ch.Parent = closedCategory);
-                            if(matchedPrefix == "exploiter" || matchedPrefix == "appeal")
-                            {
-                                await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites, gamemodoverwrites]);
-                            } else
-                            {
-                                await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites]);
-                            }
-                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
-                            await args.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(embed));
-
-                            var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
-                            JObject json;
-
-                            if (string.IsNullOrEmpty(jsonText))
-                            {
-                                json = new JObject
+                            try {
+                                var embed = new DiscordEmbedBuilder
                                 {
-                                    ["transcripts"] = new JObject()
+                                    Title = "Closing Ticket...",
+                                    Description = "Adding transcript to log and then closing...",
+                                    Color = DiscordColor.Red
                                 };
-                            }
-                            else
-                            {
-                                json = JObject.Parse(jsonText);
+                                var newChName = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
 
-                                if (json["transcripts"]?.Type == JTokenType.Array)
+                                ulong staff = 1370422448763437207;
+                                var staffRole = args.Interaction.Guild.GetRole(staff);
+                                var staffOverwrites = new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
+                                var defaultOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+                                var gamemodoverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.GetRole(1474165198947356793)).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
+
+                                await args.Interaction.Channel.ModifyAsync(ch => ch.Name = newChName);
+                                await args.Interaction.Channel.ModifyAsync(ch => ch.Parent = closedCategory);
+                                if(matchedPrefix == "exploiter" || matchedPrefix == "appeal")
                                 {
-                                    json["transcripts"] = new JObject();
+                                    await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites, gamemodoverwrites]);
+                                } else
+                                {
+                                    await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites]);
                                 }
-                            }
+                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
+                                await args.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(embed));
 
-                            JObject transcripts = (JObject)(json["transcripts"] ?? new JObject());
+                                var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
+                                JObject json;
 
-                            var messages = await args.Interaction.Channel.GetMessagesAsync(1000);
-                            var orderedMessages = messages.Reverse().ToList();
-
-                            JObject ticketTranscript = new JObject();
-                            
-                            foreach(var msg in orderedMessages)
-                            {
-                                imageURL = new List<string>();
-
-                                foreach (var attachments in msg.Attachments)
+                                if (string.IsNullOrEmpty(jsonText))
                                 {
-                                    imageURL.Add(attachments.Url);
+                                    json = new JObject
+                                    {
+                                        ["transcripts"] = new JObject()
+                                    };
                                 }
-                                if(msg.Author.IsBot)
+                                else
                                 {
-                                    continue;
+                                    json = JObject.Parse(jsonText);
+
+                                    if (json["transcripts"]?.Type == JTokenType.Array)
+                                    {
+                                        json["transcripts"] = new JObject();
+                                    }
                                 }
 
-                                string userId = msg.Author.Id.ToString();
-                                if (ticketTranscript[userId] == null)
+                                JObject transcripts = (JObject)(json["transcripts"] ?? new JObject());
+
+                                var messages = await args.Interaction.Channel.GetMessagesAsync(1000);
+                                var orderedMessages = messages.Reverse().ToList();
+
+                                JObject ticketTranscript = new JObject();
+                                
+                                foreach(var msg in orderedMessages)
                                 {
-                                    ticketTranscript[userId] = new JObject
+                                    imageURL = new List<string>();
+
+                                    foreach (var attachments in msg.Attachments)
+                                    {
+                                        imageURL.Add(attachments.Url);
+                                    }
+                                    if(msg.Author.IsBot)
+                                    {
+                                        continue;
+                                    }
+
+                                    string userId = msg.Author.Id.ToString();
+                                    if (ticketTranscript[userId] == null)
+                                    {
+                                        ticketTranscript[userId] = new JObject
+                                        {
+                                            ["messages"] = new JArray()
+                                        };
+                                    }
+
+                                    ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
+                                    {
+                                        ["username"] = msg.Author.Username,
+                                        ["content"] = $"{msg.Content} {string.Join(" ", imageURL)}",
+                                        ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
+                                    });
+                                }
+                                var botId = sender?.CurrentUser?.Id.ToString() ?? "0";
+
+                                if (vars.debugMode)
+                                {
+                                    Console.WriteLine(botId);
+                                }
+
+                                if (ticketTranscript[botId] == null)
+                                {
+                                    ticketTranscript[botId] = new JObject
                                     {
                                         ["messages"] = new JArray()
                                     };
                                 }
 
-                                ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
+                                ((JArray)ticketTranscript[botId]!["messages"]).Add(new JObject
                                 {
-                                    ["username"] = msg.Author.Username,
-                                    ["content"] = $"{msg.Content} {string.Join(" ", imageURL)}",
-                                    ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
+                                    ["username"] = sender?.CurrentUser?.Username.ToString() ?? "No Username",
+                                    ["content"] = $"{args.Interaction.User.Username.ToString()} Closed the ticket.",
+                                    ["timestamp"] = args.Interaction.CreationTimestamp.UtcDateTime.ToString("o")
                                 });
-                            }
-                            var botId = sender?.CurrentUser?.Id.ToString() ?? "0";
 
-                            if (vars.debugMode)
+                                transcripts[$"{matchedPrefix}-{ticketId}"] = ticketTranscript;
+                                json["transcripts"] = transcripts;
+
+                                File.WriteAllText("transcripts.json", json.ToString());
+
+                                autocompletehandler.LoadTranscriptCache("transcripts.json");
+
+                                return;
+                            } catch (Exception e)
                             {
-                                Console.WriteLine(botId);
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine("--- BEGIN STACK ---");
+                                Console.WriteLine(e);
+                                Console.WriteLine("--- END STACK ---");
+                                Console.ResetColor();
                             }
-
-                            if (ticketTranscript[botId] == null)
-                            {
-                                ticketTranscript[botId] = new JObject
-                                {
-                                    ["messages"] = new JArray()
-                                };
-                            }
-
-                            ((JArray)ticketTranscript[botId]!["messages"]).Add(new JObject
-                            {
-                                ["username"] = sender?.CurrentUser?.Username.ToString() ?? "No Username",
-                                ["content"] = $"{args.Interaction.User.Username.ToString()} Closed the ticket.",
-                                ["timestamp"] = args.Interaction.CreationTimestamp.UtcDateTime.ToString("o")
-                            });
-
-                            transcripts[$"{matchedPrefix}-{ticketId}"] = ticketTranscript;
-                            json["transcripts"] = transcripts;
-
-                            File.WriteAllText("transcripts.json", json.ToString());
-
-                            autocompletehandler.LoadTranscriptCache("transcripts.json");
-
-                            return;
                         } else
                         {
                             var permissionErrorEmbed = new DiscordEmbedBuilder
