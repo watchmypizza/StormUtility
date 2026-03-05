@@ -271,220 +271,39 @@ namespace Stormtility.events {
                     }
                 }
 
-                if (args.Id == "bulkdelete")
+                if (args.Id == "deleteticket")
                 {
-                    var member = (DiscordMember)args.Interaction.User;
-                    if(member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                    var autoTranscript = new AutoTranscript();
+                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Channel, "delete");
+                    if (!result)
                     {
-                        await args.Interaction.DeferAsync(true);
-                        var category = args.Guild.GetChannel(1429871639658762281);
-                        if(category.Children.Count == 0)
+                        var errorEmbed = new DiscordEmbedBuilder
                         {
-                            await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("No channels to delete."));
-                            return;
-                        }
-                        foreach(DiscordChannel channel in category.Children)
-                        {
-                            await channel.DeleteAsync($"Bulk delete triggered by {args.Interaction.User.Username}#{args.Interaction.User.Discriminator}");
-                        }
-                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Bulk delete completed."));
-                        return;
-                    } else
-                    {
-                        var permissionErrorEmbed = new DiscordEmbedBuilder
-                        {
-                            Title = "404 - No Permissions",
-                            Description = "You do not have the necessary permissions to perform this action.",
+                            Title = "Error",
+                            Description = "This ticket cannot be deleted.",
                             Color = DiscordColor.Red
                         };
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                        return;
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
                     }
                 }
 
                 if (args.Id == "closeticket")
                 {
-                    List<string> imageURL = [];
-
-                    var channelName = args.Interaction.Channel.Name;
-
-                    if(channelName.Contains("closed-"))
+                    var autoTranscript = new AutoTranscript();
+                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Channel, "close");
+                    if (!result)
                     {
-                        var closedEmbed = new DiscordEmbedBuilder
+                        var errorEmbed = new DiscordEmbedBuilder
                         {
-                            Title = "This ticket is already closed.",
+                            Title = "Error",
+                            Description = "This ticket cannot be closed.",
                             Color = DiscordColor.Red
                         };
-
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(closedEmbed).AsEphemeral());
-                        return;
-                    }
-
-                    string[] ticketTypes = { "support", "exploiter", "speedtypist", "appeal" };
-
-                    string matchedPrefix = null;
-                    int ticketId = 0;
-
-                    bool regExChannelName = false;
-
-                    //bool regExChannelName = Regex.IsMatch(channelName, @"^support-\d+$");
-                    //var match = Regex.Match(channelName, @"^support-(\d+)$");
-
-                    foreach(var type in ticketTypes)
-                    {
-                        var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
-                        var match = regex.Match(channelName);
-
-                        if (match.Success)
-                        {
-                            matchedPrefix = type;
-                            regExChannelName = true;
-                            ticketId = int.Parse(match.Groups[1].Value);
-                            break;
-                        }
-                    }
-
-                    if (regExChannelName)
-                    {
-                        ulong closedCat = 1429871639658762281;
-                        var closedCategory = args.Interaction.Guild.GetChannel(closedCat);
-                        var member = (DiscordMember)args.Interaction.User;
-                        if (member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers) || member.Roles.Any(r => r.Id == 1474165198947356793))
-                        {
-                            try {
-                                var embed = new DiscordEmbedBuilder
-                                {
-                                    Title = "Closing Ticket...",
-                                    Description = "Adding transcript to log and then closing...",
-                                    Color = DiscordColor.Red
-                                };
-                                var newChName = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
-
-                                ulong staff = 1370422448763437207;
-                                var staffRole = args.Interaction.Guild.GetRole(staff);
-                                var staffOverwrites = new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
-                                var defaultOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-                                var gamemodoverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.GetRole(1474165198947356793)).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
-
-                                await args.Interaction.Channel.ModifyAsync(ch => ch.Name = newChName);
-                                await args.Interaction.Channel.ModifyAsync(ch => ch.Parent = closedCategory);
-                                if(matchedPrefix == "exploiter" || matchedPrefix == "appeal")
-                                {
-                                    await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites, gamemodoverwrites]);
-                                } else
-                                {
-                                    await args.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites]);
-                                }
-                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
-                                await args.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(embed));
-
-                                var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
-                                JObject json;
-
-                                if (string.IsNullOrEmpty(jsonText))
-                                {
-                                    json = new JObject
-                                    {
-                                        ["transcripts"] = new JObject()
-                                    };
-                                }
-                                else
-                                {
-                                    json = JObject.Parse(jsonText);
-
-                                    if (json["transcripts"]?.Type == JTokenType.Array)
-                                    {
-                                        json["transcripts"] = new JObject();
-                                    }
-                                }
-
-                                JObject transcripts = (JObject)(json["transcripts"] ?? new JObject());
-
-                                var messages = await args.Interaction.Channel.GetMessagesAsync(1000);
-                                var orderedMessages = messages.Reverse().ToList();
-
-                                JObject ticketTranscript = new JObject();
-                                
-                                foreach(var msg in orderedMessages)
-                                {
-                                    imageURL = new List<string>();
-
-                                    foreach (var attachments in msg.Attachments)
-                                    {
-                                        imageURL.Add(attachments.Url);
-                                    }
-                                    if(msg.Author.IsBot)
-                                    {
-                                        continue;
-                                    }
-
-                                    string userId = msg.Author.Id.ToString();
-                                    if (ticketTranscript[userId] == null)
-                                    {
-                                        ticketTranscript[userId] = new JObject
-                                        {
-                                            ["messages"] = new JArray()
-                                        };
-                                    }
-
-                                    ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
-                                    {
-                                        ["username"] = msg.Author.Username,
-                                        ["content"] = $"{msg.Content} {string.Join(" ", imageURL)}",
-                                        ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
-                                    });
-                                }
-                                var botId = sender?.CurrentUser?.Id.ToString() ?? "0";
-
-                                if (vars.debugMode)
-                                {
-                                    Console.WriteLine(botId);
-                                }
-
-                                if (ticketTranscript[botId] == null)
-                                {
-                                    ticketTranscript[botId] = new JObject
-                                    {
-                                        ["messages"] = new JArray()
-                                    };
-                                }
-
-                                ((JArray)ticketTranscript[botId]!["messages"]).Add(new JObject
-                                {
-                                    ["username"] = sender?.CurrentUser?.Username.ToString() ?? "No Username",
-                                    ["content"] = $"{args.Interaction.User.Username.ToString()} Closed the ticket.",
-                                    ["timestamp"] = args.Interaction.CreationTimestamp.UtcDateTime.ToString("o")
-                                });
-
-                                transcripts[$"{matchedPrefix}-{ticketId}"] = ticketTranscript;
-                                json["transcripts"] = transcripts;
-
-                                File.WriteAllText("transcripts.json", json.ToString());
-
-                                autocompletehandler.LoadTranscriptCache("transcripts.json");
-
-                                return;
-                            } catch (Exception e)
-                            {
-                                Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("--- BEGIN STACK ---");
-                                Console.WriteLine(e);
-                                Console.WriteLine("--- END STACK ---");
-                                Console.ResetColor();
-                            }
-                        } else
-                        {
-                            var permissionErrorEmbed = new DiscordEmbedBuilder
-                            {
-                                Title = "404 - No Permissions",
-                                Description = "You do not have the necessary permissions to perform this action.",
-                                Color = DiscordColor.Red
-                            };
-                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                            return;
-                        }
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                        System.Console.WriteLine($"ERROR: {result}");
                     }
                 }
+
             } catch (Exception e)
             {
                 Console.WriteLine(e);

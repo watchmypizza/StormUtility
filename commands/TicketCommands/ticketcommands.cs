@@ -176,189 +176,6 @@ namespace Stormtility.commands.TicketCommands
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddFile($"transcript-{ticketId}.txt", ms));
             }
 
-            public async Task transcript(InteractionContext ctx, string context)
-            {
-                bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
-                bool permissions = await permissionCheck(ctx);
-
-                if (!permissions) { return; }
-
-                if (!isTicket) { return; }
-
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title = "Closing Ticket...",
-                    Description = "Adding transcript to log and then closing...",
-                    Color = DiscordColor.Red
-                };
-
-                string[] ticketTypes = { "support", "exploiter", "speedtypist", "appeal" };
-
-                string matchedPrefix = null;
-                int ticketId = 0;
-
-                bool regExChannelName = false;
-
-                var channelName = ctx.Interaction.Channel.Name;
-
-                foreach (var type in ticketTypes) {
-
-                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
-                    var match = regex.Match(channelName);
-
-                    if (match.Success)
-                    {
-                        matchedPrefix = type;
-                        regExChannelName = true;
-                        ticketId = int.Parse(match.Groups[1].Value);
-                        break;
-                    }
-                }
-
-                var newChName = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
-
-                if (context != "delete")
-                {
-                    ulong staff = 1370422448763437207;
-                    var staffRole = ctx.Interaction.Guild.GetRole(staff);
-                    var staffOverwrites = new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
-                    var gameModOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.GetRole(1474165198947356793)).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
-                    var defaultOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-                    ulong closedCat = 1429871639658762281;
-                    var closedCategory = ctx.Interaction.Guild.GetChannel(closedCat);
-
-                    await ctx.Interaction.Channel.ModifyAsync(ch => ch.Name = newChName);
-                    await ctx.Interaction.Channel.ModifyAsync(ch => ch.Parent = closedCategory);
-                    await ctx.Interaction.Channel.ModifyAsync(ch => ch.PermissionOverwrites = [staffOverwrites, defaultOverwrites, gameModOverwrites]);
-                    await ctx.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
-                    await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(embed));
-                } else
-                {
-                    var delembed = new DiscordEmbedBuilder
-                    {
-                        Title = "Deleting Ticket...",
-                        Description = "Adding transcript to log and then deleting...",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Deleting...").AsEphemeral());
-                    await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(delembed));
-                }
-
-                var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
-                JObject json;
-
-                if (string.IsNullOrEmpty(jsonText))
-                {
-                    json = new JObject
-                    {
-                        ["transcripts"] = new JObject()
-                    };
-                }
-                else
-                {
-                    json = JObject.Parse(jsonText);
-
-                    if (json["transcripts"]?.Type == JTokenType.Array)
-                    {
-                        json["transcripts"] = new JObject();
-                    }
-                }
-
-                JObject transcripts = (JObject)(json["transcripts"] ?? new JObject());
-
-                var messages = await ctx.Interaction.Channel.GetMessagesAsync(1000);
-                var orderedMessages = messages.Reverse().ToList();
-                List<string> imageURL = [];
-
-                JObject ticketTranscript = new JObject();
-
-                try
-                {
-                    foreach (var msg in orderedMessages)
-                    {
-                        imageURL = new List<string>();
-
-                        foreach (var attachments in msg.Attachments)
-                        {
-                            imageURL.Add(attachments.Url);
-                        }
-
-                        if (msg.Author.IsBot)
-                        {
-                            continue;
-                        }
-
-                        string userId = msg.Author.Id.ToString();
-                        if (ticketTranscript[userId] == null)
-                        {
-                            ticketTranscript[userId] = new JObject
-                            {
-                                ["messages"] = new JArray()
-                            };
-                        }
-
-                        ((JArray)ticketTranscript[userId]!["messages"]).Add(new JObject
-                        {
-                            ["username"] = msg.Author.Username,
-                            ["content"] = $"{msg.Content} {string.Join("\n", imageURL)}",
-                            ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o")
-                        });
-                    }
-
-                    var botId = ctx.Client.CurrentUser.Id.ToString() ?? "0";
-                    
-                    if(vars.debugMode)
-                    {
-                        Console.WriteLine(botId);
-                    }
-
-                    if(ticketTranscript[botId] == null)
-                    {
-                        ticketTranscript[botId] = new JObject
-                        {
-                            ["messages"] = new JArray()
-                        };
-                    }
-
-                    ((JArray)ticketTranscript[ctx.Client.CurrentUser.Id.ToString() ?? "0"]!["messages"]).Add(new JObject
-                    {
-                        ["username"] = ctx.Client.CurrentUser.Username.ToString(),
-                        ["content"] = $"{ctx.Interaction.User.Username.ToString()} Closed the ticket.",
-                        ["timestamp"] = ctx.Interaction.CreationTimestamp.UtcDateTime.ToString("o")
-                    });
-
-                } catch(Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-
-                var transcriptKey = $"{matchedPrefix}-{ticketId}";
-                bool transcriptExists = transcripts[transcriptKey] != null;
-
-                if (context == "delete")
-                {
-                    if (!transcriptExists)
-                    {
-                        transcripts[transcriptKey] = ticketTranscript;
-                        json["transcripts"] = transcripts;
-                        File.WriteAllText("transcripts.json", json.ToString());
-                    }
-
-                    await ctx.Interaction.Channel.DeleteAsync();
-                    return;
-                }
-
-                transcripts[$"{matchedPrefix}-{ticketId}"] = ticketTranscript;
-                json["transcripts"] = transcripts;
-
-                File.WriteAllText("transcripts.json", json.ToString());
-
-                autocompletehandler.LoadTranscriptCache("transcripts.json");
-
-                return;
-            }
-
             [SlashCommand("close", "Prompt to close the ticket")]
             public async Task closeTicket(InteractionContext ctx)
             {
@@ -375,7 +192,15 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("delete", "Delete the current ticket.")]
             public async Task deleteTicket(InteractionContext ctx)
             {
-                await transcript(ctx, "delete");
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = "Delete Ticket",
+                    Description = "Are you sure you want to delete this ticket? This action cannot be undone.",
+                    Color = DiscordColor.Red
+                };
+                var button = new DiscordButtonComponent(ButtonStyle.Danger, "deleteticket", "Delete Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(button).AsEphemeral());
             }
 
             [SlashCommand("claim", "Claim the ticket you are currently in.")]
