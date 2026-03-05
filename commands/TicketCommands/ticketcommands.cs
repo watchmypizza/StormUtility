@@ -717,7 +717,7 @@ namespace Stormtility.commands.TicketCommands
                 return;
             }
 
-            [SlashCommand("bulkdelete", "Bulk delete closed tickets in the closed tickets category.")]
+            //[SlashCommand("bulkdelete", "Bulk delete closed tickets in the closed tickets category.")]
             public async Task bulkDelete(InteractionContext ctx)
             {
                 bool permissions = await permissionCheck(ctx);

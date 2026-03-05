@@ -252,7 +252,7 @@ namespace Stormtility.events
                 Console.WriteLine(e);
             }
 
-            string[] ticketTypes = { "support", "giveaway", "speedtypist", "exploiter", "appeal"};
+            string[] ticketTypes = { "support", "giveaway", "speedtypist", "exploiter", "appeal" };
 
             var channelName = args.Channel.Name;
 
