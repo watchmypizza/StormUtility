@@ -302,6 +302,14 @@ namespace Stormtility.events
                 }
             }
 
+            foreach(char c in args.Message.Content)
+            {
+                if(c > 0x00FF)
+                {
+                    await args.Message.DeleteAsync();
+                }
+            }
+
             return;
         }
 
