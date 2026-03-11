@@ -5,8 +5,10 @@ using DSharpPlus.SlashCommands;
 using gamebot;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Drawing;
+using System.Net;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -38,32 +40,56 @@ namespace Stormtility.commands
             public static ulong universeId { get; set; } = 9439461291;
         }
 
+        private static readonly HttpClientHandler handler = new HttpClientHandler { UseCookies = true };
+        private static readonly HttpClient httpClient = new HttpClient(handler);
+
         public static async Task<long> getUser(string username)
         {
-            try {
-                if(username.Contains("\""))
+            try 
+            {
+                if (string.IsNullOrWhiteSpace(username) || username.Contains("\""))
                 {
                     return 0;
                 }
-                var url = $"https://users.roblox.com/v1/users/search?keyword={username}&limit=10";
-                var httpClient = new HttpClient();
-                var response = await httpClient.GetAsync(url);
+
+                var cookie = new Cookie(".ROBLOSECURITY", Program.RBLX.ToString(), "/", ".roblox.com");
+                handler.CookieContainer.Add(new Uri("https://roblox.com"), cookie);
+
+                var url = $"https://users.roblox.com/v1/usernames/users";
+                var body = new
+                {
+                    usernames = new Collection<string>
+                    {
+                      username  
+                    },
+                    excludeBannedUsers = true
+                };
+                
+                var payload = JsonSerializer.Serialize(body);
+                var ctn = new StringContent(payload, Encoding.UTF8, "application/json");
+                var response = await httpClient.PostAsync(url, ctn);
+
                 var content = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"API Error: {response.StatusCode}");
+                    Console.WriteLine($"CRITICAL: {content.ToString()}");
+                    return 0;
+                }
 
                 var dataArray = doc.RootElement.GetProperty("data");
 
-                if(dataArray.GetArrayLength() > 0)
+                if (dataArray.GetArrayLength() > 0)
                 {
                     return dataArray[0].GetProperty("id").GetInt64();
                 }
-            } catch (Exception e)
+            } 
+            catch (Exception e)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("--- STACK BEGIN ---");
-                Console.WriteLine(e.StackTrace);
-                Console.WriteLine("--- STACK END ---");
-                Console.ResetColor();
+                Console.WriteLine($"Error: {e.Message}");
+                Console.WriteLine($"Error: {e}");
                 return 0;
             } 
             return 0;

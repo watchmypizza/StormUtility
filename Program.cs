@@ -12,6 +12,7 @@ namespace gamebot
         public static string apiKey { get; set; }
         public static ulong logChannel { get; } = 1477086071266218094;
         public static ulong staffId { get; } = 1474165198947356793;
+        public static ulong RBLX {get; set;}
         private static Dictionary<string, string> ReadEnv(string envFilePath)
         {
             var env = new Dictionary<string, string>();
@@ -39,6 +40,7 @@ namespace gamebot
             var env = ReadEnv(".env");
             string token = env["DISCORD_BOT_TOKEN"];
             apiKey = env["API_KEY"];
+            string RBLXCKY = env["RBLX_CKY"];
 
             DiscordClient client = new DiscordClient(new DiscordConfiguration()
             {
