@@ -38,8 +38,42 @@ namespace Stormtility.commands
             public static ulong universeId { get; set; } = 9439461291;
         }
 
-        public static async Task<bool> sendRequest(string requestType, long userId, string? reason = "")
+        public static async Task<long> getUser(string username)
         {
+            try {
+                if(username.Contains("\""))
+                {
+                    return 0;
+                }
+                var url = $"https://users.roblox.com/v1/users/search?keyword={username}&limit=10";
+                var httpClient = new HttpClient();
+                var response = await httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+
+                var dataArray = doc.RootElement.GetProperty("data");
+
+                if(dataArray.GetArrayLength() > 0)
+                {
+                    return dataArray[0].GetProperty("id").GetInt64();
+                }
+            } catch (Exception e)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("--- STACK BEGIN ---");
+                Console.WriteLine(e.StackTrace);
+                Console.WriteLine("--- STACK END ---");
+                Console.ResetColor();
+                return 0;
+            } 
+            return 0;
+        }
+
+        public static async Task<bool> sendRequest(string requestType, string username, string? reason = "")
+        {
+            CancellationToken cancellationToken = new();
+            long userId = await getUser(username).WaitAsync(cancellationToken);
+
             if (requestType.ToLower() == "ban")
             {
                 var API_KEY = Program.apiKey;
@@ -144,7 +178,7 @@ namespace Stormtility.commands
             return logsList;
         }
 
-        public static async Task<bool> logAction(InteractionContext ctx, DiscordMember user, long userId, DiscordColor color, string action, string? reason = null, string ? duration = null)
+        public static async Task<bool> logAction(InteractionContext ctx, DiscordMember user, string username, DiscordColor color, string action, string? reason = null, string ? duration = null)
         {
             ulong channel = Program.logChannel;
             var channels = await ctx.Interaction.Guild.GetChannelsAsync();
@@ -167,7 +201,7 @@ namespace Stormtility.commands
                     logEmbed = new DiscordEmbedBuilder
                     {
                         Title = newGameCase,
-                        Description = $"{user.Mention} {action} {userId} for `{reason}` and for a timeframe of `{duration}`",
+                        Description = $"{user.Mention} {action} {username} for `{reason}` and for a timeframe of `{duration}`",
                         Color = color
                     };
                 }
@@ -176,7 +210,7 @@ namespace Stormtility.commands
                     logEmbed = new DiscordEmbedBuilder
                     {
                         Title = newGameCase,
-                        Description = $"{user.Mention} {action} {userId} for `{reason}`",
+                        Description = $"{user.Mention} {action} {username} for `{reason}`",
                         Color = color
                     };
                 }
@@ -185,7 +219,7 @@ namespace Stormtility.commands
                     logEmbed = new DiscordEmbedBuilder
                     {
                         Title = newGameCase,
-                        Description = $"{user.Mention} {action} {userId}",
+                        Description = $"{user.Mention} {action} {username}",
                         Color = color
                     };
                 }
@@ -255,7 +289,7 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("ban", "Ban an user")]
-            public async Task ban(InteractionContext ctx, [Option("userId", "User to ban")] long user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
+            public async Task ban(InteractionContext ctx, [Option("Username", "User to ban")] string username, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
                 bool hasAdmin = await getAdmin(ctx);
                 if (!hasAdmin)
@@ -263,10 +297,10 @@ namespace Stormtility.commands
                     return;
                 }
 
-                bool requestAnswer = await sendRequest("ban", user, reason);
+                bool requestAnswer = await sendRequest("ban", username, reason);
                 if (requestAnswer)
                 {
-                    bool messagingServiceAnswer = await sendMessagingServiceRequest("userBanned", $"{user}");
+                    bool messagingServiceAnswer = await sendMessagingServiceRequest("userBanned", $"{username}");
                     if (!messagingServiceAnswer)
                     {
                         await ctx.CreateResponseAsync($"There was an error removing user from leaderboards the request. {messagingServiceAnswer}", true);
@@ -274,11 +308,11 @@ namespace Stormtility.commands
                     var banEmbed = new DiscordEmbedBuilder()
                     {
                         Title = "Ban",
-                        Description = $"{user} has been banned for `{reason}`",
+                        Description = $"{username} has been banned for `{reason}`",
                         Color = DiscordColor.Red
                     };
                     await ctx.CreateResponseAsync(banEmbed.Build(), true);
-                    _ = await logAction(ctx, ctx.Member, user, DiscordColor.Red, "banned", reason);
+                    _ = await logAction(ctx, ctx.Member, username, DiscordColor.Red, "banned", reason);
                 }
                 else
                 {
@@ -287,7 +321,7 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("unban", "Unban an user")]
-            public async Task unban(InteractionContext ctx, [Option("userId", "User to ban")] long user)
+            public async Task unban(InteractionContext ctx, [Option("username", "User to ban")] string user)
             {
                 bool hasAdmin = await getAdmin(ctx);
                 if (!hasAdmin)
@@ -316,6 +350,13 @@ namespace Stormtility.commands
                 {
                     await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
                 }
+            }
+
+            [SlashCommand("testcommand", "Testing command for the nut")]
+            public async Task testcommand(InteractionContext ctx, [Option("username", "GETS USERID FOR USER")] string username = "0")
+            {
+                long userId = await getUser(username);
+                Console.WriteLine(userId);
             }
 
             [SlashCommand("getbans", "Get a list of banned players")]
@@ -408,7 +449,7 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("tempban", "Temporarily ban someone")]
-            public async Task tempban(InteractionContext ctx, [Option("UserID", "The User ID for the user to ban.")] long userId, [Option("Reason", "The reason for the ban")] string reason, [Option("Duration", "The duration of the ban")] string duration)
+            public async Task tempban(InteractionContext ctx, [Option("Username", "The username for the user to ban.")] string username, [Option("Reason", "The reason for the ban")] string reason, [Option("Duration", "The duration of the ban")] string duration)
             {
                 bool isAdmin = await getAdmin(ctx);
                 if(!isAdmin)
@@ -454,6 +495,8 @@ namespace Stormtility.commands
                     }
                 }
 
+                CancellationToken cancellationToken = new();
+                long userId = await getUser(username).WaitAsync(cancellationToken);
                 var apiRequest = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
                 var payload = new
@@ -508,7 +551,7 @@ namespace Stormtility.commands
                         Color=DiscordColor.Red
                     };
                     await ctx.CreateResponseAsync(successEmbed.Build(), true);
-                    _ = await logAction(ctx, ctx.Member, userId, DiscordColor.Red, "temporarily banned", reason, totalAmt);
+                    _ = await logAction(ctx, ctx.Member, username, DiscordColor.Red, "temporarily banned", reason, totalAmt);
                     return;
                 } else
                 {
@@ -519,7 +562,7 @@ namespace Stormtility.commands
 
             [SlashCommand("kick", "Kick an user from the game")]
             public async Task kick(
-            InteractionContext ctx, [Option("userId", "User to kick")] long user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
+            InteractionContext ctx, [Option("Username", "User to kick")] string user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
                 bool hasAdmin = await getAdmin(ctx);
                 if (!hasAdmin)
@@ -530,9 +573,12 @@ namespace Stormtility.commands
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
 
+                CancellationToken cancellationToken = new();
+                long userId = await getUser(user).WaitAsync(cancellationToken);
+
                 var payload = new
                 {
-                    path = $"universes/{BanLogEntry.universeId}/user-restrictions/{user}",
+                    path = $"universes/{BanLogEntry.universeId}/user-restrictions/{userId}",
                     gameJoinRestriction = new
                     {
                         active = true,
