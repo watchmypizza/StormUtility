@@ -416,6 +416,7 @@ namespace Stormtility.commands
             {
                 try
                 {
+                    await ctx.DeferAsync(true);
                     bool hasAdmin = await getAdmin(ctx);
                     if (!hasAdmin)
                     {
@@ -448,7 +449,7 @@ namespace Stormtility.commands
                             inline: false);
                     }
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder).AsEphemeral());
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embedBuilder));
                 }
                 catch (Exception e)
                 {
