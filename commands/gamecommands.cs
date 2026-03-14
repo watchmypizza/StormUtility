@@ -38,6 +38,7 @@ namespace Stormtility.commands
             public bool Active { get; set; }
             public static ulong placeId { get; } = 119475035626185;
             public static ulong universeId { get; set; } = 9439461291;
+            public string User { get; internal set; }
         }
 
         private static readonly HttpClientHandler handler = new HttpClientHandler { UseCookies = true };
@@ -51,10 +52,6 @@ namespace Stormtility.commands
                 {
                     return 0;
                 }
-
-                var cookie = new Cookie(".ROBLOSECURITY", Program.RBLX.ToString(), "/", ".roblox.com");
-                handler.CookieContainer.Add(new Uri("https://roblox.com"), cookie);
-
                 var url = $"https://users.roblox.com/v1/usernames/users";
                 var body = new
                 {
@@ -98,7 +95,11 @@ namespace Stormtility.commands
         public static async Task<bool> sendRequest(string requestType, string username, string? reason = "")
         {
             CancellationToken cancellationToken = new();
-            long userId = await getUser(username).WaitAsync(cancellationToken);
+            long.TryParse(username, out long userId);
+            Console.WriteLine(userId);
+            if(userId == 0) {
+                userId = await getUser(username).WaitAsync(cancellationToken);
+            }
 
             if (requestType.ToLower() == "ban")
             {
@@ -152,10 +153,7 @@ namespace Stormtility.commands
         public static async Task<string> GetUserRestrictionLogsAsync(string? pageToken = null)
         {
             var apiKey = Program.apiKey;
-            var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions:listLogs";
-
-            if (!string.IsNullOrEmpty(pageToken))
-                url += $"&pageToken={pageToken}";
+            var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions";
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
@@ -175,12 +173,14 @@ namespace Stormtility.commands
             var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("logs", out var logs))
+            if (!root.TryGetProperty("userRestrictions", out var logs))
                 return logsList;
 
             foreach (var logEntry in logs.EnumerateArray())
             {
-                bool active = logEntry.GetProperty("active").GetBoolean();
+                var restriction = logEntry.GetProperty("gameJoinRestriction");
+
+                bool active = restriction.GetProperty("active").GetBoolean();
 
                 if (!active)
                     continue;
@@ -188,12 +188,13 @@ namespace Stormtility.commands
                 var userPath = logEntry.GetProperty("user").GetString() ?? "";
                 var userId = userPath.Split('/').Length > 1 ? userPath.Split('/')[1] : "Unknown";
 
-                var displayReason = logEntry.GetProperty("displayReason").GetString() ?? "No reason provided";
+                var displayReason = restriction.GetProperty("displayReason").GetString() ?? "No reason provided";
 
-                var createTime = logEntry.GetProperty("createTime").GetDateTime();
+                var createTime = restriction.GetProperty("startTime").GetDateTime();
 
                 logsList.Add(new BanLogEntry
                 {
+                    User = userPath,
                     UserId = userId,
                     DisplayReason = displayReason,
                     CreateTime = createTime,
@@ -208,6 +209,12 @@ namespace Stormtility.commands
         {
             ulong channel = Program.logChannel;
             var channels = await ctx.Interaction.Guild.GetChannelsAsync();
+            CancellationToken cancellationToken = new CancellationToken();
+            long.TryParse(username, out long userId);
+            if(userId == 0) {
+                long userNew = await getUser($"{username}").WaitAsync(cancellationToken);
+                username = $"{userNew}";
+            }
 
             if(!channels.Any(ch => ch.Id == channel)) {
                 return false;
@@ -385,6 +392,25 @@ namespace Stormtility.commands
                 Console.WriteLine(userId);
             }
 
+            public async Task<string> getUsername(long userId)
+            {
+                string url = $"https://users.roblox.com/v1/users/{userId}";
+
+                using HttpClient httpClient = new();
+                
+                var request = httpClient.GetAsync(url).Result;
+                
+                if(!request.IsSuccessStatusCode)
+                {
+                    return $"ERR {request.StatusCode}";
+                }
+
+                var content = await request.Content.ReadAsStringAsync();
+                var jsonContent = JsonDocument.Parse(content.ToString());
+                var name = jsonContent.RootElement.GetProperty("name").ToString();
+                return name;
+            }
+
             [SlashCommand("getbans", "Get a list of banned players")]
             public async Task getbans(InteractionContext ctx)
             {
@@ -414,8 +440,10 @@ namespace Stormtility.commands
 
                     foreach (var ban in latestBans)
                     {
+                        long.TryParse(ban.UserId, out long userId);
+                        var username = await getUsername(userId);
                         embedBuilder.AddField(
-                            $"User ID: {ban.UserId}",
+                            $"Username: {username} | User ID: {ban.UserId}",
                             $"{ban.DisplayReason}\nBanned at: {ban.CreateTime.ToLocalTime():g}",
                             inline: false);
                     }
@@ -428,8 +456,8 @@ namespace Stormtility.commands
                 }
             }
 
-            [SlashCommand("getuser", "Gets a specific user by their UserID")]
-            public async Task getuser(InteractionContext ctx, [Option("userId", "User to get")] long user)
+            [SlashCommand("getuser", "Gets a specific user by their username")]
+            public async Task getuser(InteractionContext ctx, [Option("username", "User to get")] string user)
             {
                 bool hasAdmin = await getAdmin(ctx);
                 if (!hasAdmin)
@@ -437,8 +465,15 @@ namespace Stormtility.commands
                     return;
                 }
 
+                CancellationToken cancellationToken = new();
+                long.TryParse(user, out long userId);
+                if(userId == 0)
+                {
+                    userId = await getUser(user).WaitAsync(cancellationToken);
+                }
+
                 var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{user}";
+                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
                 var response = await httpClient.GetAsync(url);
@@ -453,7 +488,7 @@ namespace Stormtility.commands
                     {
                         var activeEmbed = new DiscordEmbedBuilder
                         {
-                            Description = $"{user} is banned for `{reason}`",
+                            Description = $"{userId} is banned for `{reason}`",
                             Color = DiscordColor.Red
                         };
                         await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(activeEmbed).AsEphemeral());
@@ -462,7 +497,7 @@ namespace Stormtility.commands
                     {
                         var activeEmbed = new DiscordEmbedBuilder
                         {
-                            Description = $"{user} is not banned.",
+                            Description = $"{userId} is not banned.",
                             Color = DiscordColor.Green
                         };
                         await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(activeEmbed).AsEphemeral());
@@ -471,6 +506,13 @@ namespace Stormtility.commands
                 else
                 {
                     await ctx.CreateResponseAsync($"There was an error completing the request.", true);
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("--- HTTP ERROR ---");
+                    var Content = await response.Content.ReadAsStringAsync();
+                    string readable = Content.ToString();
+                    Console.WriteLine(readable);
+                    Console.WriteLine("--- HTTP END ---");
+                    Console.ResetColor();
                 }
             }
 
@@ -522,7 +564,10 @@ namespace Stormtility.commands
                 }
 
                 CancellationToken cancellationToken = new();
-                long userId = await getUser(username).WaitAsync(cancellationToken);
+                long.TryParse(username, out long userId);
+                if(userId == 0) {
+                    userId = await getUser(username).WaitAsync(cancellationToken);
+                }
                 var apiRequest = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
                 var payload = new
@@ -590,56 +635,70 @@ namespace Stormtility.commands
             public async Task kick(
             InteractionContext ctx, [Option("Username", "User to kick")] string user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
-                bool hasAdmin = await getAdmin(ctx);
-                if (!hasAdmin)
-                    return;
+                try {
+                    bool hasAdmin = await getAdmin(ctx);
+                    if (!hasAdmin)
+                        return;
 
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{user}";
+                    using var httpClient = new HttpClient();
+                    httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
 
-                using var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
-
-                CancellationToken cancellationToken = new();
-                long userId = await getUser(user).WaitAsync(cancellationToken);
-
-                var payload = new
-                {
-                    path = $"universes/{BanLogEntry.universeId}/user-restrictions/{userId}",
-                    gameJoinRestriction = new
-                    {
-                        active = true,
-                        privateReason = "Moderator action",
-                        displayReason = reason,
-                        excludeAltAccounts = false,
-                        duration = "1s"
+                    CancellationToken cancellationToken = new();
+                    long.TryParse(user, out long userId);
+                    if(userId == 0) {
+                        userId = await getUser(user).WaitAsync(cancellationToken);
                     }
-                };
 
-                var json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
 
-                var request = new HttpRequestMessage(HttpMethod.Patch, url)
+                    var payload = new
+                    {
+                        path = $"universes/{BanLogEntry.universeId}/user-restrictions/{userId}",
+                        gameJoinRestriction = new
+                        {
+                            active = true,
+                            privateReason = "Moderator action",
+                            displayReason = reason,
+                            excludeAltAccounts = false,
+                            duration = "1s"
+                        }
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var request = new HttpRequestMessage(HttpMethod.Patch, url)
+                    {
+                        Content = content
+                    };
+
+                    HttpResponseMessage response;
+
+                    response = await httpClient.SendAsync(request);
+
+                    if (!response.IsSuccessStatusCode) {
+                        return;
+                    }
+
+                    var kickEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Kick",
+                        Description = $"{user} has been kicked for `{reason}`",
+                        Color = DiscordColor.Orange
+                    };
+
+                    await ctx.CreateResponseAsync(kickEmbed.Build(), true);
+                    _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
+                } catch (Exception e)
                 {
-                    Content = content
-                };
-
-                HttpResponseMessage response;
-
-                response = await httpClient.SendAsync(request);
-
-                if (!response.IsSuccessStatusCode) {
-                    return;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("--- STACK BEGIN ---");
+                    Console.WriteLine(e.StackTrace);
+                    Console.WriteLine("--- STACK SPLIT ---");
+                    Console.WriteLine(e);
+                    Console.WriteLine("--- STACK END ---");
+                    Console.ResetColor();
                 }
-
-                var kickEmbed = new DiscordEmbedBuilder
-                {
-                    Title = "Kick",
-                    Description = $"{user} has been kicked for `{reason}`",
-                    Color = DiscordColor.Orange
-                };
-
-                await ctx.CreateResponseAsync(kickEmbed.Build(), true);
-                _ = await logAction(ctx, ctx.Member, user, DiscordColor.Orange, "kicked", reason);
             }
 
             [SlashCommand("announce", "Make a global announcement in all game servers. THE MESSAGE WILL BE FILTERED BY ROBLOX!")]
