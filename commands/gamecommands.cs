@@ -96,56 +96,65 @@ namespace Stormtility.commands
         {
             CancellationToken cancellationToken = new();
             long.TryParse(username, out long userId);
-            Console.WriteLine(userId);
             if(userId == 0) {
                 userId = await getUser(username).WaitAsync(cancellationToken);
             }
 
             if (requestType.ToLower() == "ban")
             {
-                var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
-                var httpClient = new HttpClient();
+                try {
+                    var API_KEY = Program.apiKey;
+                    var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
+                    var httpClient = new HttpClient();
 
-                httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
-                var payload = new
-                {
-                    gameJoinRestriction = new
+                    httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
+                    var payload = new
                     {
-                        active = true,
-                        privateReason = "Moderator action",
-                        displayReason = $"{reason}",
-                        excludeAltAccounts = true
-                    }
-                };
+                        gameJoinRestriction = new
+                        {
+                            active = true,
+                            privateReason = "Moderator action",
+                            displayReason = $"{reason}",
+                            excludeAltAccounts = true
+                        }
+                    };
 
-                var json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await httpClient.PatchAsync(url, content);
+                    var response = await httpClient.PatchAsync(url, content);
 
-                return response.IsSuccessStatusCode;
+                    return response.IsSuccessStatusCode;
+                } catch (Exception e)
+                {
+                    return false;
+                }
             } else if (requestType.ToLower() == "unban")
             {
-                var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
-                var httpClient = new HttpClient();
+                try {
+                    var API_KEY = Program.apiKey;
+                    var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
+                    var httpClient = new HttpClient();
 
-                httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
-                var payload = new
-                {
-                    gameJoinRestriction = new
+                    httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
+                    var payload = new
                     {
-                        active = false
-                    }
-                };
+                        gameJoinRestriction = new
+                        {
+                            active = false
+                        }
+                    };
 
-                var json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await httpClient.PatchAsync(url, content);
+                    var response = await httpClient.PatchAsync(url, content);
 
-                return response.IsSuccessStatusCode;
+                    return response.IsSuccessStatusCode;
+                } catch (Exception e)
+                {
+                    return false;
+                }
             }
             return false;
         }
@@ -349,7 +358,15 @@ namespace Stormtility.commands
                 }
                 else
                 {
-                    await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
+                    var embed = new DiscordEmbedBuilder
+                    {
+                        Title="API Limit - 429",
+                        Description="API Rate limit hit. Please retry in a few seconds.",
+                        Color=DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral(true));
+                    return;
                 }
             }
 
@@ -381,7 +398,15 @@ namespace Stormtility.commands
                 }
                 else
                 {
-                    await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
+                    var embed = new DiscordEmbedBuilder
+                    {
+                        Title="API Limit - 429",
+                        Description="API Rate limit hit. Please retry in a few seconds.",
+                        Color=DiscordColor.Red
+                    };
+
+                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral(true));
+                    return;
                 }
             }
 
