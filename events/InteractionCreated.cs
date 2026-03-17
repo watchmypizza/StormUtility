@@ -289,6 +289,13 @@ namespace Stormtility.events {
 
                 if (args.Id == "closeticket")
                 {
+                    var member = (DiscordMember)args.Interaction.User;
+                    if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ManageChannels))
+                    {
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You cannot close this ticket.").AsEphemeral(true));
+                        return;
+                    }
+
                     var autoTranscript = new AutoTranscript();
                     bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Channel, "close");
                     if (!result)
