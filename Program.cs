@@ -49,6 +49,7 @@ namespace Stormtility
             Client.GuildMemberUpdated += events.MemberUpdated.Client_GuildMemberUpdated;
             Client.MessageCreated += events.MessageCreated.Client_MessageCreated;
             Client.ComponentInteractionCreated += events.InteractionCreated.Client_ComponentInteractionCreated;
+            Client.GuildMemberAdded += events.MemberJoined.Client_GuildMemberAdded;
 
             JobCache.Load();
             _ = JobPayout.RunDailyJobAsyncPayout();
