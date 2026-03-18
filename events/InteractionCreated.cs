@@ -431,7 +431,7 @@ namespace Stormtility.events {
                 {
                     var member = (DiscordMember)args.Interaction.User;
                     _ = await deleteActiveTicketEntry(args.Interaction.Channel);
-                    if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ManageChannels))
+                    if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
                     {
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You cannot close this ticket.").AsEphemeral(true));
                         return;
