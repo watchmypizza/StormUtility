@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using System;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Text;
 using static System.Net.WebRequestMethods;
 
@@ -36,6 +37,31 @@ namespace Stormtility.commands.TestingCommands
             await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddComponents(button));
             await ctx.CreateResponseAsync("Sending message...", true);
             return;
+        }
+
+        [SlashCommand("testmodal", "Test modal preview")]
+        public async Task modalTest(InteractionContext ctx, [Option("title", "Title of the modal")] string title, [Option("TextInput1", "First text input")] string textInput1, [Option("TextInput2", "Second text input")] string? textInput2 = "")
+        {
+            if(textInput2 == null || textInput2 == string.Empty)
+            {
+                DiscordInteractionResponseBuilder modal = new DiscordInteractionResponseBuilder()
+                                                                .WithCustomId("exampleModal")
+                                                                .WithTitle(title)
+                                                                .AddComponents(new TextInputComponent(textInput1, "exampleModalText1", required: true, style: TextInputStyle.Short));
+
+                await ctx.CreateResponseAsync(InteractionResponseType.Modal, modal);
+                return;
+            } else
+            {
+                DiscordInteractionResponseBuilder modal = new DiscordInteractionResponseBuilder()
+                                                                .WithCustomId("exampleModal")
+                                                                .WithTitle(title)
+                                                                .AddComponents(new TextInputComponent(textInput1, "exampleModalText1", required: true, style: TextInputStyle.Short))
+                                                                .AddComponents(new TextInputComponent(textInput2, "exampleModalText2", required: false, style: TextInputStyle.Paragraph));
+
+                await ctx.CreateResponseAsync(InteractionResponseType.Modal, modal);
+                return;
+            }
         }
     }
 }
