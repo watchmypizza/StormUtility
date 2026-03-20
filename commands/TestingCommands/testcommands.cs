@@ -32,7 +32,8 @@ namespace Stormtility.commands.TestingCommands
                 Description="Codes are valid for 1 minute before expiration for each user.",
                 Color=DiscordColor.Orange
             };
-            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(button));
+            DiscordChannel channel = ctx.Interaction.Channel;
+            await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddComponents(button));
             return;
         }
     }
