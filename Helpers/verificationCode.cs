@@ -18,6 +18,8 @@ namespace Stormtility.Helpers
 
         private static bool tryGetCache(DiscordUser user, out (string Code, DateTime Expiry) entry)
         {
+            if (codeCache == null) codeCache = new Dictionary<ulong, (string Code, DateTime Expiry)>();
+
             if (codeCache.TryGetValue(user.Id, out entry))
             {
                 if (entry.Expiry > DateTime.UtcNow)
@@ -31,10 +33,10 @@ namespace Stormtility.Helpers
         private static bool addCache(DiscordUser user, string code)
         {
             DateTime now = DateTime.UtcNow;
-            DateTime expiry = now.AddMinutes(10);
+            DateTime expiry = now.AddMinutes(1);
 
             try {
-                codeCache.Add(user.Id, (code, expiry));
+                codeCache[user.Id] = (code, expiry); 
             } catch(Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -64,16 +66,12 @@ namespace Stormtility.Helpers
 
         public static string getCodeIfExists(DiscordUser user)
         {
-            string code = string.Empty;
-            DateTime expiry = DateTime.UtcNow;
-            if(tryGetCache(user, out var entry))
+            if (tryGetCache(user, out var entry))
             {
-                code = entry.Code;
-                return code;
+                return entry.Code;
             }
 
-            code = GenerateCode();
-
+            string code = GenerateCode();
             addCache(user, code);
             return code;
         }

@@ -458,9 +458,10 @@ namespace Stormtility.events {
                 if(args.Id == "openVerifyModal")
                 {
                     DiscordInteractionResponseBuilder verifyModal = new DiscordInteractionResponseBuilder();
+                    var code = Helpers.verificationCode.getCodeIfExists(args.Interaction.User);
                     verifyModal.WithTitle("Verification")
                                 .WithCustomId("verifyModal")
-                                .AddComponents(new TextInputComponent($"Your verification code is: {Helpers.verificationCode.getCodeIfExists(args.Interaction.User)}", "verificationcode", null, null, true, TextInputStyle.Short, 6, 6));
+                                .AddComponents(new TextInputComponent($"Your verification code is: {code}", "verificationcode", "Enter your verification code.", max_length: 6, min_length: 6, required: true));
                     
                     await args.Interaction.CreateResponseAsync(InteractionResponseType.Modal, verifyModal);
                 }

@@ -21,5 +21,19 @@ namespace Stormtility.commands.TestingCommands
 
             await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddFile(file.FileName, ms));
         } 
+
+        [SlashCommand("verificationTest", "Test if verification works")]
+        public async Task verificationTest(InteractionContext ctx)
+        {
+            DiscordButtonComponent button = new DiscordButtonComponent(ButtonStyle.Primary, "openVerifyModal", "Verify");
+            var embed = new DiscordEmbedBuilder()
+            {
+                Title="Verification",
+                Description="Codes are valid for 1 minute before expiration for each user.",
+                Color=DiscordColor.Orange
+            };
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(button));
+            return;
+        }
     }
 }
