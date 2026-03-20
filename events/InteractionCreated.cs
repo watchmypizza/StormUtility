@@ -16,6 +16,9 @@ using DSharpPlus.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
+using DSharpPlus.ModalCommands;
+using System.Reflection.Emit;
+using Stormtility.commands.TicketCommands;
 
 namespace Stormtility.events {
     public class InteractionCreated
@@ -450,6 +453,16 @@ namespace Stormtility.events {
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
                         System.Console.WriteLine($"ERROR: {result}");
                     }
+                }
+
+                if(args.Id == "openVerifyModal")
+                {
+                    DiscordInteractionResponseBuilder verifyModal = new DiscordInteractionResponseBuilder();
+                    verifyModal.WithTitle("Verification")
+                                .WithCustomId("verifyModal")
+                                .AddComponents(new TextInputComponent($"Your verification code is: {Helpers.verificationCode.getCodeIfExists(args.Interaction.User)}", "verificationcode", null, null, true, TextInputStyle.Short, 6, 6));
+                    
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.Modal, verifyModal);
                 }
 
             } catch (Exception e)

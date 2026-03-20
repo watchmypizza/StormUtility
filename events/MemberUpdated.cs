@@ -17,7 +17,7 @@ namespace Stormtility.events
     {
         public static async Task<bool> verifyDisplayName(DiscordUser user)
         {
-            Regex regex = new Regex("[^A-Za-z0-9]+");
+            Regex regex = new Regex("[^A-Za-z0-9()!?,.\"$':#+:;_\\s]+");
             DiscordMember discordMember = (DiscordMember)user;
             var nickname = discordMember.DisplayName;
             var match = regex.Match(nickname);
