@@ -34,6 +34,7 @@ namespace Stormtility.commands.TestingCommands
             };
             DiscordChannel channel = ctx.Interaction.Channel;
             await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddComponents(button));
+            await ctx.CreateResponseAsync("Sending message...", true);
             return;
         }
     }
