@@ -3,6 +3,7 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using gamebot;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,12 +23,16 @@ namespace Stormtility.commands
     {
         public static async Task<bool> getAdmin(InteractionContext ctx)
         {
-            if(!ctx.Member.Roles.Any(r => r.Id == Program.staffId) && !(ctx.Interaction.User.Id == 806333974795386923))
+            bool isStaff = ctx.Member.Roles.Any(r => r.Id == Program.staffId);
+            bool isOwner = ctx.User.Id == 806333974795386923;
+
+            if (isStaff || isOwner) 
             {
-                await ctx.DeferAsync(true);
-                return false;
+                return true;
             }
-            return true;
+
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Unauthorized.").AsEphemeral(true));
+            return false;
         }
 
         public class BanLogEntry
@@ -483,61 +488,177 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("getuser", "Gets a specific user by their username")]
-            public async Task getuser(InteractionContext ctx, [Option("username", "User to get")] string user)
+            public async Task getuser(InteractionContext ctx, [Option("username", "User to get information about")] string user)
             {
-                bool hasAdmin = await getAdmin(ctx);
-                if (!hasAdmin)
-                {
-                    return;
-                }
-
-                CancellationToken cancellationToken = new();
-                long.TryParse(user, out long userId);
-                if(userId == 0)
-                {
-                    userId = await getUser(user).WaitAsync(cancellationToken);
-                }
-
-                var API_KEY = Program.apiKey;
-                var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
-                var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Add("x-api-key", API_KEY);
-                var response = await httpClient.GetAsync(url);
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var doc = JsonDocument.Parse(json);
-                    bool isActive = doc.RootElement.GetProperty("gameJoinRestriction").GetProperty("active").GetBoolean();
-                    string reason = doc.RootElement.GetProperty("gameJoinRestriction").GetProperty("displayReason").ToString();
-
-                    if (isActive)
+                try {
+                    bool hasAdmin = await getAdmin(ctx);
+                    if (!hasAdmin)
                     {
-                        var activeEmbed = new DiscordEmbedBuilder
+                        return;
+                    }
+                    
+                    await ctx.DeferAsync(true);
+
+                    long.TryParse(user, out long userId);
+                    if(userId == 0)
+                    {
+                        userId = await getUser(user);
+                    }
+                    string detailedInfoLink = $"https://users.roblox.com/v1/users/{userId}";
+                    string followers = $"https://friends.roblox.com/v1/users/{userId}/followers/count";
+                    string avatarURL = $"https://thumbnails.roblox.com/v1/users/avatar?userIds={userId}&size=250x250&format=Png&isCircular=false";
+                    using var httpClient = new HttpClient();
+                    
+                    var response = await httpClient.GetAsync(detailedInfoLink);
+                    var content = await response.Content.ReadAsStringAsync();
+                    var isSuccess = response.IsSuccessStatusCode;
+
+                    var avatarResp = await httpClient.GetAsync(avatarURL);
+                    var AContent = await avatarResp.Content.ReadAsStringAsync();
+                    var ASUCCESS = response.IsSuccessStatusCode;
+
+                    var avatarJson = JsonDocument.Parse(AContent).RootElement;
+                    var dataElement = avatarJson.GetProperty("data");
+                    var imageUrl = "";
+                    try {
+                        imageUrl = dataElement[0].GetProperty("imageUrl").GetString();
+                    } catch
+                    {
+                        imageUrl = "https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/7/c/3/7c34eccaf268571661f00616fa85b67c21836175.png";
+                    }
+
+                    if(!isSuccess)
+                    {
+                        var embed = new DiscordEmbedBuilder()
                         {
-                            Description = $"{userId} is banned for `{reason}`",
+                            Title = $"{response.StatusCode} - Oops?",
+                            Description = $"Something has gone terribly wrong.",
                             Color = DiscordColor.Red
                         };
-                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(activeEmbed).AsEphemeral());
+                        embed.AddField("Error Message", response.ReasonPhrase ?? "UNKNOWN // SERVER DID NOT SEND ANY.", true);
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                        return;
                     }
-                    else
+
+                    if(!ASUCCESS)
                     {
-                        var activeEmbed = new DiscordEmbedBuilder
+                        var avatarEmbed = new DiscordEmbedBuilder()
                         {
-                            Description = $"{userId} is not banned.",
-                            Color = DiscordColor.Green
+                            Title = $"{response.StatusCode} - Oops?",
+                            Description = $"Something has gone terribly wrong.",
+                            Color = DiscordColor.Red
                         };
-                        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(activeEmbed).AsEphemeral());
+                        avatarEmbed.AddField("Error Message", response.ReasonPhrase ?? "UNKNOWN // SERVER DID NOT SEND ANY.", true);
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(avatarEmbed));
+                        return;
                     }
-                }
-                else
+
+                    var json = JsonDocument.Parse(content);
+                    var description = json.RootElement.GetProperty("description");
+                    var creationDate = json.RootElement.GetProperty("created");
+                    var isBanned = json.RootElement.GetProperty("isBanned");
+                    var externalAppDisplayName = json.RootElement.GetProperty("externalAppDisplayName");
+                    var hasVerifiedBadge = json.RootElement.GetProperty("hasVerifiedBadge");
+                    var name = json.RootElement.GetProperty("name");
+                    var displayName = json.RootElement.GetProperty("displayName");
+                    response = await httpClient.GetAsync(followers);
+
+                    var contentFol = await response.Content.ReadAsStringAsync();
+                    var isSuccessFol = response.IsSuccessStatusCode;
+
+                    if(!isSuccessFol)
+                    {
+                        var folembed = new DiscordEmbedBuilder()
+                        {
+                            Title = $"{response.StatusCode} - Oops?",
+                            Description = $"Something has gone terribly wrong.",
+                            Color = DiscordColor.Red
+                        };
+                        folembed.AddField("Error Message", response.ReasonPhrase ?? "UNKNOWN // SERVER DID NOT SEND ANY.", true);
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(folembed));
+                        return;
+                    }
+
+                    var followerCount = JsonDocument.Parse(contentFol).RootElement.GetProperty("count");
+
+                    var Sembed = new DiscordEmbedBuilder()
+                    {
+                        Title = name.ToString(),
+                        Color = DiscordColor.Green
+                    };
+
+                    var friendCountURL = $"https://friends.roblox.com/v1/users/{userId}/friends/count";
+                    response = await httpClient.GetAsync(friendCountURL);
+                    var contentFriends = await response.Content.ReadAsStringAsync();
+                    var isSuccessFriends = response.IsSuccessStatusCode;
+
+                    if(!isSuccessFriends)
+                    {
+                        var frembed = new DiscordEmbedBuilder()
+                        {
+                            Title = $"{response.StatusCode} - Oops?",
+                            Description = $"Something has gone terribly wrong.",
+                            Color = DiscordColor.Red
+                        };
+                        frembed.AddField("Error Message", response.ReasonPhrase ?? "UNKNOWN // SERVER DID NOT SEND ANY.", true);
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(frembed));
+                        return;
+                    }
+
+                    var friendCount = JsonDocument.Parse(contentFriends).RootElement.GetProperty("count");
+
+                    var socialsURL = $"https://accountinformation.roblox.com/v1/users/{userId}/promotion-channels";
+                    response = await httpClient.GetAsync(socialsURL);
+                    var contentSocials = await response.Content.ReadAsStringAsync();
+                    var isSuccessSocials = response.IsSuccessStatusCode;
+
+                    if(!isSuccessSocials)
+                    {
+                        var soembed = new DiscordEmbedBuilder()
+                        {
+                            Title = $"{response.StatusCode} - Oops?",
+                            Description = $"Something has gone terribly wrong.",
+                            Color = DiscordColor.Red
+                        };
+                        soembed.AddField("Error Message", response.ReasonPhrase ?? "UNKNOWN // SERVER DID NOT SEND ANY.", true);
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(soembed));
+                        return;
+                    }
+
+                    var socialsJson = JsonDocument.Parse(contentSocials).RootElement;
+                    var facebook = socialsJson.GetProperty("facebook");
+                    var twitter = socialsJson.GetProperty("twitter");
+                    var youtube = socialsJson.GetProperty("youtube");
+                    var twitch = socialsJson.GetProperty("twitch");
+
+                    string Validate(string input) => string.IsNullOrWhiteSpace(input) ? "N/A" : input;
+
+                    DateTime.TryParse(creationDate.ToString(), out DateTime creation);
+                    Sembed.AddField("Description", Validate(description.ToString()), true);
+                    Sembed.AddField("Creation Date", creation.ToString("yyyy/MM/dd"), true);
+                    Sembed.AddField("Banned", isBanned.ToString(), true);
+                    Sembed.AddField("External App Display Name", Validate(externalAppDisplayName.ToString()), true);
+                    Sembed.AddField("Verified", hasVerifiedBadge.ToString(), true);
+                    Sembed.AddField("User Id", userId.ToString(), true);
+                    Sembed.AddField("Display Name", displayName.ToString(), true);
+                    Sembed.AddField("Followers:", followerCount.ToString(), true);
+                    Sembed.AddField("Friends:", friendCount.ToString(), true);
+                    Sembed.AddField("Socials:", $"FB: {Validate(facebook.ToString())} X: {Validate(twitter.ToString())} YT: {Validate(youtube.ToString())} TWITCH: {Validate(twitch.ToString())}");
+                    if(imageUrl != null || imageUrl != string.Empty) Sembed.WithThumbnail(imageUrl.ToString());
+
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(Sembed));
+                    return;
+                } catch (Exception e)
                 {
-                    await ctx.CreateResponseAsync($"There was an error completing the request.", true);
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("--- HTTP ERROR ---");
-                    var Content = await response.Content.ReadAsStringAsync();
-                    string readable = Content.ToString();
-                    Console.WriteLine(readable);
-                    Console.WriteLine("--- HTTP END ---");
+                    Console.WriteLine("--- STACK BEGIN ---");
+                    Console.WriteLine(e.StackTrace);
+                    Console.WriteLine("---  STACK END  ---");
                     Console.ResetColor();
                 }
             }
