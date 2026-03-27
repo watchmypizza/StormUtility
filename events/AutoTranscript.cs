@@ -1,5 +1,3 @@
-using System.Security.AccessControl;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -21,17 +19,26 @@ namespace Stormtility.events
                 return false; 
             }
 
-            var openTickets = await File.ReadAllTextAsync("activetickets.json");
-            var jsonTickets = JObject.Parse(openTickets);
-            string channelName = "";
-            long channelId = 0;
-            bool isValidTicket = jsonTickets.Properties().Any(p => (long)p.Value["channel"] == (long)interaction.ChannelId);
+            string[] ticketTypes = { "support", "exploiter", "speedtypist", "appeal" };
+            string channelName = channel.Name;
+            string matchedPrefix = null;
+            int ticketId = 0;
+            bool isTicket = false;
 
-            if (!isValidTicket)
+            foreach (var type in ticketTypes)
             {
-                await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("This channel is not a valid ticket channel.").AsEphemeral());
-                return false;
+                var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                var match = regex.Match(channelName);
+                if (match.Success)
+                {
+                    matchedPrefix = type;
+                    isTicket = true;
+                    ticketId = int.Parse(match.Groups[1].Value);
+                    break;
+                }
             }
+
+            if (!isTicket) return false;
 
             if (action == "close")
             {
