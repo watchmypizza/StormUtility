@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using Stormtility.config;
 using System.Linq.Expressions;
+using Stormtility.events;
 
 namespace Stormtility.commands.TicketCommands
 {
@@ -595,6 +596,33 @@ namespace Stormtility.commands.TicketCommands
                 };
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).AddComponents(button));
                 return;
+            }
+
+            [SlashCommand("forcedelete", "Force delete a ticket channel.")]
+            public async Task forceDelete(InteractionContext ctx)
+            {
+                bool isAdmin = await permissionCheck(ctx);
+                if(!isAdmin) { return; }
+                Regex regex = new Regex("closed-[A-Za-z]+-(\\d+)");
+                DiscordChannel channel = ctx.Interaction.Channel;
+                var chName = channel.Name;
+
+                var matches = regex.Matches(chName);
+                if(matches != null)
+                {
+                    AutoTranscript autoTranscript = new();
+                    bool result = await autoTranscript.ProcessTranscript(ctx.Client, ctx.Interaction, channel, "delete");
+                    if (!result)
+                    {
+                        var errorEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "Error",
+                            Description = "An unknown error occured.",
+                            Color = DiscordColor.Red
+                        };
+                        await ctx.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                    }
+                }
             }
         }
     }
