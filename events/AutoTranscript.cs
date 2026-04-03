@@ -43,6 +43,7 @@ namespace Stormtility.events
 
             if (action == "close")
             {
+                bool isSuccess = true;
                 if (channelName.Contains("closed-")) return false;
 
                 var closeEmbed = new DiscordEmbedBuilder { Title = "Closing Ticket...", Description = "Saving transcript and archiving...", Color = DiscordColor.Red };
@@ -62,6 +63,7 @@ namespace Stormtility.events
                     });
                 } catch (Exception e)
                 {
+                    isSuccess = false;
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("--- STACK BEGIN ---");
                     Console.WriteLine(e);
@@ -93,7 +95,9 @@ namespace Stormtility.events
                     }
                 } finally
                 {
-                    await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent("Category might be full.. closing aborted, ticket transcripted."));
+                    if (!isSuccess) {
+                        await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent("Category might be full.. closing aborted, ticket transcripted."));
+                    }
                 }
             }
             else if (action == "delete")
