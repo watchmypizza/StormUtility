@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using DiscordRPC;
 using DSharpPlus.Entities;
 
@@ -44,6 +45,32 @@ namespace Stormtility.Helpers
                 Console.WriteLine(e);
                 Console.WriteLine("---  STACK END  ---");
                 Console.ResetColor();
+
+                try 
+                {
+                    using HttpClient httpClient = new();
+                    var url = Program.webhookURL;
+
+                    var payload = new
+                    {
+                        content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                    };
+
+                    string json = JsonSerializer.Serialize(payload);
+
+                    using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
+
+                    var response = httpClient.PostAsync(url, stringContent).GetAwaiter().GetResult();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                }
                 return false;
             }
             return true;

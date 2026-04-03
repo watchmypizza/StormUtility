@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Stormtility.commands.TicketCommands.autocompletehelper;
+using System.Text.Json;
 
 namespace Stormtility.events
 {
@@ -62,6 +63,31 @@ namespace Stormtility.events
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[Startup Sync Error] {ex.Message}");
+                    try 
+                    {
+                        using HttpClient httpClient = new();
+                        var url = Program.webhookURL;
+
+                        var payload = new
+                        {
+                            content = $"**[ERROR]** {DateTime.Now}\n```\n{ex.Message}\n{ex.StackTrace?[..Math.Min(ex.StackTrace.Length, 1500)]}\n```"
+                        };
+
+                        string json = JsonSerializer.Serialize(payload);
+
+                        using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
+
+                        var response = await httpClient.PostAsync(url, stringContent);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception logEx)
+                    {
+                        Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                    }
                 }
             }
         }

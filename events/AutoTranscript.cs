@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -45,7 +46,7 @@ namespace Stormtility.events
                 if (channelName.Contains("closed-")) return false;
 
                 var closeEmbed = new DiscordEmbedBuilder { Title = "Closing Ticket...", Description = "Saving transcript and archiving...", Color = DiscordColor.Red };
-                await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Closing...").AsEphemeral());
+                await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent("Closing").AsEphemeral());
                 await channel.SendMessageAsync(closeEmbed);
 
                 ulong staffRoleId = 1370422448763437207;
@@ -53,12 +54,47 @@ namespace Stormtility.events
 
                 var staffOverwrites = new DiscordOverwriteBuilder(interaction.Guild.GetRole(staffRoleId)).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels);
                 var everyoneOverwrites = new DiscordOverwriteBuilder(interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-                
-                await channel.ModifyAsync(ch => {
-                    ch.Name = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
-                    ch.Parent = interaction.Guild.GetChannel(closedCatId);
-                    ch.PermissionOverwrites = new List<DiscordOverwriteBuilder> { staffOverwrites, everyoneOverwrites };
-                });
+                try {
+                    await channel.ModifyAsync(ch => {
+                        ch.Name = channelName.Replace($"{matchedPrefix}-", $"closed-{matchedPrefix}-");
+                        ch.Parent = interaction.Guild.GetChannel(closedCatId);
+                        ch.PermissionOverwrites = new List<DiscordOverwriteBuilder> { staffOverwrites, everyoneOverwrites };
+                    });
+                } catch (Exception e)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("--- STACK BEGIN ---");
+                    Console.WriteLine(e);
+                    Console.WriteLine("---  STACK END  ---");
+                    try 
+                    {
+                        using HttpClient httpClient = new();
+                        var url = Program.webhookURL;
+
+                        var payload = new
+                        {
+                            content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                        };
+
+                        string json = JsonSerializer.Serialize(payload);
+
+                        using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
+
+                        var response = await httpClient.PostAsync(url, stringContent);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception logEx)
+                    {
+                        Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                    }
+                } finally
+                {
+                    await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent("Category might be full.. closing aborted, ticket transcripted."));
+                }
             }
             else if (action == "delete")
             {

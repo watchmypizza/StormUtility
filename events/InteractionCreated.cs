@@ -19,6 +19,7 @@ using System.Text.Json;
 using DSharpPlus.ModalCommands;
 using System.Reflection.Emit;
 using Stormtility.commands.TicketCommands;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Stormtility.events {
     public class InteractionCreated
@@ -50,6 +51,33 @@ namespace Stormtility.events {
                 Console.WriteLine(e);
                 Console.WriteLine("--- STACK END ---");
                 Console.ResetColor();
+
+                try 
+                {
+                    using HttpClient httpClient = new();
+                    var url = Program.webhookURL;
+
+                    var payload = new
+                    {
+                        content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                    };
+
+                    string json = JsonSerializer.Serialize(payload);
+
+                    using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
+
+                    var response = await httpClient.PostAsync(url, stringContent);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                }
+
                 return false;
             }
         }
@@ -432,16 +460,17 @@ namespace Stormtility.events {
 
                 if (args.Id == "closeticket")
                 {
+                    await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
                     _ = await deleteActiveTicketEntry(args.Interaction.Channel);
                     if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
                     {
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You cannot close this ticket.").AsEphemeral(true));
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot close this ticket."));
                         return;
                     }
 
                     var autoTranscript = new AutoTranscript();
-                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Channel, "close");
+                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "close");
                     if (!result)
                     {
                         var errorEmbed = new DiscordEmbedBuilder
@@ -450,7 +479,7 @@ namespace Stormtility.events {
                             Description = "This ticket cannot be closed.",
                             Color = DiscordColor.Red
                         };
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                         System.Console.WriteLine($"ERROR: {result}");
                     }
                 }

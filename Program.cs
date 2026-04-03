@@ -30,15 +30,17 @@ namespace Stormtility
         private static DiscordClient Client { get; set; }
         private static CommandsNextExtension CommandBuilder { get; set; }
         private static SlashCommandsExtension Slash { get; set; }
+        public static string webhookURL { get; set; }
         static async Task Main(string[] args)
         {
-            string envLines = null;
+            List<string> envLines = null;
             envLines = EnvReader.GetEnvVariables(".config");
+            webhookURL = envLines[1];
 
             var discordConfig = new DiscordConfiguration()
             {
                 Intents = DiscordIntents.All,
-                Token = envLines,
+                Token = envLines[0],
                 TokenType = TokenType.Bot,
                 AutoReconnect = true,
                 LogUnknownEvents = false

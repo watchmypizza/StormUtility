@@ -2,8 +2,9 @@ namespace Stormtility
 {
     public class EnvReader
     {
-        public static string GetEnvVariables(string Path)
+        public static List<string> GetEnvVariables(string Path)
         {
+            List<string> env = [];
             bool fileExists = File.Exists(Path);
             if (!fileExists)
             {
@@ -17,13 +18,15 @@ namespace Stormtility
                 {
                     if (line.StartsWith("DISCORD_TOKEN="))
                     {
-                        return line.Substring("DISCORD_TOKEN=".Length);
+                        env.Add(line.Substring("DISCORD_TOKEN=".Length));
+                    }
+                    if(line.StartsWith("WEBHOOK_TOKEN"))
+                    {
+                        env.Add(line.Substring("WEBHOOK_TOKEN=".Length));
                     }
                 }
-                Console.WriteLine("DISCORD_TOKEN not found in .env file.");
-                Environment.Exit(0);
             }
-            return string.Empty;
+            return env;
         }
     }
 }

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using DSharpPlus.Exceptions;
+using System.Text.Json;
 
 namespace Stormtility.events
 {
@@ -40,6 +41,33 @@ namespace Stormtility.events
                     Console.WriteLine("--- STACK SPLIT ---");
                     Console.WriteLine(e.Message);
                     Console.WriteLine("---  STACK END  ---");
+
+                    try 
+                    {
+                        using HttpClient httpClient = new();
+                        var url = Program.webhookURL;
+
+                        var payload = new
+                        {
+                            content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                        };
+
+                        string json = JsonSerializer.Serialize(payload);
+
+                        using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
+
+                        var response = await httpClient.PostAsync(url, stringContent);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception logEx)
+                    {
+                        Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                    }
+
                     return false;
                 }
             }

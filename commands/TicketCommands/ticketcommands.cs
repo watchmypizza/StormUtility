@@ -17,6 +17,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using Stormtility.config;
+using System.Linq.Expressions;
 
 namespace Stormtility.commands.TicketCommands
 {
@@ -98,7 +99,7 @@ namespace Stormtility.commands.TicketCommands
                     new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
                     new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
                     new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
-                    new("Ban Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
+                    new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
                 });
 
                 var supportEmbed = new DiscordEmbedBuilder
@@ -141,7 +142,7 @@ namespace Stormtility.commands.TicketCommands
                     return;
                 }
 
-                JObject ticketTranscript = (JObject)json["transcripts"][ticketId.ToString()];
+                JObject ticketTranscript = (JObject)json?["transcripts"]?[ticketId.ToString()];
 
                 var allMsg = new List<(string userId, string username, string content, DateTime timestamp)>();
 
@@ -440,19 +441,54 @@ namespace Stormtility.commands.TicketCommands
                 var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
                 var defaultRoleOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
 
-                var channel = await ctx.Guild.CreateTextChannelAsync($"support-{ticketId}", openStaffTicketCategory, overwrites: [staffOverwrites, defaultRoleOverwrites]);
+                try {
+                    var channel = await ctx.Guild.CreateTextChannelAsync($"support-{ticketId}", openStaffTicketCategory, overwrites: [staffOverwrites, defaultRoleOverwrites]);
+                    
+                    var supportEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Support Ticket",
+                        Description = "Staff will assist you shortly, please give us a few minutes to respond.",
+                        Color = DiscordColor.Aquamarine
+                    };
 
-                var supportEmbed = new DiscordEmbedBuilder
+                    var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                    await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created in {channel.Mention}."));
+                } catch (Exception e)
                 {
-                    Title = "Support Ticket",
-                    Description = "Staff will assist you shortly, please give us a few minutes to respond.",
-                    Color = DiscordColor.Aquamarine
-                };
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("--- STACK BEGIN ---");
+                    Console.WriteLine(e);
+                    Console.WriteLine("---  STACK END  ---");
+                    Console.ResetColor();
+                    try 
+                    {
+                        using HttpClient httpClient = new();
+                        var url = Program.webhookURL;
 
-                var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+                        var payload = new
+                        {
+                            content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                        };
 
-                await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created in {channel.Mention}."));
+                        string errorjson = JsonSerializer.Serialize(payload);
+
+                        using StringContent stringContent = new(errorjson, System.Text.Encoding.UTF8, "application/json");
+
+                        var response = await httpClient.PostAsync(url, stringContent);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception logEx)
+                    {
+                        Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                    }
+                }
+
             }
 
             public async Task<bool> checkChannelName(InteractionContext ctx, DiscordChannel channel)
