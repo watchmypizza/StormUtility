@@ -120,7 +120,7 @@ namespace Stormtility.commands
                             active = true,
                             privateReason = "Moderator action",
                             displayReason = $"{reason}",
-                            excludeAltAccounts = true
+                            excludeAltAccounts = false
                         }
                     };
 
