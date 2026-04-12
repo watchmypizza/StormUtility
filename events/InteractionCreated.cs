@@ -20,6 +20,8 @@ using DSharpPlus.ModalCommands;
 using System.Reflection.Emit;
 using Stormtility.commands.TicketCommands;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using Microsoft.Data.Sqlite;
+using Stormtility.Helpers;
 
 namespace Stormtility.events {
     public class InteractionCreated
@@ -28,20 +30,24 @@ namespace Stormtility.events {
 
         public static async Task<bool> insertActiveTicket(DiscordUser user, DiscordChannel ticket)
         {
-            try {
-                var jsonText = File.ReadAllText("activetickets.json");
-                var json = JObject.Parse(jsonText);
-                var entries = (JObject)json;
+            var connectionString = "Data Source=activetickets.db";
 
-                if(entries?[$"{user.Id}"] != null) return false;
-
-                entries?[$"{user.Id}"] = new JObject
+            try
+            {
+                using (var connection = new SqliteConnection(connectionString))
                 {
-                    ["channel"] = ticket.Id
-                };
+                    string sql = "INSERT INTO activetickets (member, channelId) VALUES (@id, @channelId);";
 
-                File.WriteAllText("activetickets.json", entries.ToString());
-                return true;
+                    await connection.OpenAsync();
+                    using (var command = new SqliteCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", user.Id.ToString());
+                        command.Parameters.AddWithValue("@channelId", ticket.Id.ToString());
+
+                        int rows = await command.ExecuteNonQueryAsync();
+                        return rows > 0;
+                    }
+                }
             } catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -52,51 +58,38 @@ namespace Stormtility.events {
                 Console.WriteLine("--- STACK END ---");
                 Console.ResetColor();
 
-                try 
-                {
-                    using HttpClient httpClient = new();
-                    var url = Program.webhookURL;
-
-                    var payload = new
-                    {
-                        content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
-                    };
-
-                    string json = JsonSerializer.Serialize(payload);
-
-                    using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
-
-                    var response = await httpClient.PostAsync(url, stringContent);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
-                    }
-                }
-                catch (Exception logEx)
-                {
-                    Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
-                }
+                _ = logger.LOGGER(e);
 
                 return false;
             }
         }
 
-        public static async Task<string> getActiveTicket(DiscordUser user)
+        public static async Task<ulong> getActiveTicket(DiscordUser user)
         {
+            string sqlConn = "Data Source=activetickets.db";
+
             try
             {
-                var jsonText = File.ReadAllText("activetickets.json");
-                var json = JObject.Parse(jsonText);
-                var entries = (JObject)json;
+                using(var conn = new SqliteConnection(sqlConn))
+                {
+                    await conn.OpenAsync();
 
-                if(entries?[$"{user.Id}"] == null) return string.Empty;
+                    string sql = "SELECT channelId FROM activetickets WHERE member = @id";
 
-                var chId = entries?[$"{user.Id}"]["channel"];
+                    using (var comm = new SqliteCommand(sql, conn))
+                    {
+                        comm.Parameters.AddWithValue("@id", user.Id.ToString());
 
-                if(chId == null) return string.Empty;
+                        var result = await comm.ExecuteScalarAsync();
 
-                return chId.ToString();
+                        if(result != null && ulong.TryParse(result.ToString(), out ulong channelId))
+                        {
+                            return channelId;
+                        }
+                    }
+
+                    return 0;
+                }
             } catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -106,32 +99,39 @@ namespace Stormtility.events {
                 Console.WriteLine(e);
                 Console.WriteLine("--- STACK END ---");
                 Console.ResetColor();
-                return string.Empty;
+                _ = logger.LOGGER(e);
+                return 0;
             }
         }
 
-        public static async Task<bool> deleteActiveTicketEntry(DiscordChannel channel)
+        public static async Task<(ulong? channelId, ulong? userId)> deleteActiveTicketEntry(DiscordChannel channel)
         {
+            string connectionString = "Data Source=activetickets.db";
             try
             {
-                var jsonText = File.ReadAllText("activetickets.json");
-                var json = (JObject)JObject.Parse(jsonText);
-                var entries = json;
-                
-                foreach(var prop in json.Properties())
+                using (var connection = new SqliteConnection(connectionString))
                 {
-                    var entry = (JObject)prop.Value;
-                    var chId = entry["channel"]?.ToString();
+                    await connection.OpenAsync();
 
-                    if(chId == channel.Id.ToString())
+                    string sql = "DELETE FROM activetickets WHERE channelId = @channelid RETURNING member, channelId;";
+
+                    using (var command = new SqliteCommand(sql, connection))
                     {
-                        prop.Remove();
-                        File.WriteAllText("activetickets.json", json.ToString());
-                        return true;
-                    }
-                }
+                        command.Parameters.AddWithValue("@channelid", channel.Id.ToString());
 
-                return false;
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            if(await reader.ReadAsync())
+                            {
+                                ulong.TryParse(reader["member"].ToString(), out ulong userId);
+                                ulong.TryParse(reader["channelId"].ToString(), out ulong channelId);
+
+                                return(channelId, userId);
+                            }
+                        }
+                    }
+                    return (null, null);
+                }
             } catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -141,7 +141,8 @@ namespace Stormtility.events {
                 Console.WriteLine(e);
                 Console.WriteLine("--- STACK END ---");
                 Console.ResetColor();
-                return false;
+                _ = logger.LOGGER(e);
+                return (null, null);
             }
         }
 
@@ -155,12 +156,11 @@ namespace Stormtility.events {
 
                     if (selected == "support")
                     {
-                        string isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
 
-                        if(isTicketOpenAlready != string.Empty)
+                        if(isTicketOpenAlready != 0)
                         {
-                            ulong.TryParse(isTicketOpenAlready, out ulong chId);
-                            DiscordChannel ch = await sender.GetChannelAsync(chId);
+                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
                             await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
                             return;
                         }
@@ -227,12 +227,11 @@ namespace Stormtility.events {
                     }
                     else if (selected == "speedtypist")
                     {
-                        string isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
 
-                        if(isTicketOpenAlready != string.Empty)
+                        if(isTicketOpenAlready != 0)
                         {
-                            ulong.TryParse(isTicketOpenAlready, out ulong chId);
-                            DiscordChannel ch = await sender.GetChannelAsync(chId);
+                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
                             await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
                             return;
                         }
@@ -298,12 +297,11 @@ namespace Stormtility.events {
                         return;
                     } else if (selected == "exploiter")
                     {
-                        string isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
 
-                        if(isTicketOpenAlready != string.Empty)
+                        if(isTicketOpenAlready != 0)
                         {
-                            ulong.TryParse(isTicketOpenAlready, out ulong chId);
-                            DiscordChannel ch = await sender.GetChannelAsync(chId);
+                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
                             await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
                             return;
                         }
@@ -369,12 +367,11 @@ namespace Stormtility.events {
                         return;
                     } else if (selected == "appeal")
                     {
-                        string isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
 
-                        if(isTicketOpenAlready != string.Empty)
+                        if(isTicketOpenAlready != 0)
                         {
-                            ulong.TryParse(isTicketOpenAlready, out ulong chId);
-                            DiscordChannel ch = await sender.GetChannelAsync(chId);
+                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
                             await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
                             return;
                         }
@@ -443,9 +440,17 @@ namespace Stormtility.events {
 
                 if (args.Id == "deleteticket")
                 {
-                    _ = await deleteActiveTicketEntry(args.Interaction.Channel);
+                    await args.Interaction.DeferAsync(true);
+                    var member = (DiscordMember)args.Interaction.User;
+                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                    if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
+                    {
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot delete this ticket."));
+                        return;
+                    }
+
                     var autoTranscript = new AutoTranscript();
-                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Channel, "delete");
+                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
                     if (!result)
                     {
                         var errorEmbed = new DiscordEmbedBuilder
@@ -454,7 +459,23 @@ namespace Stormtility.events {
                             Description = "This ticket cannot be deleted.",
                             Color = DiscordColor.Red
                         };
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
+                        System.Console.WriteLine($"ERROR: {result}");
+                    } else
+                    {
+                        DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
+                        DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
+                        
+                        var embed = new DiscordEmbedBuilder
+                        {
+                            Title = "Ticket Closed",
+                            Description = $"The ticket {channel.Name} has been closed.",
+                            Color = DiscordColor.Red
+                        };
+
+                        embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+
+                        await mem.SendMessageAsync(embed);
                     }
                 }
 
@@ -462,7 +483,7 @@ namespace Stormtility.events {
                 {
                     await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
-                    _ = await deleteActiveTicketEntry(args.Interaction.Channel);
+                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
                     if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
                     {
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot close this ticket."));
@@ -481,6 +502,21 @@ namespace Stormtility.events {
                         };
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                         System.Console.WriteLine($"ERROR: {result}");
+                    } else
+                    {
+                        DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
+                        DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
+                        
+                        var embed = new DiscordEmbedBuilder
+                        {
+                            Title = "Ticket Closed",
+                            Description = $"The ticket {channel.Name} has been closed.",
+                            Color = DiscordColor.Red
+                        };
+
+                        embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+
+                        await mem.SendMessageAsync(embed);
                     }
                 }
 

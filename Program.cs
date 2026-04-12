@@ -22,6 +22,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
 using Stormtility.commands.TestingCommands;
+using Stormtility.Helpers;
 
 namespace Stormtility
 {
@@ -36,6 +37,8 @@ namespace Stormtility
             List<string> envLines = null;
             envLines = EnvReader.GetEnvVariables(".config");
             webhookURL = envLines[1];
+
+            await autostart.createTable();
 
             var discordConfig = new DiscordConfiguration()
             {
