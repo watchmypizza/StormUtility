@@ -32,8 +32,7 @@ namespace Stormtility.events
             }
             else if (action == "delete")
             {
-                await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, 
-                    new DiscordInteractionResponseBuilder().WithContent("Deleting...").AsEphemeral());
+                await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent("Deleting...").AsEphemeral());
             }
 
             try

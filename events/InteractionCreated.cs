@@ -113,11 +113,11 @@ namespace Stormtility.events {
                 {
                     await connection.OpenAsync();
 
-                    string sql = "DELETE FROM activetickets WHERE channelId = @channelid RETURNING member, channelId;";
+                    string sql = "DELETE FROM activetickets WHERE channelId = @id RETURNING member, channelId;";
 
                     using (var command = new SqliteCommand(sql, connection))
                     {
-                        command.Parameters.AddWithValue("@channelid", channel.Id.ToString());
+                        command.Parameters.AddWithValue("@id", channel.Id.ToString());
 
                         using (var reader = await command.ExecuteReaderAsync())
                         {
@@ -139,7 +139,7 @@ namespace Stormtility.events {
                 Console.WriteLine(e.StackTrace);
                 Console.WriteLine("--- STACK SPLIT ---");
                 Console.WriteLine(e);
-                Console.WriteLine("--- STACK END ---");
+                Console.WriteLine("---  STACK END  ---");
                 Console.ResetColor();
                 _ = logger.LOGGER(e);
                 return (null, null);
@@ -442,7 +442,6 @@ namespace Stormtility.events {
                 {
                     await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
-                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
                     if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
                     {
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot delete this ticket."));
@@ -450,6 +449,9 @@ namespace Stormtility.events {
                     }
 
                     var autoTranscript = new AutoTranscript();
+                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                    DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
+                    DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
                     bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
                     if (!result)
                     {
@@ -463,19 +465,24 @@ namespace Stormtility.events {
                         System.Console.WriteLine($"ERROR: {result}");
                     } else
                     {
-                        DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
-                        DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
-                        
-                        var embed = new DiscordEmbedBuilder
+                        try {                            
+                            var embed = new DiscordEmbedBuilder
+                            {
+                                Title = "Ticket Closed",
+                                Description = $"The ticket {channel.Name} has been closed.",
+                                Color = DiscordColor.Red
+                            };
+
+                            embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+
+                            await mem.SendMessageAsync(embed);
+                        } catch (NullReferenceException)
                         {
-                            Title = "Ticket Closed",
-                            Description = $"The ticket {channel.Name} has been closed.",
-                            Color = DiscordColor.Red
-                        };
-
-                        embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
-
-                        await mem.SendMessageAsync(embed);
+                            return;
+                        } catch (Exception e)
+                        {
+                            await logger.LOGGER(e);
+                        }
                     }
                 }
 
@@ -483,7 +490,6 @@ namespace Stormtility.events {
                 {
                     await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
-                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
                     if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
                     {
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot close this ticket."));
@@ -491,6 +497,7 @@ namespace Stormtility.events {
                     }
 
                     var autoTranscript = new AutoTranscript();
+                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
                     bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "close");
                     if (!result)
                     {
@@ -503,20 +510,27 @@ namespace Stormtility.events {
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                         System.Console.WriteLine($"ERROR: {result}");
                     } else
-                    {
-                        DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
-                        DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
-                        
-                        var embed = new DiscordEmbedBuilder
+                    { try {
+                            DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
+                            DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
+                            
+                            var embed = new DiscordEmbedBuilder
+                            {
+                                Title = "Ticket Closed",
+                                Description = $"The ticket {channel.Name} has been closed.",
+                                Color = DiscordColor.Red
+                            };
+
+                            embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+
+                            await mem.SendMessageAsync(embed);
+                        } catch(NullReferenceException)
                         {
-                            Title = "Ticket Closed",
-                            Description = $"The ticket {channel.Name} has been closed.",
-                            Color = DiscordColor.Red
-                        };
-
-                        embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
-
-                        await mem.SendMessageAsync(embed);
+                            return;
+                        } catch(Exception e)
+                        {
+                            await logger.LOGGER(e);
+                        }
                     }
                 }
 
