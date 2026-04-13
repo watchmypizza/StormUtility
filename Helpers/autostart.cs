@@ -6,35 +6,52 @@ namespace Stormtility.Helpers
     {
         public static async Task createTable()
         {
-            string conn = "Data Source=activetickets.db";
-            string sql = @"
+            string activeticketsconn = "Data Source=activetickets.db";
+            string activeticketssql = @"
                 CREATE TABLE IF NOT EXISTS activetickets (
                     member TEXT NOT NULL,
                     channelId TEXT NOT NULL UNIQUE
                 );";
             
-            string conn2 = "Data Source=blacklists.db";
-            string sql2 = @"
+            string blacklistsconn = "Data Source=blacklists.db";
+            string blacklistssql = @"
                 CREATE TABLE IF NOT EXISTS blacklists (member INTEGER NOT NULL UNIQUE,
                     reason TEXT NOT NULL);";
+            
+            string ticketscountconn = "Data Source=tickets.db";
+            string ticketscountsql = @"
+                CREATE TABLE IF NOT EXISTS tickets (
+                    type TEXT NOT NULL UNIQUE,
+                    count INTEGER NOT NULL
+                );";
 
             try
             {
-                using (var connection = new SqliteConnection(conn))
+                using (var connection = new SqliteConnection(activeticketsconn))
                 {
                     await connection.OpenAsync();
 
-                    using(var command = new SqliteCommand(sql, connection))
+                    using(var command = new SqliteCommand(activeticketssql, connection))
                     {
                         await command.ExecuteNonQueryAsync();
                     }
                 }
 
-                using(var connection = new SqliteConnection(conn2))
+                using(var connection = new SqliteConnection(blacklistsconn))
                 {
                     await connection.OpenAsync();
 
-                    using(var command = new SqliteCommand(sql2, connection))
+                    using(var command = new SqliteCommand(blacklistssql, connection))
+                    {
+                        await command.ExecuteNonQueryAsync();
+                    }
+                }
+
+                using(var connection = new SqliteConnection(ticketscountconn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(ticketscountsql, connection))
                     {
                         await command.ExecuteNonQueryAsync();
                     }

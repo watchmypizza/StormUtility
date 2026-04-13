@@ -28,6 +28,58 @@ namespace Stormtility.events {
     {
         public static DiscordClient Client;
 
+        private static async Task<int> getTicketCountAsync(string ticketType)
+        {
+            string conn = "Data Source=tickets.db";
+            string sql = "SELECT count FROM tickets WHERE type = @type";
+            try {
+                using(var connection = new SqliteConnection(conn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@type", ticketType.ToString());
+                        var result = await command.ExecuteScalarAsync();
+
+                        if(result != null && int.TryParse(result.ToString(), out int ticketId))
+                        {
+                            return ticketId;
+                        }
+                    }
+                }
+
+                return 0;
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+                return 0;
+            }
+        }
+
+        private static async Task<bool> updateTicketCountAsync(string ticketType)
+        {
+            string conn = "Data Source=tickets.db";
+            string sql = "UPDATE tickets SET count = count + 1 WHERE type = @type";
+            try {
+                using(var connection = new SqliteConnection(conn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@type", ticketType.ToString());
+                        await command.ExecuteNonQueryAsync();
+                        return true;
+                    }
+                }
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+                return false;
+            }
+        }
+
         public static async Task<bool> insertActiveTicket(DiscordUser user, DiscordChannel ticket)
         {
             var connectionString = "Data Source=activetickets.db";
@@ -165,27 +217,9 @@ namespace Stormtility.events {
                             return;
                         }
 
-                        int ticketId = 0;
-
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating support channel...").AsEphemeral());
 
-                        var jsonText = File.ReadAllText("tickets.json");
-                        var json = JObject.Parse(jsonText);
-                        var entries = (JArray)json["tickets"];
-
-                        foreach (JObject entry in entries)
-                        {
-                            var supportObj = entry["support"];
-                            if (supportObj != null)
-                            {
-                                ticketId = supportObj["id"]!.Value<int>();
-                                ticketId += 1;
-                                supportObj["id"] = ticketId;
-                            }
-                            break;
-                        }
-
-                        File.WriteAllText("tickets.json", json.ToString());
+                        int ticketId = await getTicketCountAsync("support") + 1;
 
                         ulong catId = 1429871426386526310;
                         var cat = args.Interaction.Guild.GetChannel(catId);
@@ -223,6 +257,13 @@ namespace Stormtility.events {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                         }
 
+                        bool increased = await updateTicketCountAsync("support");
+                        if(increased)
+                        {
+                            return;
+                        }
+
+                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
                         return;
                     }
                     else if (selected == "speedtypist")
@@ -236,27 +277,9 @@ namespace Stormtility.events {
                             return;
                         }
 
-                        int ticketId = 0;
+                        int ticketId = await getTicketCountAsync("speedtypist") + 1;
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating speedtypist channel...").AsEphemeral());
-
-                        var jsonText = File.ReadAllText("tickets.json");
-                        var json = JObject.Parse(jsonText);
-                        var entries = (JArray)json["tickets"];
-
-                        foreach (JObject entry in entries)
-                        {
-                            var supportObj = entry["speedtypist"];
-                            if (supportObj != null)
-                            {
-                                ticketId = supportObj["id"]!.Value<int>();
-                                ticketId += 1;
-                                supportObj["id"] = ticketId;
-                            }
-                            break;
-                        }
-
-                        File.WriteAllText("tickets.json", json.ToString());
 
                         ulong catId = 1429871426386526310;
                         var cat = args.Interaction.Guild.GetChannel(catId);
@@ -294,6 +317,13 @@ namespace Stormtility.events {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                         }
 
+                        bool increased = await updateTicketCountAsync("speedtypist");
+                        if(increased)
+                        {
+                            return;
+                        }
+
+                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
                         return;
                     } else if (selected == "exploiter")
                     {
@@ -306,27 +336,9 @@ namespace Stormtility.events {
                             return;
                         }
 
-                        int ticketId = 0;
+                        int ticketId = await getTicketCountAsync("exploiter") + 1;
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating exploiter report channel...").AsEphemeral());
-
-                        var jsonText = File.ReadAllText("tickets.json");
-                        var json = JObject.Parse(jsonText);
-                        var entries = (JArray)json["tickets"];
-
-                        foreach (JObject entry in entries)
-                        {
-                            var supportObj = entry["exploiter"];
-                            if (supportObj != null)
-                            {
-                                ticketId = supportObj["id"]!.Value<int>();
-                                ticketId += 1;
-                                supportObj["id"] = ticketId;
-                            }
-                            break;
-                        }
-
-                        File.WriteAllText("tickets.json", json.ToString());
 
                         ulong catId = 1429871426386526310;
                         var cat = args.Interaction.Guild.GetChannel(catId);
@@ -364,6 +376,13 @@ namespace Stormtility.events {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                         }
 
+                        bool increased = await updateTicketCountAsync("exploiter");
+                        if(increased)
+                        {
+                            return;
+                        }
+
+                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
                         return;
                     } else if (selected == "appeal")
                     {
@@ -376,27 +395,9 @@ namespace Stormtility.events {
                             return;
                         }
 
-                        int ticketId = 0;
+                        int ticketId = await getTicketCountAsync("appeal") + 1;
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating ban appeal channel...").AsEphemeral());
-
-                        var jsonText = File.ReadAllText("tickets.json");
-                        var json = JObject.Parse(jsonText);
-                        var entries = (JArray)json["tickets"];
-
-                        foreach (JObject entry in entries)
-                        {
-                            var supportObj = entry["appeal"];
-                            if (supportObj != null)
-                            {
-                                ticketId = supportObj["id"]!.Value<int>();
-                                ticketId += 1;
-                                supportObj["id"] = ticketId;
-                            }
-                            break;
-                        }
-
-                        File.WriteAllText("tickets.json", json.ToString());
 
                         ulong catId = 1429871426386526310;
                         var cat = args.Interaction.Guild.GetChannel(catId);
@@ -434,6 +435,13 @@ namespace Stormtility.events {
                             await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
                         }
 
+                        bool increased = await updateTicketCountAsync("appeal");
+                        if(increased)
+                        {
+                            return;
+                        }
+
+                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
                         return;
                     }
                 }
