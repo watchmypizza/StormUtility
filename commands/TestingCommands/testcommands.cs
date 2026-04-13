@@ -63,5 +63,20 @@ namespace Stormtility.commands.TestingCommands
                 return;
             }
         }
+
+        [SlashCommand("honeypot", "Set the honeypot automation up")]
+        public async Task honeypot(InteractionContext ctx)
+        {
+            var embed = new DiscordEmbedBuilder()
+            {
+                Title = "DO NOT SEND MESSAGES IN THIS DISCORD CHANNEL!",
+                Description = "# Sending messages in this discord channel will get you automatically, permanently banned from the discord server!\n### This channel is supposed to be a honeypot for scammers and compromised accounts.",
+                Color = DiscordColor.Red
+            };
+
+            DiscordChannel channel = ctx.Interaction.Channel;
+            await channel.SendMessageAsync(embed);
+            return;
+        }
     }
 }

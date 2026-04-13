@@ -15,6 +15,7 @@ using Stormtility.Helpers;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using Stormtility.commands;
+using System.IO.Compression;
 
 namespace Stormtility.events
 {
@@ -89,6 +90,15 @@ namespace Stormtility.events
             return false;
         }
 
+        private static async Task<bool> deleteAnyInvite(DiscordMessage message)
+        {
+            Regex inviteRegex = new Regex(@"discord.[a-z]+(?:\/?)[a-z]+?\/([a-zA-Z0-9]+)");
+            bool match = inviteRegex.IsMatch(message.Content);
+
+            if(!match) { return false; }
+            return true;
+        }
+
         public static async Task<bool> antiRaidActions(List<DiscordChannel> channels)
         {
             bool antiraid = false;
@@ -125,42 +135,55 @@ namespace Stormtility.events
 
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreateEventArgs args)
         {
-            bool result = await checkMessage(message: args.Message);
+            bool result = await deleteAnyInvite(message: args.Message);
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
 
-            if (result)
+            if(result)
             {
-                await args.Message.DeleteAsync();
-                foreach (var role in member.Roles)
+                if(member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
                 {
-                    if (role.Id == args.Guild.GetRole(vars.blacklistRole).Id)
-                    {
-                        return;
-                    }
-                    else
-                    {
-                        slashcommands blacklistfunc = new slashcommands();
-
-                        string blacklisted = await blacklistfunc.getBlacklist((DiscordMember)args.Message.Author);
-                        if(blacklisted != string.Empty) { return; }
-                        bool success = await blacklistfunc.insertBlacklist((DiscordMember)args.Message.Author, $"Inappropiate invite: `{args.Message.Content}`");
-                        DiscordRole blacklistRole = args.Guild.GetRole(vars.blacklistRole);
-                        await member.GrantRoleAsync(blacklistRole);
-
-                        break;
-                    }
+                    return;
                 }
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title = "Inappropiate invite",
-                    Description = $"{member.Mention} has been blacklisted for sending following invite: {args.Message.Content}",
-                    Color = DiscordColor.Red
-                };
-                var logChannel = args.Guild.GetChannel(vars.modLogs);
-                await logChannel.SendMessageAsync(embed);
+                DiscordChannel channelLog = args.Guild.GetChannel(1315142575857864846);
+                DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
+                await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
+                await channelLog.SendMessageAsync(args.Message.Content.ToString());
+                await args.Message.DeleteAsync();
             }
+
+            // if (result)
+            // {
+            //     await args.Message.DeleteAsync();
+            //     foreach (var role in member.Roles)
+            //     {
+            //         if (role.Id == args.Guild.GetRole(vars.blacklistRole).Id)
+            //         {
+            //             return;
+            //         }
+            //         else
+            //         {
+            //             slashcommands blacklistfunc = new slashcommands();
+
+            //             string blacklisted = await blacklistfunc.getBlacklist((DiscordMember)args.Message.Author);
+            //             if(blacklisted != string.Empty) { return; }
+            //             bool success = await blacklistfunc.insertBlacklist((DiscordMember)args.Message.Author, $"Inappropiate invite: `{args.Message.Content}`");
+            //             DiscordRole blacklistRole = args.Guild.GetRole(vars.blacklistRole);
+            //             await member.GrantRoleAsync(blacklistRole);
+
+            //             break;
+            //         }
+            //     }
+            //     var embed = new DiscordEmbedBuilder
+            //     {
+            //         Title = "Inappropiate invite",
+            //         Description = $"{member.Mention} has been blacklisted for sending following invite: {args.Message.Content}",
+            //         Color = DiscordColor.Red
+            //     };
+            //     var logChannel = args.Guild.GetChannel(vars.modLogs);
+            //     await logChannel.SendMessageAsync(embed);
+            // }
 
             if (args.Author.IsBot)
             {
