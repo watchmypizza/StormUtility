@@ -21,6 +21,13 @@ namespace Stormtility.events
                 await args.Member.GrantRoleAsync(blacklistRole);
             }
 
+            bool hasMemberRole = args.Member.Roles.Any(r => r.Id == 1370383562515284090);
+            if(!hasMemberRole)
+            {
+                DiscordRole memberRole = args.Guild.GetRole(1370383562515284090);
+                await args.Member.GrantRoleAsync(memberRole);
+            }
+
             return;
         }
     }
