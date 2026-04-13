@@ -36,5 +36,12 @@ namespace Stormtility.Helpers
                 return false;
             }
         }
+
+        public static void debugLog(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"/// DEBUG: {message} ///");
+            Console.ResetColor();
+        }
     }
 }

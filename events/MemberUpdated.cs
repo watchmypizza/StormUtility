@@ -11,12 +11,13 @@ using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using DSharpPlus.Exceptions;
 using System.Text.Json;
+using Stormtility.commands;
 
 namespace Stormtility.events
 {
     public class MemberUpdated
     {
-        public static async Task<bool> verifyDisplayName(DiscordUser user)
+        private static async Task<bool> verifyDisplayName(DiscordUser user)
         {
             Regex regex = new Regex("[^A-Za-z0-9()!?,.\"$':#+:;_\\s]+");
             DiscordMember discordMember = (DiscordMember)user;
@@ -85,48 +86,25 @@ namespace Stormtility.events
             _ = await verifyDisplayName(args.Member);
 
             var blacklist = args.Guild.GetRole(1397404869702320260);
-            var blacklists = "blacklists.json";
 
             bool hadBefore = args.RolesBefore.Any(r => r.Id == blacklist.Id);
             bool hasAfter = args.RolesAfter.Any(r => r.Id == blacklist.Id);
 
-            var jsonText = File.ReadAllText(blacklists);
-            var json = JObject.Parse(jsonText);
-            var blacklisttable = (JArray)json["blacklist"];
-            JObject toRemove = null;
+            slashcommands blacklists = new slashcommands();
 
             if (hadBefore && !hasAfter)
             {
-                foreach (JObject entries in blacklisttable)
-                {
-                    if (entries.ContainsKey(args.Member.Id.ToString()))
-                    {
-                        toRemove = entries;
-                        break;
-                    }
-                }
-            }
-
-            if (toRemove != null)
-            {
-                blacklisttable.Remove(toRemove);
-                File.WriteAllText(blacklists, json.ToString());
-                return Task.CompletedTask;
+                string isBlacklisted = await blacklists.getBlacklist(args.Member);
+                if(isBlacklisted == string.Empty) { return Task.CompletedTask; }
+                bool removed = await blacklists.removeBlacklist(args.Member);
             }
 
             if (!hadBefore && hasAfter)
             {
-                var entry = new JObject
-                {
-                    [args.Member.Id.ToString()] = new JObject
-                    {
-                        ["reason"] = "Role has been given manually."
-                    }
-                };
+                string isBlacklisted = await blacklists.getBlacklist(args.Member);
+                if(isBlacklisted != string.Empty) { return Task.CompletedTask; }
+                bool added = await blacklists.insertBlacklist(args.Member, "Role has been given manually.");
 
-                ((JArray)json["blacklist"]).Add(entry);
-
-                File.WriteAllText(blacklists, json.ToString());
                 return Task.CompletedTask;
             }
 

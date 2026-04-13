@@ -11,6 +11,10 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
+using Stormtility.Helpers;
+using System.Runtime.InteropServices;
+using System.Reflection;
+using Stormtility.commands;
 
 namespace Stormtility.events
 {
@@ -18,14 +22,15 @@ namespace Stormtility.events
     {
         private static async Task<bool> checkMessage(DiscordMessage message)
         {
+            bool debug = RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.X86;
             TranslateMorsecode translator = new TranslateMorsecode();
             await translator.translateMorse(message);
 
-            List<string> blacklistedWords = new List<string> {"18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", "erp", "erotic", "hanime", "hentai", "uttp"};
+            List<string> blacklistedWords = new List<string> {"18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", "erp", "erotic", "hanime", "hentai", "uttp", "cp", "private", "cam"};
 
             string content = message.Content;
 
-            Regex inviteRegex = new Regex(@"https://discord\.gg/([a-zA-Z0-9]+)");
+            Regex inviteRegex = new Regex(@"discord.[a-z]+(?:\/?)[a-z]+?\/([a-zA-Z0-9]+)");
 
             var matches = inviteRegex.Matches(content);
             foreach (Match match in matches)
@@ -59,11 +64,22 @@ namespace Stormtility.events
                 var json = JObject.Parse(jsonText);
 
                 string? guildName = json["guild"]?["name"]?.ToString();
-
+                if(debug)
+                {
+                    logger.debugLog($"Name: {guildName}");
+                }
+                Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?]+");
                 if (guildName == null)
                     continue;
 
                 bool isBad = blacklistedWords.Any(word => guildName.Contains(word, StringComparison.OrdinalIgnoreCase));
+                
+                if(nameRegex.IsMatch(guildName) && debug)
+                {
+                    logger.debugLog($"Bad Name {guildName}");
+                    isBad = true;
+                }
+
 
                 vars.inviteCache[inviteCode] = (isBad, DateTime.UtcNow.AddMinutes(10));
 
@@ -125,7 +141,14 @@ namespace Stormtility.events
                     }
                     else
                     {
-                        await member.GrantRoleAsync(args.Guild.GetRole(vars.blacklistRole));
+                        slashcommands blacklistfunc = new slashcommands();
+
+                        string blacklisted = await blacklistfunc.getBlacklist((DiscordMember)args.Message.Author);
+                        if(blacklisted != string.Empty) { return; }
+                        bool success = await blacklistfunc.insertBlacklist((DiscordMember)args.Message.Author, $"Inappropiate invite: `{args.Message.Content}`");
+                        DiscordRole blacklistRole = args.Guild.GetRole(vars.blacklistRole);
+                        await member.GrantRoleAsync(blacklistRole);
+
                         break;
                     }
                 }

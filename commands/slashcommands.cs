@@ -2,9 +2,11 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormtility.config;
+using Stormtility.Helpers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -16,10 +18,97 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 
+// convert into sqlite3 tomorrow thanks peanut
+
 namespace Stormtility.commands
 {
     public class slashcommands : ApplicationCommandModule
     {
+
+        public async Task<string> getBlacklist(DiscordMember member)
+        {
+            try {
+                string conn = "Data Source=blacklists.db";
+                string sql = "SELECT reason FROM blacklists WHERE member = @id";
+
+                using (var connection = new SqliteConnection(conn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", member.Id);
+
+                        using(var reader = await command.ExecuteReaderAsync())
+                        {
+                            await reader.ReadAsync();
+                            return reader?["reason"]?.ToString() ?? "";
+                        }
+                    }
+                }
+            } catch (InvalidOperationException e)
+            {
+                return "";
+            } catch (Exception e)
+            {
+                await logger.LOGGER(e);
+                return "";
+            }
+        }
+
+        public async Task<bool> insertBlacklist(DiscordMember member, string reason)
+        {
+            try
+            {
+                string conn = "Data Source=blacklists.db";
+                string sql = @"INSERT INTO blacklists (member, reason) VALUES (@id, @reason)";
+
+                using(var connection = new SqliteConnection(conn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", member.Id);
+                        command.Parameters.AddWithValue("@reason", reason.ToString());
+
+                        int rows = await command.ExecuteNonQueryAsync();
+                        return rows > 0;
+                    }
+                }
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+                return false;
+            }
+        }
+
+        public async Task<bool> removeBlacklist(DiscordMember member)
+        {
+            try
+            {
+                string conn = "Data Source=blacklists.db";
+                string sql = "DELETE FROM blacklists WHERE member = @id";
+
+                using(var connection = new SqliteConnection(conn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", member.Id);
+
+                        await command.ExecuteNonQueryAsync();
+                        return true;
+                    }
+                }
+            } catch (Exception e)
+            {
+                await logger.LOGGER(e);
+                return false;
+            }
+        }
+
         [SlashCommand("blacklist", "Blacklist someone")]
         public async Task blacklist(InteractionContext ctx, [Option("Member", "Specify the member to blacklist")] DiscordUser user, [Option("Reason", "The reason for the blacklist")] string reason)
         {
@@ -32,35 +121,28 @@ namespace Stormtility.commands
                 return;
             }
 
-            var jsonText = File.ReadAllText("blacklists.json");
-            var json = JObject.Parse(jsonText);
-
-            var entry = new JObject
+            string isBlacklist = await getBlacklist((DiscordMember) user);
+            if(!(isBlacklist == string.Empty))
             {
-                [member.Id.ToString()] = new JObject
+                var errorEmbed = new DiscordEmbedBuilder()
                 {
-                    ["reason"] = reason
-                }
-            };
+                    Title = "Blacklist",
+                    Color = DiscordColor.Red,
+                    Description = "This user is already blacklisted."
+                };
 
-            ((JArray)json["blacklist"]).Add(entry);
+                errorEmbed.AddField("Reason", isBlacklist);
 
-            File.WriteAllText("blacklists.json", json.ToString());
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                return;
+            }
 
-            foreach (var role in member.Roles)
+            bool blacklist = await insertBlacklist((DiscordMember) user, reason);
+
+            if(!blacklist)
             {
-                if (role.Id == 1397404869702320260)
-                {
-                    var blacklisted = new DiscordEmbedBuilder
-                    {
-                        Title = "Blacklist",
-                        Color = DiscordColor.Red,
-                        Description = $"{member.Mention} is already blacklisted."
-                    };
-                    await ctx.DeferAsync(ephemeral:true);
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(blacklisted));
-                    return;
-                }
+                await logger.LOGGER(new Exception("Blacklist threw false response. (BLACKLIST COMMAND)"));
+                return;
             }
 
             var mod_log_ch = ctx.Guild.GetChannel(vars.modLogs);
@@ -98,49 +180,36 @@ namespace Stormtility.commands
                 return;
             }
 
-            var jsonText = File.ReadAllText("blacklists.json");
-            var json = JObject.Parse(jsonText);
-
-            var blacklist = (JArray)json["blacklist"];
-
-            string targetId = member.Id.ToString();
-
-            JObject toRemove = null;
-
-            foreach(JObject entry in blacklist)
+            string isBlacklisted = await getBlacklist((DiscordMember) user);
+            if(isBlacklisted == string.Empty)
             {
-                if (entry.ContainsKey(targetId))
-                {
-                    toRemove = entry;
-                    break;
-                }
-            }
-
-            if(toRemove != null)
-            {
-                blacklist.Remove(toRemove);
-                File.WriteAllText("blacklists.json", json.ToString());
-            } else
-            {
-                var embed = new DiscordEmbedBuilder
+                var errorEmbed = new DiscordEmbedBuilder()
                 {
                     Title = "Blacklist",
-                    Color = DiscordColor.Green,
-                    Description = $"{member.Mention} is not blacklisted or is not in the blacklists.json file.",
+                    Color = DiscordColor.Red,
+                    Description = "This user is not blacklisted."
                 };
-                embed.WithThumbnail(member.GetAvatarUrl(ImageFormat.Auto));
-                await ctx.DeferAsync(ephemeral: true);
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
                 return;
             }
 
-            foreach (var role in member.Roles)
+            bool success = await removeBlacklist((DiscordMember) user);
+            if(!success)
             {
-                if (role.Id == 1397404869702320260)
+                var errorEmbed = new DiscordEmbedBuilder()
                 {
-                    roleFound = true;
-                }
+                    Title = "404 - Error",
+                    Color = DiscordColor.Red,
+                    Description = "An unexpected error happened while trying to process your request."
+                };
+
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                await logger.LOGGER(new Exception("removeBlacklist() threw false in command removeBlacklist!"));
+                return;
             }
+
+            roleFound = member.Roles.Any(r => r.Id == 1397404869702320260);
 
             if(!roleFound)
             {
@@ -187,46 +256,36 @@ namespace Stormtility.commands
                 return;
             }
 
-            var jsonText = File.ReadAllText("blacklists.json");
-            var json = JObject.Parse(jsonText);
-            var blacklist = (JArray)json["blacklist"];
-            bool found = false;
             try
             {
-                foreach (JObject entry in blacklist)
-                {
-                    if (entry.ContainsKey(IDString))
-                    {
-                        var reason = entry[IDString]["reason"].ToString();
-                        var embed = new DiscordEmbedBuilder
-                        {
-                            Title = "Blacklist",
-                            Color = DiscordColor.Red,
-                            Description = $"{member.Mention} is blacklisted for `{reason}`."
-                        };
-                        await ctx.DeferAsync(ephemeral: true);
-                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-                        found = true;
-                        break;
-                    }
-                }
+                string blacklist = await getBlacklist((DiscordMember) user);
 
-                if (!found)
+                if(blacklist == string.Empty)
                 {
-                    var embed = new DiscordEmbedBuilder
+                    var errorEmbed = new DiscordEmbedBuilder()
                     {
                         Title = "Blacklist",
-                        Color = DiscordColor.Green,
-                        Description = $"{member.Mention} is not blacklisted or is not in the blacklists.json file.",
+                        Color = DiscordColor.Red,
+                        Description = "This user is not blacklisted."
                     };
-                    embed.WithThumbnail(member.GetAvatarUrl(ImageFormat.Auto));
-                    await ctx.DeferAsync(ephemeral: true);
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
                     return;
                 }
+
+                var successEmbed = new DiscordEmbedBuilder()
+                {
+                    Title = "Blacklist",
+                    Color = DiscordColor.Red,
+                    Description = $"{user.Mention} is blacklisted for `{blacklist}`"
+                };
+
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+
+                return;
             } catch (Exception e)
             {
-                Console.WriteLine(e);
+                await logger.LOGGER(e);
             }
         }
 
