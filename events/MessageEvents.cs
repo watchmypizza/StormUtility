@@ -19,7 +19,7 @@ using System.IO.Compression;
 
 namespace Stormtility.events
 {
-    public class MessageCreated
+    public class MessageEvents
     {
         private static async Task<bool> checkMessage(DiscordMessage message)
         {
@@ -31,7 +31,7 @@ namespace Stormtility.events
 
             string content = message.Content;
 
-            Regex inviteRegex = new Regex(@"discord.[a-z]+(?:\/?)[a-z]+?\/([a-zA-Z0-9]+)");
+            Regex inviteRegex = new Regex(@"discord(?:app)?.[a-zA-Z]+\/(?:invite)?(attachments)?\/?([A-Za-z0-9]+)");
 
             var matches = inviteRegex.Matches(content);
             foreach (Match match in matches)
@@ -39,7 +39,7 @@ namespace Stormtility.events
                 if (!match.Success)
                     continue;
 
-                string inviteCode = match.Groups[1].Value;
+                string inviteCode = match.Groups[2].Value;
 
                 if (vars.inviteCache.TryGetValue(inviteCode, out var cacheEntry))
                 {
@@ -69,7 +69,7 @@ namespace Stormtility.events
                 {
                     logger.debugLog($"Name: {guildName}");
                 }
-                Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?]+");
+                Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
                 if (guildName == null)
                     continue;
 
@@ -92,10 +92,19 @@ namespace Stormtility.events
 
         private static async Task<bool> deleteAnyInvite(DiscordMessage message)
         {
-            Regex inviteRegex = new Regex(@"discord.[a-z]+(?:\/?)[a-z]+?\/([a-zA-Z0-9]+)");
-            bool match = inviteRegex.IsMatch(message.Content);
+            Regex inviteRegex = new Regex(@"discord(?:app)?.[a-zA-Z]+\/(?:invite)?(attachments)?\/?([A-Za-z0-9]+)");
+            var match = inviteRegex.Match(message.Content);
+            if(match.Groups[1].Success)
+            {
+                return false;
+            }
+            if(match.Groups[2].Success)
+            {
+                await checkMessage(message);
+                return true;
+            }
 
-            if(!match) { return false; }
+            if(!match.Success) { return false; }
             return true;
         }
 
@@ -133,6 +142,27 @@ namespace Stormtility.events
             return antiraid;
         }
 
+        public static async Task Client_MessageUpdated(DiscordClient sender, MessageUpdateEventArgs args)
+        {
+            bool result = await deleteAnyInvite(message: args.Message);
+            var user = (DiscordUser)args.Author;
+            if (args.Author.IsBot) return;
+            var member = (DiscordMember)user;
+
+            if(result)
+            {
+                if(member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
+                {
+                    return;
+                }
+                DiscordChannel channelLog = args.Guild.GetChannel(1315142575857864846);
+                DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
+                await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
+                await channelLog.SendMessageAsync($"`{args.Message.Content.ToString()}` sent by {args.Message.Author.Mention}\nMessage before edited was `{args.MessageBefore.Content}`");
+                await args.Message.DeleteAsync();
+            }
+        }
+
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreateEventArgs args)
         {
             bool result = await deleteAnyInvite(message: args.Message);
@@ -149,7 +179,7 @@ namespace Stormtility.events
                 DiscordChannel channelLog = args.Guild.GetChannel(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
-                await channelLog.SendMessageAsync(args.Message.Content.ToString());
+                await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author.Mention}");
                 await args.Message.DeleteAsync();
             }
 

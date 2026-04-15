@@ -52,10 +52,11 @@ namespace Stormtility
             Client = new DiscordClient(discordConfig);
             Client.Ready += events.ClientReady.Client_Ready;
             Client.GuildMemberUpdated += events.MemberUpdated.Client_GuildMemberUpdated;
-            Client.MessageCreated += events.MessageCreated.Client_MessageCreated;
+            Client.MessageCreated += events.MessageEvents.Client_MessageCreated;
             Client.ComponentInteractionCreated += events.InteractionCreated.Client_ComponentInteractionCreated;
             Client.GuildMemberAdded += events.MemberJoined.Client_GuildMemberAdded;
             Client.ModalSubmitted += events.ModalSubmitted.Client_ModalSubmittedEvent;
+            Client.MessageUpdated += events.MessageEvents.Client_MessageUpdated;
 
             JobCache.Load();
             _ = JobPayout.RunDailyJobAsyncPayout();
