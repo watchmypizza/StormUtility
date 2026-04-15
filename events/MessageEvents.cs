@@ -90,6 +90,20 @@ namespace Stormtility.events
             return false;
         }
 
+        private static async Task<bool> bioCheck(DiscordMessage message)
+        {
+            Regex checkMessageForBio = new Regex(@"([ '""\/\\!?:*A-Za-z0-9]+)");
+            var match = checkMessageForBio.Match(message.Content.ToLower());
+            if(match.Success)
+            {
+                if(match.Groups[1].Value.Contains("check") && match.Groups[1].Value.Contains("bio"))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private static async Task<bool> deleteAnyInvite(DiscordMessage message)
         {
             Regex inviteRegex = new Regex(@"discord(?:app)?.[a-zA-Z]+\/(?:invite)?(attachments)?\/?([A-Za-z0-9]+)");
@@ -101,6 +115,11 @@ namespace Stormtility.events
             if(match.Groups[2].Success)
             {
                 await checkMessage(message);
+                return true;
+            }
+            var biocheck = await bioCheck(message);
+            if(biocheck)
+            {
                 return true;
             }
 
