@@ -16,6 +16,7 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using Stormtility.commands;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 
 namespace Stormtility.events
 {
@@ -108,11 +109,14 @@ namespace Stormtility.events
         {
             Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
             var match = inviteRegex.Match(message.Content);
-            if(match.Groups[4].Success)
+            if(match.Groups[3].Success)
             {
                 return false;
             }
-            if(match.Groups[3].Success)
+            List<string> whitelistedLinks = ["tenor", "klipy", "giphy"];
+            bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
+            if(isWhitelisted) { return false; }
+            if(match.Groups[4].Success)
             {
                 await checkMessage(message);
                 return true;
