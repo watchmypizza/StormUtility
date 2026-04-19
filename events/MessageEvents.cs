@@ -106,7 +106,7 @@ namespace Stormtility.events
 
         private static async Task<bool> deleteAnyInvite(DiscordMessage message)
         {
-            Regex inviteRegex = new Regex(@"discord(?:app)?.[a-zA-Z]+\/(?:invite)?(attachments)?\/?([A-Za-z0-9]+)");
+            Regex inviteRegex = new Regex(@"discord(?:app)?.[a-zA-Z]+\/(?:invite)?(emoji|attachment)?\/?([A-Za-z0-9]+)");
             var match = inviteRegex.Match(message.Content);
             if(match.Groups[1].Success)
             {

@@ -1,25 +1,7 @@
-using System;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using DSharpPlus.Interactivity.Extensions;
-using DSharpPlus.SlashCommands;
-using Newtonsoft.Json.Linq;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Stormtility.config;
-using Stormtility.commands.TicketCommands.autocompletehelper;
-using Newtonsoft.Json;
-using DSharpPlus.Net;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
-using DSharpPlus.ModalCommands;
-using System.Reflection.Emit;
-using Stormtility.commands.TicketCommands;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 using Microsoft.Data.Sqlite;
 using Stormtility.Helpers;
 
