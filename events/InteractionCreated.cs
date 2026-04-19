@@ -439,10 +439,17 @@ namespace Stormtility.events {
                     }
 
                     var autoTranscript = new AutoTranscript();
-                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
-                    DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
-                    DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
-                    bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
+                    DiscordChannel channel = args.Interaction.Channel;
+                    DiscordMember mem = null;
+                    bool deletedWhileClosed = true;
+                    bool result = true;
+                    if(!args.Interaction.Channel.Name.Contains("closed")) {
+                        var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                        channel = args.Guild.GetChannel(channelId.Value);
+                        mem = await args.Guild.GetMemberAsync(userId.Value);
+                        result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
+                        deletedWhileClosed = false;
+                    }
                     if (!result)
                     {
                         var errorEmbed = new DiscordEmbedBuilder
@@ -465,7 +472,9 @@ namespace Stormtility.events {
 
                             embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
 
-                            await mem.SendMessageAsync(embed);
+                            if(!deletedWhileClosed) {
+                                await mem.SendMessageAsync(embed);
+                            }
                         } catch (NullReferenceException)
                         {
                             return;
