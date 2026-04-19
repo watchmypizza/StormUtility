@@ -601,17 +601,25 @@ namespace Stormtility.commands.TicketCommands
             [SlashCommand("forcedelete", "Force delete a ticket channel.")]
             public async Task forceDelete(InteractionContext ctx)
             {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, 
+                    new DiscordInteractionResponseBuilder().AsEphemeral());
+
                 bool isAdmin = await permissionCheck(ctx);
-                if(!isAdmin) { return; }
+                if(!isAdmin) 
+                { 
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("You do not have permission."));
+                    return; 
+                }
+
                 Regex regex = new Regex("closed-[A-Za-z]+-(\\d+)");
                 DiscordChannel channel = ctx.Interaction.Channel;
                 var chName = channel.Name;
 
-                var matches = regex.Matches(chName);
-                if(matches != null)
+                if(regex.IsMatch(chName))
                 {
                     AutoTranscript autoTranscript = new();
                     bool result = await autoTranscript.ProcessTranscript(ctx.Client, ctx.Interaction, channel, "delete");
+                    
                     if (!result)
                     {
                         var errorEmbed = new DiscordEmbedBuilder
@@ -620,8 +628,12 @@ namespace Stormtility.commands.TicketCommands
                             Description = "An unknown error occured.",
                             Color = DiscordColor.Red
                         };
-                        await ctx.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                     }
+                }
+                else 
+                {
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("This is not a valid ticket channel."));
                 }
             }
         }
