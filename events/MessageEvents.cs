@@ -113,7 +113,7 @@ namespace Stormtility.events
             {
                 return false;
             }
-            List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal.tv"];
+            List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal"];
             bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
             if(isWhitelisted) { return false; }
             if(match.Groups[4].Success)
