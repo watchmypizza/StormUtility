@@ -113,9 +113,11 @@ namespace Stormtility.events
             {
                 return false;
             }
-            List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal"];
+            List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube"];
+            var user = (DiscordMember)message.Author;
+            bool hasMediaPerms = user.Roles.Any(r => r.Id == 1374444948228931661);
             bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
-            if(isWhitelisted) { return false; }
+            if(isWhitelisted && hasMediaPerms) { return false; }
             if(match.Groups[4].Success)
             {
                 await checkMessage(message);
