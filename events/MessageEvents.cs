@@ -107,6 +107,10 @@ namespace Stormtility.events
 
         private static async Task<bool> deleteAnyInvite(DiscordMessage message)
         {
+            if(message.Author.IsBot)
+            {
+                return false;
+            }
             Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
             var match = inviteRegex.Match(message.Content);
             if(match.Groups[3].Success)
