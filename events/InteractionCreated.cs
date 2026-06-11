@@ -443,12 +443,30 @@ namespace Stormtility.events {
                     DiscordMember mem = null;
                     bool deletedWhileClosed = true;
                     bool result = true;
-                    if(!args.Interaction.Channel.Name.Contains("closed")) {
+                    if(args.Interaction.Channel.Name.Contains("-closed-")) {
+                        await logger.debugLog("Trying to delete alrady closed ticket...");
                         var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                        await logger.debugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
+                        if(channelId == null || userId == null)
+                        {
+                            await logger.debugLog("Setting values to default...");
+                            channelId = args.Interaction.Channel.Id;
+                            userId = args.Interaction.User.Id;
+                            await logger.debugLog($"channelId is now {channelId}");
+                            await logger.debugLog($"userId is now {userId}");
+                        }
+                        await logger.debugLog($"Attempting to grab channel");
                         channel = args.Guild.GetChannel(channelId.Value);
+                        await logger.debugLog($"Grabbed {channel.Id}");
+                        await logger.debugLog($"Attempting to grab member");
                         mem = await args.Guild.GetMemberAsync(userId.Value);
+                        await logger.debugLog($"Grabbed {mem.Id}");
+                        await logger.debugLog($"Auto transcripting ticket...");
                         result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
+                        await logger.debugLog($"Received as result: {result}");
+                        await logger.debugLog($"Setting deletedWhileClosed to false");
                         deletedWhileClosed = false;
+                        await logger.debugLog($"Set variable");
                     }
                     if (!result)
                     {

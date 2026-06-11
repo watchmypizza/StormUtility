@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Data.Common;
 using System.Text.Json;
 using DSharpPlus.CommandsNext.Converters;
+using Stormtility.config;
 
 namespace Stormtility.Helpers
 {
@@ -37,8 +39,12 @@ namespace Stormtility.Helpers
             }
         }
 
-        public static void debugLog(string message)
+        public static async Task debugLog(string message)
         {
+            if(!vars.debugMode)
+            {
+                return;
+            } 
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"/// DEBUG: {message} ///");
             Console.ResetColor();
