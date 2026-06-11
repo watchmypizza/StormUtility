@@ -49,5 +49,12 @@ namespace Stormtility.Helpers
             Console.WriteLine($"/// DEBUG: {message} ///");
             Console.ResetColor();
         }
+
+        public static async Task consoleLog(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"/// CONLOG: {message} ///");
+            Console.ResetColor();
+        }
     }
 }

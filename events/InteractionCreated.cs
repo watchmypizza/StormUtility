@@ -505,6 +505,7 @@ namespace Stormtility.events {
 
                 if (args.Id == "closeticket")
                 {
+                    bool doNotDm = false;
                     await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
                     if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(Permissions.ModerateMembers))
@@ -515,6 +516,10 @@ namespace Stormtility.events {
 
                     var autoTranscript = new AutoTranscript();
                     var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                    if(channelId == null || userId == null)
+                    {
+                        doNotDm = true;
+                    }
                     bool result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "close");
                     if (!result)
                     {
@@ -528,19 +533,21 @@ namespace Stormtility.events {
                         System.Console.WriteLine($"ERROR: {result}");
                     } else
                     { try {
-                            DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
-                            DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
-                            
-                            var embed = new DiscordEmbedBuilder
-                            {
-                                Title = "Ticket Closed",
-                                Description = $"The ticket {channel.Name} has been closed.",
-                                Color = DiscordColor.Red
-                            };
+                            if(!doNotDm) {
+                                DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
+                                DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
+                                
+                                var embed = new DiscordEmbedBuilder
+                                {
+                                    Title = "Ticket Closed",
+                                    Description = $"The ticket {channel.Name} has been closed.",
+                                    Color = DiscordColor.Red
+                                };
 
-                            embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+                                embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
 
-                            await mem.SendMessageAsync(embed);
+                                await mem.SendMessageAsync(embed);
+                            }
                         } catch(NullReferenceException)
                         {
                             return;

@@ -34,6 +34,15 @@ namespace Stormtility
         public static string webhookURL { get; set; }
         static async Task Main(string[] args)
         {
+            foreach(string arg in args)
+            {
+                if(arg == "-v" || arg == "--version")
+                {
+                    await logger.consoleLog("v0.8.4");
+                    return;
+                }
+            }
+
             List<string> envLines = null;
             envLines = EnvReader.GetEnvVariables(".config");
             webhookURL = envLines[1];
