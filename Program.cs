@@ -38,7 +38,7 @@ namespace Stormtility
             {
                 if(arg == "-v" || arg == "--version")
                 {
-                    await logger.consoleLog("v0.8.5 NULLABLE FIX");
+                    await logger.consoleLog("v0.8.5 DELETE DM FIX");
                     return;
                 }
             }

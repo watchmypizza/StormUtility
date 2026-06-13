@@ -4,6 +4,7 @@ using DSharpPlus.EventArgs;
 using Stormtility.config;
 using Microsoft.Data.Sqlite;
 using Stormtility.Helpers;
+using DSharpPlus.Exceptions;
 
 namespace Stormtility.events {
     public class InteractionCreated
@@ -536,6 +537,11 @@ namespace Stormtility.events {
                             if(!doNotDm) {
                                 DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
                                 DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
+
+                                if(mem.Id == args.Interaction.User.Id)
+                                {
+                                    return;
+                                }
                                 
                                 var embed = new DiscordEmbedBuilder
                                 {
@@ -546,7 +552,12 @@ namespace Stormtility.events {
 
                                 embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
 
-                                await mem.SendMessageAsync(embed);
+                                try {
+                                    await mem.SendMessageAsync(embed);
+                                } catch(UnauthorizedException e)
+                                {
+                                    return;
+                                }
                             }
                         } catch(NullReferenceException)
                         {
