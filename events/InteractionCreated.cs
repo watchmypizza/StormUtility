@@ -442,9 +442,10 @@ namespace Stormtility.events {
                     var autoTranscript = new AutoTranscript();
                     DiscordChannel channel = args.Interaction.Channel;
                     DiscordMember mem = null;
-                    bool deletedWhileClosed = true;
+                    bool deletedWhileClosed = false;
                     bool result = true;
                     if(args.Interaction.Channel.Name.Contains("-closed-")) {
+                        deletedWhileClosed = true;
                         await logger.debugLog("Trying to delete alrady closed ticket...");
                         var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
                         await logger.debugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
@@ -465,9 +466,6 @@ namespace Stormtility.events {
                         await logger.debugLog($"Auto transcripting ticket...");
                         result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
                         await logger.debugLog($"Received as result: {result}");
-                        await logger.debugLog($"Setting deletedWhileClosed to false");
-                        deletedWhileClosed = false;
-                        await logger.debugLog($"Set variable");
                     }
                     if (!result)
                     {
@@ -494,6 +492,7 @@ namespace Stormtility.events {
                             if(!deletedWhileClosed) {
                                 await mem.SendMessageAsync(embed);
                             }
+                            deletedWhileClosed = false;
                         } catch (NullReferenceException)
                         {
                             return;
@@ -537,11 +536,6 @@ namespace Stormtility.events {
                             if(!doNotDm) {
                                 DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
                                 DiscordChannel channel = args.Guild.GetChannel(channelId.Value);
-
-                                if(mem.Id == args.Interaction.User.Id)
-                                {
-                                    return;
-                                }
                                 
                                 var embed = new DiscordEmbedBuilder
                                 {
