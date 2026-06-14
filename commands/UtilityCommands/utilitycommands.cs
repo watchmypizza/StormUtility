@@ -61,6 +61,72 @@ namespace Stormtility.commands.UtilityCommands
                 string status = vars.morseTranslateEnabled ? "enabled" : "disabled";
                 await ctx.CreateResponseAsync($"Morse code translation has been {status}.", true);
             }
+
+            [SlashCommand("toggleAI", "Toggle AI and what channel it should be in")]
+            public async Task toggleAI(InteractionContext ctx)
+            {
+                if(ctx.User.Id != 1116315001330880602)
+                {
+                    return;
+                }
+                if(!vars.aiToggle)
+                {
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("AI enabled."));
+                    vars.aiToggle = true;
+                    vars.AIChannel = ctx.Interaction.Channel.Id;
+                } else
+                {
+                    vars.aiToggle = false;
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("AI disabled"));
+                }
+            }
+
+            [SlashCommand("changePrompt", "Change the prompt to a funny prompt")]
+            public async Task changePrompt(InteractionContext ctx, [Option("prompt", "The prompt")] string prompt)
+            {
+                if(ctx.User.Id != 1116315001330880602)
+                {
+                    return;
+                }
+
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Changed promt to: {prompt}").AsEphemeral());
+                vars.AIPrompt = prompt;  
+            }
+
+            [SlashCommand("whitelist", "Add someone to AI whitelist")]
+            public async Task whitelist(InteractionContext ctx, [Option("action", "Action")] string action, [Option("user", "User to execute action on")] DiscordUser user)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
+                {
+                    await ctx.CreateResponseAsync("You do not have permission to use this command.");
+                    return;
+                }
+
+                if(action.ToLower() == "remove")
+                {
+                    vars.userIdsAI.Remove(user.Id);
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Removed {user.Username} from whitelist").AsEphemeral());
+                } else if (action.ToLower() == "add")
+                {
+                    vars.userIdsAI.Add(user.Id);
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Added {user.Username} to whitelist").AsEphemeral());
+                } else {
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, 
+                        new DiscordInteractionResponseBuilder().WithContent("Invalid action, use 'add' or 'remove'").AsEphemeral());
+                }
+            }
+
+            [SlashCommand("clearhistory", "clear chat history (wipe ai brain)")]
+            public async Task clearhistory(InteractionContext ctx)
+            {
+                if(ctx.User.Id != 1116315001330880602)
+                {
+                    return;
+                }
+
+                vars.chatHistory = [];
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Cleared history").AsEphemeral());
+            }
         }
     }
 }

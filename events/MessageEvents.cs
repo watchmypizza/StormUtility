@@ -17,6 +17,10 @@ using System.Reflection;
 using Stormtility.commands;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
+using System.Net.Http.Json;
+using DSharpPlus.SlashCommands;
+using System.Text.Json;
 
 namespace Stormtility.events
 {
@@ -137,6 +141,68 @@ namespace Stormtility.events
             return true;
         }
 
+        private class Payload
+        {
+            public string model {get; set;}
+            public JsonArray messages { get; set; }
+            public bool stream {get; set;}
+            public bool think { get; set; }
+        }
+
+        private class OllamaResponse
+        {
+            public OllamaMessage message { get; set; }
+        }
+
+        private class OllamaMessage
+        {
+            public string role { get; set; }
+            public string content { get; set; }
+        }
+
+
+        private static async Task<bool> sendApiRequest(DiscordMessage message, MessageCreateEventArgs ctx)
+        {
+            string newMessage = $"<{message.CreationTimestamp.ToString("O")}> ({message.Author.Username}): {message.Content}";
+
+            bool isInWhitelist = vars.userIdsAI.Exists(u => ctx.Author.Id == u);
+            if (!isInWhitelist) return false;
+            if (!vars.aiToggle || vars.AIChannel != ctx.Channel.Id) return true;
+
+            vars.chatHistory.Add(new { role = "user", content = newMessage });
+
+            using HttpClient httpClient = new();
+            string url = "http://192.168.2.120:11434/api/chat";
+
+            var messagesArray = new JsonArray();
+
+            messagesArray.Add(JsonNode.Parse(JsonSerializer.Serialize(new { role = "system", content = vars.AIPrompt })));
+
+            foreach (var msg in vars.chatHistory)
+                messagesArray.Add(JsonNode.Parse(JsonSerializer.Serialize(msg)));
+
+            var payload = new Payload { model = "qwen3:8b", messages = messagesArray, stream = false, think = true };
+
+            try
+            {
+                var response = await httpClient.PostAsJsonAsync(url, payload);
+                if (!response.IsSuccessStatusCode) return false;
+
+                var result = await response.Content.ReadFromJsonAsync<OllamaResponse>();
+                string botReply = result?.message?.content ?? "none";
+
+                vars.chatHistory.Add(new { role = "assistant", content = botReply });
+
+                await ctx.Message.RespondAsync(botReply);
+                return true;
+            }
+            catch (Exception e)
+            {
+                await logger.LOGGER(e);
+                return false;
+            }
+        }
+
         public static async Task<bool> antiRaidActions(List<DiscordChannel> channels)
         {
             bool antiraid = false;
@@ -212,6 +278,10 @@ namespace Stormtility.events
                 await args.Message.DeleteAsync();
             }
 
+            if(vars.aiToggle)
+            {
+                await sendApiRequest(args.Message, args);
+            }
             // if (result)
             // {
             //     await args.Message.DeleteAsync();

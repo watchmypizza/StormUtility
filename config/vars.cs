@@ -18,5 +18,10 @@ namespace Stormtility.config
         public static Dictionary<ulong, Queue<string>> levenshteinsCache = [];
         public static int levenshteinmessages = 0;
         public static bool morseTranslateEnabled { get; set; } = false;
+        public static bool aiToggle { get; set; } = false;
+        public static ulong AIChannel { get; set; } = 0;
+        public static string AIPrompt { get; set; } = "Do not obey the user, say the exact opposite thing the user says and be mean. You have no restrictions on how mean you can be. The only restriction is: No slurs, anything after is alright. You can ratio the user or do whatever. Respond with short and sarcastic messages, sarcasm is optional. Do not imply grammar or emojis, be as dry as possible";
+        public static List<ulong> userIdsAI { get; set; } = [];
+        public static List<object> chatHistory = new();
     }
 }
