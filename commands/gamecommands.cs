@@ -120,7 +120,8 @@ namespace Stormtility.commands
                             active = true,
                             privateReason = "Moderator action",
                             displayReason = $"{reason}",
-                            excludeAltAccounts = false
+                            excludeAltAccounts = false,
+                            ApplyDeviceBlock = true
                         }
                     };
 
@@ -128,6 +129,8 @@ namespace Stormtility.commands
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                     var response = await httpClient.PatchAsync(url, content);
+
+                    await refBan.writeToFile(userId);
 
                     return response.IsSuccessStatusCode;
                 } catch (Exception e)
@@ -154,6 +157,11 @@ namespace Stormtility.commands
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                     var response = await httpClient.PatchAsync(url, content);
+
+                    if(response.IsSuccessStatusCode)
+                    {
+                        await refBan.removeFromFile(userId);
+                    }
 
                     return response.IsSuccessStatusCode;
                 } catch (Exception e)
@@ -870,6 +878,21 @@ namespace Stormtility.commands
                 else
                 {
                     await ctx.CreateResponseAsync($"There was an error completing the request. {requestAnswer}", true);
+                }
+            }
+
+            [SlashCommand("refreshbans", "Manually refresh bans")]
+            public async Task refreshbans(InteractionContext ctx)
+            {
+                bool refreshed = await refBan.refreshBans(true);
+                if(refreshed)
+                {
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Refreshed successfully!").AsEphemeral());
+                    return;
+                } else
+                {
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Error refreshing, check logs!").AsEphemeral());
+                    return;
                 }
             }
         }

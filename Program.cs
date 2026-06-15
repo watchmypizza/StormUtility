@@ -2,8 +2,13 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.SlashCommands;
 using Stormtility.commands;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace gamebot
 {
@@ -12,7 +17,8 @@ namespace gamebot
         public static string apiKey { get; set; }
         public static ulong logChannel { get; } = 1477086071266218094;
         public static ulong staffId { get; } = 1474165198947356793;
-        public static ulong RBLX {get; set;}
+        private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
+
         private static Dictionary<string, string> ReadEnv(string envFilePath)
         {
             var env = new Dictionary<string, string>();
@@ -42,12 +48,14 @@ namespace gamebot
             apiKey = env["API_KEY"];
             string RBLXCKY = env["RBLX_CKY"];
 
+            _ = StartBanRefreshLoop(TimeSpan.FromMinutes(5), _cts.Token);
+
             DiscordClient client = new DiscordClient(new DiscordConfiguration()
             {
                 Token = token,
                 AutoReconnect = true,
                 LogUnknownEvents = false,
-                Intents=DiscordIntents.All,
+                Intents = DiscordIntents.All,
                 ReconnectIndefinitely = true,
             });
 
@@ -65,7 +73,36 @@ namespace gamebot
             client.Ready += Stormtility.events.Client_ReadyEvent.Client_Ready;
 
             await client.ConnectAsync();
-            await Task.Delay(-1);
+            await Task.Delay(-1, _cts.Token);
+        }
+
+        private static async Task StartBanRefreshLoop(TimeSpan interval, CancellationToken token)
+        {
+            using var timer = new PeriodicTimer(interval);
+            Console.WriteLine($"[System] Background task initialized: Checking bans every {interval.TotalMinutes} minutes.");
+
+            try
+            {
+                while (await timer.WaitForNextTickAsync(token))
+                {
+                    Console.WriteLine("[System] 5-minute interval reached. Scanning ban file...");
+                    
+                    bool success = await refBan.refreshBans();
+                    
+                    if (success)
+                    {
+                        Console.WriteLine("[System] Ban file check completed successfully.");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("[System] Ban loop terminated safely.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error] Error in ban refresh thread: {ex.Message}");
+            }
         }
     }
 }
