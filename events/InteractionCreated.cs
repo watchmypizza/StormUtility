@@ -260,53 +260,8 @@ namespace Stormtility.events {
                             return;
                         }
 
-                        int ticketId = await getTicketCountAsync("speedtypist") + 1;
-
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating speedtypist channel...").AsEphemeral());
-
-                        ulong catId = 1429871426386526310;
-                        var cat = args.Interaction.Guild.GetChannel(catId);
-                        ulong staffRole = 1370422448763437207;
-                        var staff = args.Interaction.Guild.GetRole(staffRole);
-                        ulong ticketRole = 1387529661323677827;
-                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
-
-                        var member = (DiscordMember)args.Interaction.User;
-
-                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-
-                        var channel = await args.Interaction.Guild.CreateChannelAsync($"speedtypist-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-                        _ = await insertActiveTicket(args.Interaction.User, channel);
-
-                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
-
-                        var supportEmbed = new DiscordEmbedBuilder
-                        {
-                            Title = "Speedtypist Application",
-                            Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.",
-                            Color = DiscordColor.Aquamarine
-                        };
-
-                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
-
-                        if (!vars.debugMode)
-                        {
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
-                        } else
-                        {
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
-                        }
-
-                        bool increased = await updateTicketCountAsync("speedtypist");
-                        if(increased)
-                        {
-                            return;
-                        }
-
-                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                        DiscordButtonComponent confirm = new DiscordButtonComponent(ButtonStyle.Primary, "confirmspeedtypist", "I have read the requirements, open my ticket.", false, new DiscordComponentEmoji("🎫"));
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("### Requirements\n* 1. Submit a recording of a 15s Monkeytype test with 150+ WPM and 95%+ accuracy.\n* 2. The recording must prove the test is yours (e.g. tab to Discord after the test) and include your Monkeytype profile link.\n\n-# Failure to meet these requirements will be treated as trolling and may result in punishment.").AddComponents(confirm).AsEphemeral());
                         return;
                     } else if (selected == "exploiter")
                     {
@@ -427,6 +382,58 @@ namespace Stormtility.events {
                         await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
                         return;
                     }
+                }
+
+                if(args.Id == "confirmspeedtypist")
+                {
+                    int ticketId = await getTicketCountAsync("speedtypist") + 1;
+
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating speedtypist channel...").AsEphemeral());
+
+                    ulong catId = 1429871426386526310;
+                    var cat = args.Interaction.Guild.GetChannel(catId);
+                    ulong staffRole = 1370422448763437207;
+                    var staff = args.Interaction.Guild.GetRole(staffRole);
+                    ulong ticketRole = 1387529661323677827;
+                    var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                    var member = (DiscordMember)args.Interaction.User;
+
+                    var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                    var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                    var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                    var channel = await args.Interaction.Guild.CreateChannelAsync($"speedtypist-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+                    _ = await insertActiveTicket(args.Interaction.User, channel);
+
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                    var supportEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Speedtypist Application",
+                        Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.",
+                        Color = DiscordColor.Aquamarine
+                    };
+
+                    var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                    if (!vars.debugMode)
+                    {
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
+                    } else
+                    {
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                    }
+
+                    bool increased = await updateTicketCountAsync("speedtypist");
+                    if(increased)
+                    {
+                        return;
+                    }
+
+                    await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                    return;
                 }
 
                 if (args.Id == "deleteticket")

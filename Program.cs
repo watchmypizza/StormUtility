@@ -66,6 +66,7 @@ namespace Stormtility
             Client.GuildMemberAdded += events.MemberJoined.Client_GuildMemberAdded;
             Client.ModalSubmitted += events.ModalSubmitted.Client_ModalSubmittedEvent;
             Client.MessageUpdated += events.MessageEvents.Client_MessageUpdated;
+            // Client.MessageReactionAdded += events.ReactionAdded.Client_ReactionAddedEvent; Not required, different solution has been found.
 
             JobCache.Load();
             _ = JobPayout.RunDailyJobAsyncPayout();
