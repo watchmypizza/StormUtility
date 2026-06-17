@@ -274,53 +274,11 @@ namespace Stormtility.events {
                             return;
                         }
 
-                        int ticketId = await getTicketCountAsync("exploiter") + 1;
+                        var dropdownsb = new DiscordSelectComponent("spellingbeegame", "Stormy's Spelling Bee 🐝", new List<DiscordSelectComponentOption>() {
+                                                                                                                    new("Stormy's Spelling Bee", "ssb", "Report someone in Stormy's Spelling Bee.", false, new DiscordComponentEmoji("🐝")),
+                                                                                                                    new DiscordSelectComponentOption("Bean's Spelling Bee", "nsb", "Report someone from the original spelling bee made by Bean.", false, new DiscordComponentEmoji("🥫"))});
 
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating exploiter report channel...").AsEphemeral());
-
-                        ulong catId = 1429871426386526310;
-                        var cat = args.Interaction.Guild.GetChannel(catId);
-                        ulong staffRole = 1474165198947356793;
-                        var staff = args.Interaction.Guild.GetRole(staffRole);
-                        ulong ticketRole = 1387529661323677827;
-                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
-
-                        var member = (DiscordMember)args.Interaction.User;
-
-                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-
-                        var channel = await args.Interaction.Guild.CreateChannelAsync($"exploiter-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-                        _ = await insertActiveTicket(args.Interaction.User, channel);
-
-                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
-
-                        var supportEmbed = new DiscordEmbedBuilder
-                        {
-                            Title = "Exploiter Report",
-                            Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.\nIn the meantime, please provide proof of the player using exploits.",
-                            Color = DiscordColor.Red
-                        };
-
-                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
-
-                        if (!vars.debugMode)
-                        {
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{staff.Mention}").WithAllowedMentions(Mentions.All));
-                        } else
-                        {
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
-                        }
-
-                        bool increased = await updateTicketCountAsync("exploiter");
-                        if(increased)
-                        {
-                            return;
-                        }
-
-                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Which game are you reporting from?\n* Stormy's Spelling Bee\n* Bean's Spelling Bee").AsEphemeral().AddComponents(dropdownsb));
                         return;
                     } else if (selected == "appeal")
                     {
@@ -380,6 +338,67 @@ namespace Stormtility.events {
                         }
 
                         await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                        return;
+                    }
+                }
+
+                if(args.Id == "spellingbeegame")
+                {
+                    var selected = args.Values.FirstOrDefault();
+
+                    if(selected == "ssb")
+                    {
+                        int ticketId = await getTicketCountAsync("exploiter") + 1;
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating exploiter report channel...").AsEphemeral());
+
+                        ulong catId = 1429871426386526310;
+                        var cat = args.Interaction.Guild.GetChannel(catId);
+                        ulong staffRole = 1474165198947356793;
+                        var staff = args.Interaction.Guild.GetRole(staffRole);
+                        ulong ticketRole = 1387529661323677827;
+                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                        var member = (DiscordMember)args.Interaction.User;
+
+                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                        var channel = await args.Interaction.Guild.CreateChannelAsync($"exploiter-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+                        _ = await insertActiveTicket(args.Interaction.User, channel);
+
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                        var supportEmbed = new DiscordEmbedBuilder
+                        {
+                            Title = "Exploiter Report",
+                            Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.\nIn the meantime, please provide proof of the player using exploits.",
+                            Color = DiscordColor.Red
+                        };
+
+                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
+
+                        if (!vars.debugMode)
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{staff.Mention}").WithAllowedMentions(Mentions.All));
+                        } else
+                        {
+                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                        }
+
+                        bool increased = await updateTicketCountAsync("exploiter");
+                        if(increased)
+                        {
+                            return;
+                        }
+
+                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                        return;
+                    } else
+                    {
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Please report **spelling bee** exploiters here:\ndiscord.gg/spellingbee\n\n-# Contact server administrators if the link is invalid or expired.").AsEphemeral());
                         return;
                     }
                 }
