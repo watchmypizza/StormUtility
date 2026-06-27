@@ -139,9 +139,11 @@ namespace Stormtility.events {
             }
         }
 
-        public static async Task<(ulong? channelId, ulong? userId)> deleteActiveTicketEntry(DiscordChannel channel)
+        public static async Task<(ulong? channelId, ulong? userId)> deleteActiveTicketEntry(ulong? id = 0)
         {
             string connectionString = "Data Source=activetickets.db";
+            string chid = id.ToString() ?? "0";
+
             try
             {
                 using (var connection = new SqliteConnection(connectionString))
@@ -152,7 +154,7 @@ namespace Stormtility.events {
 
                     using (var command = new SqliteCommand(sql, connection))
                     {
-                        command.Parameters.AddWithValue("@id", channel.Id.ToString());
+                        command.Parameters.AddWithValue("@id", chid);
 
                         using (var reader = await command.ExecuteReaderAsync())
                         {
@@ -195,9 +197,14 @@ namespace Stormtility.events {
 
                         if(isTicketOpenAlready != 0)
                         {
-                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
-                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
-                            return;
+                            try {
+                                DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
+                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
+                                return;
+                            } catch(NotFoundException ex)
+                            {
+                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                            }
                         }
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating support channel...").AsEphemeral());
@@ -255,13 +262,20 @@ namespace Stormtility.events {
 
                         if(isTicketOpenAlready != 0)
                         {
-                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
-                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
-                            return;
+                            try {
+                                DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
+                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
+                                return;
+                            } catch(NotFoundException ex)
+                            {
+                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                            }
                         }
 
                         DiscordButtonComponent confirm = new DiscordButtonComponent(ButtonStyle.Primary, "confirmspeedtypist", "I have read the requirements, open my ticket.", false, new DiscordComponentEmoji("🎫"));
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("### Requirements\n* 1. Submit a recording of a 15s Monkeytype test with 150+ WPM and 95%+ accuracy.\n* 2. The recording must prove the test is yours (e.g. tab to Discord after the test) and include your Monkeytype profile link.\n\n-# Failure to meet these requirements will be treated as trolling and may result in punishment.").AddComponents(confirm).AsEphemeral());
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("### Requirements\n* 1. Submit a recording of a 15s Monkeytype test with 150+ WPM and 95%+ accuracy.\n* 2. The recording must prove the test is yours (e.g. tab to Discord after the test) and include your Monkeytype profile link.\n\n-# Failure to meet these requirements will be treated as trolling and may result in punishment.").AsEphemeral());
+                        await Task.Delay(5000);
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("### Requirements\n* 1. Submit a recording of a 15s Monkeytype test with 150+ WPM and 95%+ accuracy.\n* 2. The recording must prove the test is yours (e.g. tab to Discord after the test) and include your Monkeytype profile link.\n\n-# Failure to meet these requirements will be treated as trolling and may result in punishment.").AddComponents(confirm));
                         return;
                     } else if (selected == "exploiter")
                     {
@@ -269,16 +283,21 @@ namespace Stormtility.events {
 
                         if(isTicketOpenAlready != 0)
                         {
-                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
-                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
-                            return;
+                            try {
+                                DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
+                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
+                                return;
+                            } catch(NotFoundException ex)
+                            {
+                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                            }
                         }
 
                         var dropdownsb = new DiscordSelectComponent("spellingbeegame", "Stormy's Spelling Bee 🐝", new List<DiscordSelectComponentOption>() {
                                                                                                                     new("Stormy's Spelling Bee", "ssb", "Report someone in Stormy's Spelling Bee.", false, new DiscordComponentEmoji("🐝")),
                                                                                                                     new DiscordSelectComponentOption("Bean's Spelling Bee", "nsb", "Report someone from the original spelling bee made by Bean.", false, new DiscordComponentEmoji("🥫"))});
 
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Which game are you reporting from?\n* Stormy's Spelling Bee\n* Bean's Spelling Bee").AsEphemeral().AddComponents(dropdownsb));
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Which game are you reporting from?").AsEphemeral().AddComponents(dropdownsb));
                         return;
                     } else if (selected == "appeal")
                     {
@@ -286,9 +305,14 @@ namespace Stormtility.events {
 
                         if(isTicketOpenAlready != 0)
                         {
-                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
-                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
-                            return;
+                            try {
+                                DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
+                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
+                                return;
+                            } catch(NotFoundException ex)
+                            {
+                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                            }
                         }
 
                         int ticketId = await getTicketCountAsync("appeal") + 1;
@@ -349,6 +373,20 @@ namespace Stormtility.events {
                     if(selected == "ssb")
                     {
                         int ticketId = await getTicketCountAsync("exploiter") + 1;
+
+                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+
+                        if(isTicketOpenAlready != 0)
+                        {
+                            try {
+                                DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
+                                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
+                                return;
+                            } catch(NotFoundException ex)
+                            {
+                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                            }
+                        }
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating exploiter report channel...").AsEphemeral());
 
@@ -473,7 +511,7 @@ namespace Stormtility.events {
                     if(args.Interaction.Channel.Name.Contains("-closed-")) {
                         deletedWhileClosed = true;
                         await logger.debugLog("Trying to delete alrady closed ticket...");
-                        var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                        var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel.Id);
                         await logger.debugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
                         if(channelId == null || userId == null)
                         {
@@ -541,7 +579,7 @@ namespace Stormtility.events {
                     }
 
                     var autoTranscript = new AutoTranscript();
-                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel);
+                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel.Id);
                     if(channelId == null || userId == null)
                     {
                         doNotDm = true;
