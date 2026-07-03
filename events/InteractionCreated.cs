@@ -315,57 +315,131 @@ namespace Stormtility.events {
                             }
                         }
 
-                        int ticketId = await getTicketCountAsync("appeal") + 1;
+                        var confirmbtn = new DiscordButtonComponent(ButtonStyle.Success, "confirmappeal", "Continue, create my in-game appeal.", false, new DiscordComponentEmoji("📨"));
+                        var blacklistappeal = new DiscordButtonComponent(ButtonStyle.Primary, "support", "Create a support ticket instead.", false, new DiscordComponentEmoji("❗"));
 
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating ban appeal channel...").AsEphemeral());
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("**Please remember that this selection is for**\n# In-Game Ban Appeals\n**If you wish to proceed, click the appropriate button.**").AsEphemeral().AddComponents(confirmbtn, blacklistappeal));
 
-                        ulong catId = 1429871426386526310;
-                        var cat = args.Interaction.Guild.GetChannel(catId);
-                        ulong staffRole = 1474165198947356793;
-                        var staff = args.Interaction.Guild.GetRole(staffRole);
-                        ulong ticketRole = 1387529661323677827;
-                        var tickets = args.Interaction.Guild.GetRole(ticketRole);
-
-                        var member = (DiscordMember)args.Interaction.User;
-
-                        var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                        var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                        var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
-
-                        var channel = await args.Interaction.Guild.CreateChannelAsync($"appeal-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-                        _ = await insertActiveTicket(args.Interaction.User, channel);
-
-                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
-
-                        var supportEmbed = new DiscordEmbedBuilder
-                        {
-                            Title = "Ban Appeal",
-                            Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.\nIn the meantime, please provide proof of your innocence.",
-                            Color = DiscordColor.Red
-                        };
-
-                        var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
-
-                        if (!vars.debugMode)
-                        {
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{staff.Mention}").WithAllowedMentions(Mentions.All));
-                        } else
-                        {
-                            await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
-                        }
-
-                        bool increased = await updateTicketCountAsync("appeal");
-                        if(increased)
-                        {
-                            return;
-                        }
-
-                        await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
-                        return;
                     }
                 }
 
+                if(args.Id == "confirmappeal")
+                {
+                    int ticketId = await getTicketCountAsync("appeal") + 1;
+
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating ban appeal channel...").AsEphemeral());
+
+                    ulong catId = 1429871426386526310;
+                    var cat = args.Interaction.Guild.GetChannel(catId);
+                    ulong staffRole = 1474165198947356793;
+                    var staff = args.Interaction.Guild.GetRole(staffRole);
+                    ulong ticketRole = 1387529661323677827;
+                    var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                    var member = (DiscordMember)args.Interaction.User;
+
+                    var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                    var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                    var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                    var channel = await args.Interaction.Guild.CreateChannelAsync($"appeal-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+                    _ = await insertActiveTicket(args.Interaction.User, channel);
+
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                    var supportEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Ban Appeal",
+                        Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.\nIn the meantime, please provide proof of your innocence.",
+                        Color = DiscordColor.Red
+                    };
+
+                    var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
+
+                    if (!vars.debugMode)
+                    {
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddComponents(closeBtn));
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{staff.Mention}").WithAllowedMentions(Mentions.All));
+                    } else
+                    {
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                    }
+
+                    bool increased = await updateTicketCountAsync("appeal");
+                    if(increased)
+                    {
+                        return;
+                    }
+
+                    await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                    return;
+                }
+                if (args.Id == "support")
+                {
+                    ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+
+                    if(isTicketOpenAlready != 0)
+                    {
+                        try {
+                            DiscordChannel ch = await sender.GetChannelAsync(isTicketOpenAlready);
+                            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Please continue inside of your current open ticket before opening a new one: {ch.Mention}").AsEphemeral(true));
+                            return;
+                        } catch(NotFoundException ex)
+                        {
+                            await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                        }
+                    }
+
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Creating support channel...").AsEphemeral());
+
+                    int ticketId = await getTicketCountAsync("support") + 1;
+
+                    ulong catId = 1429871426386526310;
+                    var cat = args.Interaction.Guild.GetChannel(catId);
+                    ulong staffRole = 1370422448763437207;
+                    var staff = args.Interaction.Guild.GetRole(staffRole);
+                    ulong ticketRole = 1387529661323677827;
+                    var tickets = args.Interaction.Guild.GetRole(ticketRole);
+
+                    var member = (DiscordMember)args.Interaction.User;
+
+                    var userOverwrites = new DiscordOverwriteBuilder(member).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                    var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
+                    var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+
+                    var channel = await args.Interaction.Guild.CreateChannelAsync($"support-{ticketId}", ChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
+                    _ = await insertActiveTicket(args.Interaction.User, channel);
+
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
+
+                    var supportEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Support Ticket",
+                        Description = $"Hello {args.Interaction.User.Mention}!\nStaff will assist you shortly, please give us a few minutes to respond.",
+                        Color = DiscordColor.Aquamarine
+                    };
+
+                    var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+
+                    if (!vars.debugMode)
+                    {
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
+                    } else
+                    {
+                        await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                    }
+
+                    bool increased = await updateTicketCountAsync("support");
+                    if(increased)
+                    {
+                        return;
+                    }
+
+                    await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+                    return;
+                }
+                
                 if(args.Id == "spellingbeegame")
                 {
                     var selected = args.Values.FirstOrDefault();

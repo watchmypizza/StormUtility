@@ -145,7 +145,6 @@ namespace Stormtility.events
                     ["messageId"] = msg.Id.ToString()
                 });
             }
-
             
             if (action != "auto")
             {

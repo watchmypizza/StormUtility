@@ -111,34 +111,40 @@ namespace Stormtility.events
 
         private static async Task<bool> deleteAnyInvite(DiscordMessage message)
         {
-            if(message.Author.IsBot)
-            {
-                return false;
-            }
-            Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
-            var match = inviteRegex.Match(message.Content);
-            if(match.Groups[3].Success)
-            {
-                return false;
-            }
-            List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
-            var user = (DiscordMember)message.Author;
-            bool hasMediaPerms = user.Roles.Any(r => r.Id == 1374444948228931661);
-            bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
-            if(isWhitelisted && hasMediaPerms) { return false; }
-            if(match.Groups[4].Success)
-            {
-                await checkMessage(message);
-                return true;
-            }
-            var biocheck = await bioCheck(message);
-            if(biocheck)
-            {
-                return true;
-            }
+            try {
+                if(message.Author.IsBot)
+                {
+                    return false;
+                }
+                Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
+                var match = inviteRegex.Match(message.Content);
+                if(match.Groups[3].Success)
+                {
+                    return false;
+                }
+                List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
+                DiscordMember user = await message.Channel.Guild.GetMemberAsync(message.Author.Id, true);
+                bool hasMediaPerms = user.Roles.Any(r => r.Id == 1374444948228931661);
+                bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
+                if(isWhitelisted && hasMediaPerms) { return false; }
+                if(match.Groups[4].Success)
+                {
+                    await checkMessage(message);
+                    return true;
+                }
+                var biocheck = await bioCheck(message);
+                if(biocheck)
+                {
+                    return true;
+                }
 
-            if(!match.Success) { return false; }
-            return true;
+                if(!match.Success) { return false; }
+                return true;
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+                return true;
+            }
         }
 
         private class Payload
