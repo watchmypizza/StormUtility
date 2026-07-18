@@ -483,6 +483,15 @@ namespace Stormtility.events
                 }
             }
 
+            if(args.Channel.Id == 1368208863018614866)
+            {
+                if(args.Message.MessageType == MessageType.ApplicationCommand) return;
+                if(args.Author.IsBot) return;
+                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers)) return;
+                if (staffRole) return;
+                else await args.Message.DeleteAsync();
+            }
+
             return;
         }
 
