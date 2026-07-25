@@ -116,8 +116,16 @@ namespace Stormtility.events
                 {
                     return false;
                 }
+                string[] msgContent = message.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                StringBuilder contentBuilder = new();
+                string builtCb;
+                foreach(string str in msgContent)
+                {
+                    contentBuilder.Append(str);
+                }
+                builtCb = contentBuilder.ToString();
                 Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
-                var match = inviteRegex.Match(message.Content);
+                var match = inviteRegex.Match(builtCb);
                 if(match.Groups[3].Success)
                 {
                     return false;
