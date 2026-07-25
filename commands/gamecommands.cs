@@ -515,8 +515,14 @@ namespace Stormtility.commands
                     string detailedInfoLink = $"https://users.roblox.com/v1/users/{userId}";
                     string followers = $"https://friends.roblox.com/v1/users/{userId}/followers/count";
                     string avatarURL = $"https://thumbnails.roblox.com/v1/users/avatar?userIds={userId}&size=250x250&format=Png&isCircular=false";
+                    string getBanURL = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                     using var httpClient = new HttpClient();
+                    httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
                     
+                    var isBannedResp = await httpClient.GetAsync(getBanURL);
+                    var GBContent = await isBannedResp.Content.ReadAsStringAsync();
+                    var GBSuccess = isBannedResp.IsSuccessStatusCode;
+
                     var response = await httpClient.GetAsync(detailedInfoLink);
                     var content = await response.Content.ReadAsStringAsync();
                     var isSuccess = response.IsSuccessStatusCode;
@@ -563,10 +569,25 @@ namespace Stormtility.commands
                         return;
                     }
 
+                    if(!GBSuccess)
+                    {
+                        var GBEmbed = new DiscordEmbedBuilder()
+                        {
+                            Title = $"{response.StatusCode} - Oops?",
+                            Description = $"Something has gone terribly wrong.",
+                            Color = DiscordColor.Red
+                        };
+                        GBEmbed.AddField("Error Message", response.ReasonPhrase ?? "UNKNOWN // SERVER DID NOT SEND ANY.", true);
+
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(GBEmbed));
+                        return;
+                    }
+
                     var json = JsonDocument.Parse(content);
+                    var GBJson = JsonDocument.Parse(GBContent);
                     var description = json.RootElement.GetProperty("description");
                     var creationDate = json.RootElement.GetProperty("created");
-                    var isBanned = json.RootElement.GetProperty("isBanned");
+                    var isBanned = GBJson.RootElement.GetProperty("gameJoinRestriction").GetProperty("active").GetBoolean() ? "Yes" : "No";
                     var externalAppDisplayName = json.RootElement.GetProperty("externalAppDisplayName");
                     var hasVerifiedBadge = json.RootElement.GetProperty("hasVerifiedBadge");
                     var name = json.RootElement.GetProperty("name");
