@@ -116,6 +116,7 @@ namespace Stormtility.events
                 {
                     return false;
                 }
+
                 string[] msgContent = message.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 StringBuilder contentBuilder = new();
                 string builtCb;
@@ -124,30 +125,49 @@ namespace Stormtility.events
                     contentBuilder.Append(str);
                 }
                 builtCb = contentBuilder.ToString();
+
                 Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
-                var match = inviteRegex.Match(builtCb);
-                if(match.Groups[3].Success)
-                {
-                    return false;
-                }
+                var matches = inviteRegex.Matches(builtCb);
+
                 List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
                 DiscordMember user = await message.Channel.Guild.GetMemberAsync(message.Author.Id, true);
-                bool hasMediaPerms = user.Roles.Any(r => r.Id == 1374444948228931661);
-                bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
-                if(isWhitelisted && hasMediaPerms) { return false; }
-                if(match.Groups[4].Success)
+                bool hasMediaPerms = user.PermissionsIn(message.Channel).HasPermission(Permissions.EmbedLinks | Permissions.AttachFiles);
+
+                bool linkViolationFound = false;
+
+                foreach(Match match in matches) {
+                    if(match.Groups[3].Success)
+                    {
+                        continue;
+                    }
+
+                    bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
+
+                    if(isWhitelisted && hasMediaPerms) { continue; }
+
+                    if(match.Groups[4].Success || match.Success)
+                    {
+                        linkViolationFound = true;
+                        break;
+                    }
+
+                    if(!match.Success) { continue; }
+                }
+
+                if(linkViolationFound)
                 {
                     await checkMessage(message);
                     return true;
                 }
+
                 var biocheck = await bioCheck(message);
                 if(biocheck)
                 {
+                    await checkMessage(message);
                     return true;
                 }
 
-                if(!match.Success) { return false; }
-                return true;
+                return false;
             } catch(Exception e)
             {
                 await logger.LOGGER(e);
