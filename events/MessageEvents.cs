@@ -427,7 +427,7 @@ namespace Stormtility.events
             {
                 if (args.Guild == null) return;
                 if (member.IsBot) return;
-                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers))
+                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.Administrator))
                 {
                     Console.WriteLine("ts = this but staff");
                     return;
