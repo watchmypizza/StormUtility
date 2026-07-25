@@ -1,3 +1,4 @@
+using System.Text;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Microsoft.Data.Sqlite;
@@ -54,7 +55,7 @@ namespace Stormtility.commands
                 return dict;
             }
 
-            [SlashCommand("mutecounter", "Check how many times you have been muted for saying ts = this")]
+            [SlashCommand("mutes", "Check how many times you have been muted for saying ts = this")]
             public async Task mutecounter(InteractionContext ctx)
             {
                 await ctx.DeferAsync(ephemeral: true);
@@ -70,6 +71,37 @@ namespace Stormtility.commands
                     Title = "Mute Counter",
                     Color = DiscordColor.Purple,
                     Description = $"You have been muted {key} time{(key == 1 ? "" : "s")}."
+                };
+
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+            }
+
+            [SlashCommand("leaderboard", "Mute counter leaderboards. COMPETITIVE???;3")]
+            public async Task leaderboard(InteractionContext ctx)
+            {
+                await ctx.DeferAsync(true);
+
+                var totalmute = await mutes();
+                var sortedLeaderboards = totalmute.OrderByDescending(pair => pair.Value).Take(10).ToList();
+
+                var sb = new StringBuilder();
+                int rank = 1;
+                foreach(var entry in sortedLeaderboards)
+                {
+                    sb.AppendLine($"{rank}. <@{entry.Key}> - **{entry.Value}** mute{(entry.Value == 1 ? "" : "s")}");
+                    rank++;
+                }
+
+                if(sortedLeaderboards.Count == 0)
+                {
+                    sb.AppendLine("BE THE FIRST TO GET MUTED, SAY TS = THIS NOW!");
+                }
+
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = "🏆 Mute Counter Leaderboard 🏆",
+                    Color = DiscordColor.Gold,
+                    Description = sb.ToString()
                 };
 
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));

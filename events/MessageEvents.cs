@@ -328,10 +328,12 @@ namespace Stormtility.events
             try
             {
                 string connection = "Data Source=mutecounter.db";
-                string sql = "INSERT INTO mutecounter (user, count) VALUES (@id, 1) OR CONFLICT(user) DO UPDATE SET count = count + 1";
+                string sql = "INSERT INTO mutecounter (user, count) VALUES (@id, 1) ON CONFLICT(user) DO UPDATE SET count = count + 1";
 
                 using(var conn = new SqliteConnection(connection))
                 {
+                    await conn.OpenAsync();
+
                     using(var cmd = new SqliteCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", userId);
@@ -433,7 +435,7 @@ namespace Stormtility.events
 
                 try
                 {
-                    await insertMuteDB(args.Message.Interaction.User.Id);
+                    await insertMuteDB(args.Message.Author.Id);
                 } catch (OverflowException e)
                 {
                     Console.WriteLine("Welp thats a big number (2,147,483,647)");
