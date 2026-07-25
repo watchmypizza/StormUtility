@@ -24,6 +24,13 @@ namespace Stormtility.Helpers
                     type TEXT NOT NULL UNIQUE,
                     count INTEGER NOT NULL
                 );";
+            
+            string mutesconn = "Data Source=mutecounter.db";
+            string mutesconnsql = @"
+                CREATE TABLE IF NOT EXISTS mutecounter (
+                    user INTEGER PRIMARY KEY,
+                    count INTEGER
+                );";
 
             try
             {
@@ -52,6 +59,15 @@ namespace Stormtility.Helpers
                     await connection.OpenAsync();
 
                     using(var command = new SqliteCommand(ticketscountsql, connection))
+                    {
+                        await command.ExecuteNonQueryAsync();
+                    }
+                }
+
+                using(var connection = new SqliteConnection(mutesconn))
+                {
+                    await connection.OpenAsync();
+                    using(var command = new SqliteCommand(mutesconnsql, connection))
                     {
                         await command.ExecuteNonQueryAsync();
                     }

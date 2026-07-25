@@ -78,6 +78,7 @@ namespace Stormtility
             Slash.RegisterCommands<antiraidcommands>();
             Slash.RegisterCommands<utilitycommands>();
             Slash.RegisterCommands<HelpCommand>();
+            Slash.RegisterCommands<mutecounter>();
             Slash.RegisterCommands<testcommands>(1349792051134468156);
 
             await Client.ConnectAsync();

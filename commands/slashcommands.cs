@@ -289,52 +289,6 @@ namespace Stormtility.commands
             }
         }
 
-        [SlashCommand("mutecounter", "Check how many times you have been muted for saying ts = this")]
-        public async Task mutecounter(InteractionContext ctx)
-        {
-            await ctx.DeferAsync(ephemeral: true);
-
-            int muteCount = 0;
-
-            try
-            {
-                var jsonText = File.ReadAllText("mutecounter.json");
-                var json = JObject.Parse(jsonText);
-                var mutes = (JArray)json["mutes"];
-
-                if (mutes != null)
-                {
-                    string userId = ctx.User.Id.ToString();
-
-                    foreach (JObject entry in mutes)
-                    {
-                        if (entry.ContainsKey(userId))
-                        {
-                            muteCount = entry[userId]["mutes"].Value<int>();
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("mutecounter.json missing 'mutes' array.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error reading mutecounter.json: {ex}");
-            }
-
-            var embed = new DiscordEmbedBuilder
-            {
-                Title = "Mute Counter",
-                Color = DiscordColor.Purple,
-                Description = $"You have been muted {muteCount} time{(muteCount == 1 ? "" : "s")}."
-            };
-
-            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-        }
-
         [SlashCommand("debug", "Toggle debug mode")]
         public async Task debugMode(InteractionContext ctx)
         {

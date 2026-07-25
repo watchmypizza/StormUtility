@@ -21,6 +21,7 @@ using System.Text.Json.Nodes;
 using System.Net.Http.Json;
 using DSharpPlus.SlashCommands;
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
 
 namespace Stormtility.events
 {
@@ -292,6 +293,57 @@ namespace Stormtility.events
             }
         }
 
+        public static async Task<int> getCurCount(ulong userId)
+        {
+            string conn = "Data Source=mutecounter.db";
+            string sql = "SELECT count WHERE user=@id FROM mutecounter";
+
+            try
+            {
+                using(var connection = new SqliteConnection(conn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var cmd = new SqliteCommand(sql, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@id", userId);
+                        var result = await cmd.ExecuteScalarAsync();
+
+                        if(result == null || result == DBNull.Value)
+                        {
+                            return 0;
+                        }
+
+                        return Convert.ToInt32(result);
+                    }
+                }
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+                return 7777;
+            }
+        }
+        public static async Task insertMuteDB(ulong userId)
+        {
+            try
+            {
+                string connection = "Data Source=mutecounter.db";
+                string sql = "INSERT INTO mutecounter (user, count) VALUES (@id, 1) OR CONFLICT(user) DO UPDATE SET count = count + 1";
+
+                using(var conn = new SqliteConnection(connection))
+                {
+                    using(var cmd = new SqliteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", userId);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+            }
+        }
+
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreateEventArgs args)
         {
             bool result = await deleteAnyInvite(message: args.Message);
@@ -379,46 +431,14 @@ namespace Stormtility.events
                     return;
                 }
 
-                var jsonText = File.ReadAllText("mutecounter.json");
-                var json = JObject.Parse(jsonText);
-                var mutes = (JArray)json["mutes"];
-
-                string userId = args.Author.Id.ToString();
-                JObject? entry = null;
-
-                foreach (JObject e in mutes)
-                {
-                    if (e.ContainsKey(userId))
-                    {
-                        entry = e;
-                        break;
-                    }
-                }
                 try
                 {
-                    if (entry == null)
-                    {
-                        entry = new JObject
-                        {
-                            [userId] = new JObject
-                            {
-                                ["mutes"] = 1
-                            }
-                        };
-
-                        mutes.Add(entry);
-                    }
-                    else
-                    {
-                        int current = entry[userId]["mutes"].Value<int>();
-                        entry[userId]["mutes"] = current + 1;
-                    }
+                    await insertMuteDB(args.Message.Interaction.User.Id);
                 } catch (OverflowException e)
                 {
                     Console.WriteLine("Welp thats a big number (2,147,483,647)");
                 }
                 Console.WriteLine("Muted for wrong use of ts");
-                File.WriteAllText("mutecounter.json", json.ToString());
 
                 await member.TimeoutAsync(DateTimeOffset.UtcNow.AddMinutes(1), "wrong use of ts");
             }
