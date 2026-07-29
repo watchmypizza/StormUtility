@@ -73,7 +73,7 @@ namespace Stormtility.events
                 string? guildName = json["guild"]?["name"]?.ToString();
                 if(debug)
                 {
-                    logger.debugLog($"Name: {guildName}");
+                    await logger.debugLog($"Name: {guildName}");
                 }
                 Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
                 if (guildName == null)
@@ -83,7 +83,7 @@ namespace Stormtility.events
                 
                 if(nameRegex.IsMatch(guildName) && debug)
                 {
-                    logger.debugLog($"Bad Name {guildName}");
+                    await logger.debugLog($"Bad Name {guildName}");
                     isBad = true;
                 }
 
@@ -91,6 +91,22 @@ namespace Stormtility.events
                 vars.inviteCache[inviteCode] = (isBad, DateTime.UtcNow.AddMinutes(10));
 
                 return isBad;
+            }
+
+            return false;
+        }
+
+        private static async Task<bool> checkPingSpam(DiscordMessage message)
+        {
+            Regex rex = new Regex(@"<@[0-9]+>");
+            int i = 0;
+            foreach(var match in rex.Matches(message.Content))
+            {
+                i++;
+                if(i >= 5)
+                {
+                    return true;
+                }
             }
 
             return false;
@@ -352,6 +368,7 @@ namespace Stormtility.events
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
+            bool isConsideredSpamPing = await checkPingSpam(args.Message);
 
             if(result)
             {
@@ -363,6 +380,16 @@ namespace Stormtility.events
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
                 await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author.Mention}");
+                await args.Message.DeleteAsync();
+            }
+
+            if(isConsideredSpamPing)
+            {
+                if(member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
+                {
+                    return;
+                }
+
                 await args.Message.DeleteAsync();
             }
 
