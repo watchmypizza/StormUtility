@@ -438,13 +438,25 @@ namespace Stormtility.events
             var badPhrases = new[]
             {
                 "ts = this",
-                "this = ts"
+                "this = ts",
+                "ts=this",
+                "this=ts",
+                "ts =this",
+                "this= ts",
+                "this =ts",
+                "ts= this"
             };
 
             var exceptions = new[]
             {
                 "ts = this shit",
-                "this shit = ts"
+                "this shit = ts",
+                "thisshit=ts",
+                "ts=thisshit",
+                "this shit= ts",
+                "ts= this shit",
+                "ts =this shit",
+                "this shit =ts"
             };
 
             bool matchesBad = badPhrases.Any(p => content.Contains(p, StringComparison.OrdinalIgnoreCase));
