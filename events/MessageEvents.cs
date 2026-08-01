@@ -431,6 +431,45 @@ namespace Stormtility.events
             return;
         }
 
+        public static async Task receiveMessageAndForwardToChannel(DiscordClient client, DiscordMessage message)
+        {
+            if (message.Author.IsBot) return;
+
+            // Grab message content
+            string content = message.Content;
+
+            // Split content using regex AND normal string splitting
+            Regex regex = new(@"<#([0-9]+)>");
+            Match match = regex.Match(content);
+            if (!match.Success || !ulong.TryParse(match.Groups[1].Value, out ulong chId))
+            {
+                await logger.consoleLog("Invalid channel ID in message.");
+                return;
+            }
+
+            DiscordChannel? channel = await client.GetChannelAsync(chId);
+            if (channel == null)
+            {
+                await logger.consoleLog($"Channel with ID {chId} not found.");
+                return;
+            }
+
+            string[] splits = content.Split(":", StringSplitOptions.RemoveEmptyEntries);
+            if (splits.Length < 2)
+            {
+                await logger.consoleLog("Invalid message format.");
+                return;
+            }
+
+            try
+            {
+                await client.SendMessageAsync(channel, $"{splits[1]}");
+            }
+            catch (Exception ex)
+            {
+                await logger.consoleLog($"Error sending message: {ex.Message}");
+            }
+        }
         public static async Task Client_MessageDeleted(DiscordClient sender, MessageDeleteEventArgs args)
         {
             await routeMessages(args.Message, deleted: true);
@@ -444,7 +483,12 @@ namespace Stormtility.events
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
             bool isConsideredSpamPing = await checkPingSpam(args.Message);
-            await routeMessages(args.Message);
+            if(args.Channel.Id != 1533206494181462137) { await routeMessages(args.Message); }
+
+            if(args.Channel.Id == 1533206494181462137)
+            {
+                await receiveMessageAndForwardToChannel(sender, args.Message);
+            }
 
             if(result)
             {
