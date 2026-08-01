@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using DSharpPlus.Exceptions;
 using System.Text.Json;
 using Stormtility.commands;
+using Stormtility.Helpers;
 
 namespace Stormtility.events
 {
@@ -33,6 +34,7 @@ namespace Stormtility.events
                 } catch (UnauthorizedException e)
                 {
                     Console.WriteLine($"Not authorized to perform action on {discordMember.Mention} ({discordMember.Username})");
+                    await logger.LOGGER(e);
                     return false;
                 } catch (Exception e)
                 {

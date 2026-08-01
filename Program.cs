@@ -28,10 +28,11 @@ namespace Stormtility
 {
     internal class Program
     {
-        private static DiscordClient Client { get; set; }
-        private static CommandsNextExtension CommandBuilder { get; set; }
-        private static SlashCommandsExtension Slash { get; set; }
-        public static string webhookURL { get; set; }
+        private static DiscordClient? Client { get; set; }
+        private static CommandsNextExtension? CommandBuilder { get; set; }
+        private static SlashCommandsExtension? Slash { get; set; }
+        public static string? webhookURL { get; set; }
+        public static string? wbhurl2 { get; set; }
         static async Task Main(string[] args)
         {
             foreach(string arg in args)
@@ -43,9 +44,10 @@ namespace Stormtility
                 }
             }
 
-            List<string> envLines = null;
+            List<string>? envLines = null;
             envLines = EnvReader.GetEnvVariables(".config");
             webhookURL = envLines[1];
+            wbhurl2 = envLines[2];
 
             await autostart.createTable();
 
@@ -66,6 +68,7 @@ namespace Stormtility
             Client.GuildMemberAdded += events.MemberJoined.Client_GuildMemberAdded;
             Client.ModalSubmitted += events.ModalSubmitted.Client_ModalSubmittedEvent;
             Client.MessageUpdated += events.MessageEvents.Client_MessageUpdated;
+            Client.MessageDeleted += events.MessageEvents.Client_MessageDeleted;
             // Client.MessageReactionAdded += events.ReactionAdded.Client_ReactionAddedEvent; Not required, different solution has been found.
 
             JobCache.Load();

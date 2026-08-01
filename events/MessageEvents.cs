@@ -27,6 +27,7 @@ namespace Stormtility.events
 {
     public class MessageEvents
     {
+        private static HttpClient client = new();
         private static async Task<bool> checkMessage(DiscordMessage message)
         {
             bool debug = RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.X86;
@@ -194,21 +195,21 @@ namespace Stormtility.events
 
         private class Payload
         {
-            public string model {get; set;}
-            public JsonArray messages { get; set; }
-            public bool stream {get; set;}
+            public string model {get; set;} = "";
+            public JsonArray messages { get; set; } = [];
+            public bool stream {get; set;} = new();
             public bool think { get; set; }
         }
 
         private class OllamaResponse
         {
-            public OllamaMessage message { get; set; }
+            public OllamaMessage message { get; set; } = new();
         }
 
         private class OllamaMessage
         {
-            public string role { get; set; }
-            public string content { get; set; }
+            public string role { get; set; } = "";
+            public string content { get; set; } = "";
         }
 
 
@@ -294,6 +295,7 @@ namespace Stormtility.events
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
+            await routeMessages(args.Message, args.MessageBefore.Content, true);
 
             if(result)
             {
@@ -361,6 +363,79 @@ namespace Stormtility.events
                 await logger.LOGGER(e);
             }
         }
+        public static async Task routeMessages(DiscordMessage message, string msgBefore = "", bool edited = false, bool deleted = false)
+        {
+            if(message.Author.IsBot)
+            {
+                return;
+            }
+
+            // Figure out who said it
+            DiscordUser user = message.Author;
+
+            // Figure out the content
+            string content = message.Content;
+
+            // check if message is attachment, if yes, grab link and send link
+            List<DiscordAttachment>? linksIfFound = message.Attachments?.ToList();
+            if(linksIfFound != null)
+            {
+                foreach(var attachment in linksIfFound)
+                {
+                    content += $" {attachment.Url}";
+                }
+            }
+
+            // Figure out channel
+            DiscordChannel channel = message.Channel;
+
+            // Compile content + channel
+            string cc = $"In {channel.Mention}: {content}";
+
+            // check if edited
+            if(edited)
+            {
+                cc = $"In {channel.Mention}: BEFORE: `{msgBefore}` AFTER: `{content}`";
+            }
+            else if(deleted)
+            {
+                cc = $"In {channel.Mention}: DELETED: `{content}`";
+            }
+
+            // Get profile picture if exists of user
+            string avatarUrl = user.GetAvatarUrl(ImageFormat.Auto) ?? user.DefaultAvatarUrl;
+
+            // Set webhook payload for wh2
+            var payload = new
+            {
+                content = cc,
+                username = user.Username,
+                avatar_url = avatarUrl,
+            };
+
+            string jsonString = JsonSerializer.Serialize(payload);
+
+            try {
+                var response = await client.PostAsync(Program.wbhurl2, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+
+                if(!response.IsSuccessStatusCode)
+                {
+                    await logger.LOGGER(new Exception($"Webhook failed with status: {response.StatusCode}"));
+                }
+            } catch(Exception e)
+            {
+                await logger.LOGGER(e);
+                return;
+            }
+
+            return;
+        }
+
+        public static async Task Client_MessageDeleted(DiscordClient sender, MessageDeleteEventArgs args)
+        {
+            await routeMessages(args.Message, deleted: true);
+            return;
+        }
 
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreateEventArgs args)
         {
@@ -369,6 +444,7 @@ namespace Stormtility.events
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
             bool isConsideredSpamPing = await checkPingSpam(args.Message);
+            await routeMessages(args.Message);
 
             if(result)
             {
@@ -478,6 +554,7 @@ namespace Stormtility.events
                 } catch (OverflowException e)
                 {
                     Console.WriteLine("Welp thats a big number (2,147,483,647)");
+                    await logger.LOGGER(e);
                 }
                 Console.WriteLine("Muted for wrong use of ts");
 
@@ -522,17 +599,15 @@ namespace Stormtility.events
                 Console.WriteLine(e);
             }
 
-            string[] ticketTypes = { "support", "giveaway", "speedtypist", "exploiter", "appeal" };
+            string[] ticketTypes = ["support", "giveaway", "speedtypist", "exploiter", "appeal"];
 
             var channelName = args.Channel.Name;
 
-            string matchedPrefix = null;
+            string matchedPrefix = "";
             int ticketId = 0;
 
             bool staffRole = member.Roles.Any(r => r.Id == 1370422448763437207);
             bool gamemodRole = member.Roles.Any(r => r.Id == 1474165198947356793);
-
-            bool regExChannelName = false;
 
             foreach (var type in ticketTypes)
             {

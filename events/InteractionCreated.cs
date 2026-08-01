@@ -9,7 +9,7 @@ using DSharpPlus.Exceptions;
 namespace Stormtility.events {
     public class InteractionCreated
     {
-        public static DiscordClient Client;
+        public static DiscordClient Client = null!;
 
         private static async Task<int> getTicketCountAsync(string ticketType)
         {
@@ -204,6 +204,7 @@ namespace Stormtility.events {
                             } catch(NotFoundException ex)
                             {
                                 await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await logger.LOGGER(ex);
                             }
                         }
 
@@ -269,6 +270,7 @@ namespace Stormtility.events {
                             } catch(NotFoundException ex)
                             {
                                 await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await logger.LOGGER(ex);
                             }
                         }
 
@@ -290,6 +292,7 @@ namespace Stormtility.events {
                             } catch(NotFoundException ex)
                             {
                                 await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await logger.LOGGER(ex);
                             }
                         }
 
@@ -312,6 +315,7 @@ namespace Stormtility.events {
                             } catch(NotFoundException ex)
                             {
                                 await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await logger.LOGGER(ex);
                             }
                         }
 
@@ -387,6 +391,7 @@ namespace Stormtility.events {
                         } catch(NotFoundException ex)
                         {
                             await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                            await logger.LOGGER(ex);
                         }
                     }
 
@@ -459,6 +464,7 @@ namespace Stormtility.events {
                             } catch(NotFoundException ex)
                             {
                                 await deleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await logger.LOGGER(ex);
                             }
                         }
 
@@ -579,7 +585,7 @@ namespace Stormtility.events {
 
                     var autoTranscript = new AutoTranscript();
                     DiscordChannel channel = args.Interaction.Channel;
-                    DiscordMember mem = null;
+                    DiscordMember mem = null!;
                     bool deletedWhileClosed = false;
                     bool result = true;
                     if(args.Interaction.Channel.Name.Contains("-closed-")) {

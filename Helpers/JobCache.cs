@@ -15,7 +15,7 @@ namespace Stormtility
         {
             var json = File.ReadAllText("config/jobs.json");
             var root = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, JobData>>>(json);
-            Jobs = root["jobs"]
+            Jobs = root!["jobs"]
                 .ToDictionary(kvp => kvp.Key.ToLower(), kvp => kvp.Value);
         }
     }

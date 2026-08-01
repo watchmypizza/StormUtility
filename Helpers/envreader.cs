@@ -24,6 +24,10 @@ namespace Stormtility
                     {
                         env.Add(line.Substring("WEBHOOK_TOKEN=".Length));
                     }
+                    if(line.StartsWith("LOGGING_WEBHOOK"))
+                    {
+                        env.Add(line.Substring("LOGGING_WEBHOOK=".Length));
+                    }
                 }
             }
             return env;
