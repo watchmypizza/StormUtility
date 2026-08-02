@@ -86,16 +86,16 @@ namespace Stormtility.events
                 };
                 await channel.SendMessageAsync(closeEmbed);
 
-                var staffRole = interaction.Guild.GetRole(StaffRoleId);
+                var staffRole = await interaction.Guild.GetRoleAsync(StaffRoleId);
                 var overwrites = new List<DiscordOverwriteBuilder>
                 {
-                    new DiscordOverwriteBuilder(staffRole).Deny(Permissions.SendMessages).Allow(Permissions.AccessChannels),
-                    new DiscordOverwriteBuilder(interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels)
+                    new DiscordOverwriteBuilder(staffRole).Deny(DiscordPermission.SendMessages).Allow(DiscordPermission.ViewChannel),
+                    new DiscordOverwriteBuilder(interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel)
                 };
 
-                await channel.ModifyAsync(ch => {
+                await channel.ModifyAsync(async ch => {
                     ch.Name = channel.Name.Replace($"{prefix}-", $"closed-{prefix}-");
-                    ch.Parent = interaction.Guild.GetChannel(ClosedTicketCategoryId);
+                    ch.Parent = await interaction.Guild.GetChannelAsync(ClosedTicketCategoryId);
                     ch.PermissionOverwrites = overwrites;
                 });
 
@@ -123,10 +123,10 @@ namespace Stormtility.events
             var ticketData = (JObject)transcripts[ticketKey];
 
             int limit = (action == "auto") ? 100 : 1000;
-            var rawMessages = await channel.GetMessagesAsync(limit);
+            var rawMessages = channel.GetMessagesAsync(limit);
             var sortedMessages = rawMessages.Where(m => !m.Author.IsBot).OrderBy(m => m.CreationTimestamp);
 
-            foreach (var msg in sortedMessages)
+            await foreach (var msg in sortedMessages)
             {
                 string uid = msg.Author.Id.ToString();
                 if (ticketData[uid] == null) ticketData[uid] = new JObject { ["messages"] = new JArray() };

@@ -22,6 +22,7 @@ using System.Net.Http.Json;
 using DSharpPlus.SlashCommands;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using CommunityToolkit.HighPerformance;
 
 namespace Stormtility.events
 {
@@ -149,7 +150,9 @@ namespace Stormtility.events
 
                 List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
                 DiscordMember user = await message.Channel.Guild.GetMemberAsync(message.Author.Id, true);
-                bool hasMediaPerms = user.PermissionsIn(message.Channel).HasPermission(Permissions.EmbedLinks | Permissions.AttachFiles);
+                DiscordPermissions userChannelPerms = user.PermissionsIn(message.Channel);
+                bool hasMediaPerms = userChannelPerms.HasPermission(DiscordPermission.AttachFiles) 
+                  && userChannelPerms.HasPermission(DiscordPermission.EmbedLinks);
 
                 bool linkViolationFound = false;
 
@@ -213,7 +216,7 @@ namespace Stormtility.events
         }
 
 
-        private static async Task<bool> sendApiRequest(DiscordMessage message, MessageCreateEventArgs ctx)
+        private static async Task<bool> sendApiRequest(DiscordMessage message, MessageCreatedEventArgs ctx)
         {
             string newMessage = $"<{message.CreationTimestamp.ToString("O")}> ({message.Author.Username}): {message.Content}";
 
@@ -289,7 +292,7 @@ namespace Stormtility.events
             return antiraid;
         }
 
-        public static async Task Client_MessageUpdated(DiscordClient sender, MessageUpdateEventArgs args)
+        public static async Task Client_MessageUpdated(DiscordClient sender, MessageUpdatedEventArgs args)
         {
             bool result = await deleteAnyInvite(message: args.Message);
             var user = (DiscordUser)args.Author;
@@ -303,7 +306,7 @@ namespace Stormtility.events
                 {
                     return;
                 }
-                DiscordChannel channelLog = args.Guild.GetChannel(1315142575857864846);
+                DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
                 await channelLog.SendMessageAsync($"`{args.Message.Content.ToString()}` sent by {args.Message.Author.Mention}\nMessage before edited was `{args.MessageBefore.Content}`");
@@ -403,7 +406,7 @@ namespace Stormtility.events
             }
 
             // Get profile picture if exists of user
-            string avatarUrl = user.GetAvatarUrl(ImageFormat.Auto) ?? user.DefaultAvatarUrl;
+            string avatarUrl = user.GetAvatarUrl(MediaFormat.Auto) ?? user.DefaultAvatarUrl;
 
             // Set webhook payload for wh2
             var payload = new
@@ -470,13 +473,13 @@ namespace Stormtility.events
                 await logger.consoleLog($"Error sending message: {ex.Message}");
             }
         }
-        public static async Task Client_MessageDeleted(DiscordClient sender, MessageDeleteEventArgs args)
+        public static async Task Client_MessageDeleted(DiscordClient sender, MessageDeletedEventArgs args)
         {
             await routeMessages(args.Message, deleted: true);
             return;
         }
 
-        public static async Task Client_MessageCreated(DiscordClient sender, MessageCreateEventArgs args)
+        public static async Task Client_MessageCreated(DiscordClient sender, MessageCreatedEventArgs args)
         {
             bool result = await deleteAnyInvite(message: args.Message);
             var user = (DiscordUser)args.Author;
@@ -496,7 +499,7 @@ namespace Stormtility.events
                 {
                     return;
                 }
-                DiscordChannel channelLog = args.Guild.GetChannel(1315142575857864846);
+                DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
                 await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author.Mention}");
@@ -586,7 +589,7 @@ namespace Stormtility.events
             {
                 if (args.Guild == null) return;
                 if (member.IsBot) return;
-                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.Administrator))
+                if (member.PermissionsIn(args.Channel).HasPermission(DiscordPermission.Administrator))
                 {
                     Console.WriteLine("ts = this but staff");
                     return;
@@ -676,7 +679,7 @@ namespace Stormtility.events
             if (args.Channel.Id == 1450164600384258058)
             {
                 if (args.Author.IsBot) return;
-                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers)) return;
+                if (member.PermissionsIn(args.Channel).HasPermission(DiscordPermission.ModerateMembers)) return;
                 if (staffRole) return;
                 if (args.Message.Attachments.Count <= 0) await args.Message.DeleteAsync();
                 else return;
@@ -684,7 +687,7 @@ namespace Stormtility.events
 
             if(args.Channel.Id == 1315142575857864846)
             {
-                if(args.Message.MessageType == MessageType.AutoModAlert)
+                if(args.Message.MessageType == DiscordMessageType.AutoModerationAlert)
                 {
                     var channels = await args.Guild.GetChannelsAsync();
                     await antiRaidActions(channels.ToList());
@@ -693,9 +696,9 @@ namespace Stormtility.events
 
             if(args.Channel.Id == 1368208863018614866)
             {
-                if(args.Message.MessageType == MessageType.ApplicationCommand) return;
+                if(args.Message.MessageType == DiscordMessageType.ApplicationCommand) return;
                 if(args.Author.IsBot) return;
-                if (member.PermissionsIn(args.Channel).HasPermission(Permissions.ModerateMembers)) return;
+                if (member.PermissionsIn(args.Channel).HasPermission(DiscordPermission.ModerateMembers)) return;
                 if (staffRole) return;
                 else await args.Message.DeleteAsync();
             }

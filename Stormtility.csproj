@@ -1,5 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -8,31 +7,28 @@
     <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
     <Optimize>false</Optimize>
   </PropertyGroup>
-
   <ItemGroup>
-    <None Remove="config\config.json" />
-    <None Remove="config\economy.json" />
-    <None Remove="config\jobs.json" />
+    <None Remove="config\config.json"/>
+    <None Remove="config\economy.json"/>
+    <None Remove="config\jobs.json"/>
   </ItemGroup>
-
   <ItemGroup>
     <ApplicationDefinition Include="config\economy.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </ApplicationDefinition>
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
-    <PackageReference Include="DSharpPlus" Version="4.5.1" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.5.1" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.5.1" />
-    <PackageReference Include="DSharpPlus.SlashCommands" Version="4.5.1" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
-    <PackageReference Include="XeroxDev.DSharpPlus.ModalCommands" Version="2.0.0" />
+    <PackageReference Include="DiscordRichPresence" Version="1.143.0"/>
+    <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02596"/>
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="5.0.0-nightly-02596"/>
+    <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02596"/>
+    <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02596"/>
+    <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02596"/>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4"/>
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3"/>
+    <PackageReference Include="XeroxDev.DSharpPlus.ModalCommands" Version="2.0.0"/>
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="config\config.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
@@ -44,11 +40,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-
   <ItemGroup>
-    <Folder Include="commands\Utility\" />
+    <Folder Include="commands\Utility\"/>
   </ItemGroup>
-
   <ItemGroup>
     <None Update="config\blacklists.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -63,5 +57,4 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
 </Project>

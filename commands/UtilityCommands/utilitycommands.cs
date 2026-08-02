@@ -1,38 +1,41 @@
 using DSharpPlus;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using Microsoft.Extensions.DependencyInjection;
 using Stormtility.config;
+using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Drawing;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Stormtility.commands.UtilityCommands
 {
-    public class utilitycommands : ApplicationCommandModule
+    public class utilitycommands
     {
         [SlashCommandGroup("utility", "Utility commands")]
-        public class UtilityCommandsGroup : ApplicationCommandModule
+        [Command("utility")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        [Description("Utility commands")]
+        public class UtilityCommandsGroup
         {
-            [SlashCommand("ping", "Check the bot's latency")]
-            public async Task PingCommand(InteractionContext ctx)
-            {
-                var latency = ctx.Client.Ping;
-                await ctx.CreateResponseAsync($"Pong! Latency: {latency} ms", true);
-            }
-
             [SlashCommand("rank", "Rank every server member the member role")]
-            public async Task rank(InteractionContext ctx)
+            [Command("rank")]
+            [Description("Rank every server member with the member role")]
+            public async Task rank(SlashCommandContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
                 {
-                    await ctx.CreateResponseAsync("You do not have permission to use this command.");
+                    await ctx.RespondAsync("You do not have permission to use this command.");
                     return;
                 }
 
-                await ctx.DeferAsync(true);
+                await ctx.DeferResponseAsync(true);
 
                 ulong memberRoleID = 1370383562515284090;
-                var memberRole = ctx.Interaction.Guild.GetRole(memberRoleID);
+                var memberRole = await ctx.Interaction.Guild.GetRoleAsync(memberRoleID);
 
                 int rolesGranted = 0;
 
@@ -50,20 +53,26 @@ namespace Stormtility.commands.UtilityCommands
             }
 
             [SlashCommand("togglemorse", "Toggle morse code translation on or off")]
-            public async Task ToggleMorseCommand(InteractionContext ctx)
+            [Command("togglemorse")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            [Description("Toggle morse code translation on or off.")]
+            public async Task ToggleMorseCommand(SlashCommandContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
                 {
-                    await ctx.CreateResponseAsync("You do not have permission to use this command.");
+                    await ctx.RespondAsync("You do not have permission to use this command.");
                     return;
                 }
                 vars.morseTranslateEnabled = !vars.morseTranslateEnabled;
                 string status = vars.morseTranslateEnabled ? "enabled" : "disabled";
-                await ctx.CreateResponseAsync($"Morse code translation has been {status}.", true);
+                await ctx.RespondAsync($"Morse code translation has been {status}.", true);
             }
 
             [SlashCommand("toggleAI", "Toggle AI and what channel it should be in")]
-            public async Task toggleAI(InteractionContext ctx)
+            [Command("toggleAI")]
+            [Description("Toggle AI in your current channel.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task toggleAI(SlashCommandContext ctx)
             {
                 if(ctx.User.Id != 1116315001330880602)
                 {
@@ -71,53 +80,61 @@ namespace Stormtility.commands.UtilityCommands
                 }
                 if(!vars.aiToggle)
                 {
-                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("AI enabled."));
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("AI enabled."));
                     vars.aiToggle = true;
                     vars.AIChannel = ctx.Interaction.Channel.Id;
                 } else
                 {
                     vars.aiToggle = false;
-                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("AI disabled"));
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("AI disabled"));
                 }
             }
 
             [SlashCommand("changePrompt", "Change the prompt to a funny prompt")]
-            public async Task changePrompt(InteractionContext ctx, [Option("prompt", "The prompt")] string prompt)
+            [Command("changePrompt")]
+            [Description("Change the prompt the AI should utilize")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task changePrompt(SlashCommandContext ctx, [Parameter("prompt")][Description("The prompt")] string prompt)
             {
                 if(ctx.User.Id != 1116315001330880602)
                 {
                     return;
                 }
 
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Changed promt to: {prompt}").AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"Changed promt to: {prompt}").AsEphemeral());
                 vars.AIPrompt = prompt;  
             }
 
             [SlashCommand("whitelist", "Add someone to AI whitelist")]
-            public async Task whitelist(InteractionContext ctx, [Option("action", "Action")] string action, [Option("user", "User to execute action on")] DiscordUser user)
+            [Command("whitelist")]
+            [Description("Add someone to the whitelist for the AI")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task whitelist(SlashCommandContext ctx, [Parameter("action")][Description("Action to perform.")] string action, [Parameter("user")][Description("User to execute action on")] DiscordUser user)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
                 {
-                    await ctx.CreateResponseAsync("You do not have permission to use this command.");
+                    await ctx.RespondAsync("You do not have permission to use this command.", true);
                     return;
                 }
 
                 if(action.ToLower() == "remove")
                 {
                     vars.userIdsAI.Remove(user.Id);
-                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Removed {user.Username} from whitelist").AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"Removed {user.Username} from whitelist").AsEphemeral());
                 } else if (action.ToLower() == "add")
                 {
                     vars.userIdsAI.Add(user.Id);
-                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Added {user.Username} to whitelist").AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"Added {user.Username} to whitelist").AsEphemeral());
                 } else {
-                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, 
-                        new DiscordInteractionResponseBuilder().WithContent("Invalid action, use 'add' or 'remove'").AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Invalid action, use 'add' or 'remove'").AsEphemeral());
                 }
             }
 
             [SlashCommand("clearhistory", "clear chat history (wipe ai brain)")]
-            public async Task clearhistory(InteractionContext ctx)
+            [Command("clearhistory")]
+            [Description("wipe ai brain")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task clearhistory(SlashCommandContext ctx)
             {
                 if(ctx.User.Id != 1116315001330880602)
                 {
@@ -125,7 +142,7 @@ namespace Stormtility.commands.UtilityCommands
                 }
 
                 vars.chatHistory = [];
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Cleared history").AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Cleared history").AsEphemeral());
             }
         }
     }

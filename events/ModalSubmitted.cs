@@ -1,3 +1,4 @@
+using DiscordRPC;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -7,31 +8,46 @@ namespace Stormtility.events
 {
     public class ModalSubmitted
     {
-        public static async Task Client_ModalSubmittedEvent(DiscordClient sender, ModalSubmitEventArgs args)
+        public static async Task Client_ModalSubmittedEvent(DiscordClient sender, ModalSubmittedEventArgs args)
         {
-            string userCode = args.Values["verificationcode"];
-            string code = Helpers.verificationCode.getCodeIfExists(args.Interaction.User);
+            if(args.Id == "gameappealmodal")
+            {
+                await args.Interaction.DeferAsync(true);
 
-            if(userCode == code)
-            {
-                var embed = new DiscordEmbedBuilder
+                var usernameInput = args.Values?["robloxusername"] as TextInputModalSubmission;
+                string? username = usernameInput.Value;
+                var sendToDagestan = new DiscordMessageBuilder();
+
+                var submissionEmbed = new DiscordEmbedBuilder()
                 {
-                    Title = "200 - Success",
-                    Description="You have successfully verified, welcome!",
-                    Color=DiscordColor.Green
+                    Title = "Game Appeal",
+                    Color = DiscordColor.Aquamarine
                 };
-                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
-                return;
-            } else
-            {
-                var embed = new DiscordEmbedBuilder
+
+                submissionEmbed.AddField("Username", username, true);
+
+                FileUploadModalSubmission? file = args.Values?["proof"] as FileUploadModalSubmission;
+
+                if (file == null || file.UploadedFiles.Count == 0)
                 {
-                    Title = "400 - Oops?",
-                    Description="Please try verifying again, you might have entered the wrong code.",
-                    Color=DiscordColor.Red
-                };
-                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
-                return;
+                    sendToDagestan = new DiscordMessageBuilder()
+                                            .AddEmbed(submissionEmbed);
+
+                    await events.InteractionCreated.createAppealChannel(args, sendToDagestan);
+                    return;
+                }
+
+                using HttpClient http = new();
+                string? url = file.UploadedFiles.FirstOrDefault()?.Url;
+                string? name = file.UploadedFiles.FirstOrDefault()?.FileName;
+
+                Stream stream = await http.GetStreamAsync(url);
+
+                sendToDagestan = new DiscordMessageBuilder()
+                                            .AddEmbed(submissionEmbed)
+                                            .AddFile(name ?? "Uploaded", stream);
+                
+                await events.InteractionCreated.createAppealChannel(args, sendToDagestan);
             }
         }
     }

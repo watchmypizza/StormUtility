@@ -1,19 +1,27 @@
-﻿using DSharpPlus;
+﻿using CommunityToolkit.HighPerformance.Helpers;
+using DSharpPlus;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.ModalCommands;
 using DSharpPlus.SlashCommands;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Net.Http.Headers;
 using System.Text;
 using static System.Net.WebRequestMethods;
 
 namespace Stormtility.commands.TestingCommands
 {
-    public class testcommands : ApplicationCommandModule
+    [Command("testing")]
+    public class testcommands
     {
         [SlashCommand("filetest", "Test command to test if inputting files like screenshots works")]
-        public async Task filetest(InteractionContext ctx, [Option("file", "Input file to test")]DiscordAttachment file)
+        [Command("filetest")]
+        [Description("please help me")]
+        public async Task filetest(SlashCommandContext ctx, [Parameter("file")][Description("Input file to test")]DiscordAttachment file)
         {
             using var http = new HttpClient();
             using var ms = new MemoryStream();
@@ -21,13 +29,15 @@ namespace Stormtility.commands.TestingCommands
             await ms.WriteAsync(bytes);
             ms.Position = 0;
 
-            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddFile(file.FileName, ms));
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddFile(file.FileName, ms));
         } 
 
         [SlashCommand("verificationTest", "Test if verification works")]
-        public async Task verificationTest(InteractionContext ctx)
+        [Command("verificationtest")]
+        [Description("this is unbearable")]
+        public async Task verificationTest(SlashCommandContext ctx)
         {
-            DiscordButtonComponent button = new DiscordButtonComponent(ButtonStyle.Primary, "openVerifyModal", "Verify");
+            DiscordButtonComponent button = new DiscordButtonComponent(DiscordButtonStyle.Primary, "openVerifyModal", "Verify");
             var embed = new DiscordEmbedBuilder()
             {
                 Title="Verification",
@@ -35,38 +45,41 @@ namespace Stormtility.commands.TestingCommands
                 Color=DiscordColor.Orange
             };
             DiscordChannel channel = ctx.Interaction.Channel;
-            await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddComponents(button));
-            await ctx.CreateResponseAsync("Sending message...", true);
+            await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(button));
+            await ctx.RespondAsync("Sending message...", true);
             return;
         }
 
         [SlashCommand("testmodal", "Test modal preview")]
-        public async Task modalTest(InteractionContext ctx, [Option("title", "Title of the modal")] string title, [Option("TextInput1", "First text input")] string textInput1, [Option("TextInput2", "Second text input")] string? textInput2 = "")
+        [Command("testmodal")]
+        [Description("was it commandcontext? fuck")]
+        public async Task modalTest(SlashCommandContext ctx, [Parameter("title")][Description("Title of the modal")] string title, [Parameter("TextInput1")][Description("First text input")] string textInput1, [Parameter("TextInput2")][Description("Second text input")] string? textInput2 = "")
         {
             if(textInput2 == null || textInput2 == string.Empty)
             {
-                DiscordInteractionResponseBuilder modal = new DiscordInteractionResponseBuilder()
-                                                                .WithCustomId("exampleModal")
+                DiscordModalBuilder modal = new DiscordModalBuilder()
                                                                 .WithTitle(title)
-                                                                .AddComponents(new TextInputComponent(textInput1, "exampleModalText1", required: true, style: TextInputStyle.Short));
+                                                                .AddTextInput(new DiscordTextInputComponent("exampleModalText1", required: true,style: DiscordTextInputStyle.Short), textInput1);
 
-                await ctx.CreateResponseAsync(InteractionResponseType.Modal, modal);
+                await ctx.RespondWithModalAsync(modal);
                 return;
             } else
             {
-                DiscordInteractionResponseBuilder modal = new DiscordInteractionResponseBuilder()
+                DiscordModalBuilder modal = new DiscordModalBuilder()
                                                                 .WithCustomId("exampleModal")
                                                                 .WithTitle(title)
-                                                                .AddComponents(new TextInputComponent(textInput1, "exampleModalText1", required: true, style: TextInputStyle.Short))
-                                                                .AddComponents(new TextInputComponent(textInput2, "exampleModalText2", required: false, style: TextInputStyle.Paragraph));
+                                                                .AddTextInput(new DiscordTextInputComponent("exampleModalText1", required: true, style: DiscordTextInputStyle.Short), textInput1)
+                                                                .AddTextInput(new DiscordTextInputComponent("exampleModalText2", required: false, style: DiscordTextInputStyle.Paragraph), textInput2);
 
-                await ctx.CreateResponseAsync(InteractionResponseType.Modal, modal);
+                await ctx.RespondWithModalAsync(modal);
                 return;
             }
         }
 
         [SlashCommand("honeypot", "Set the honeypot automation up")]
-        public async Task honeypot(InteractionContext ctx)
+        [Command("honeypot")]
+        [Description("no clue why i registered this")]
+        public async Task honeypot(SlashCommandContext ctx)
         {
             var embed = new DiscordEmbedBuilder()
             {
@@ -78,6 +91,20 @@ namespace Stormtility.commands.TestingCommands
             DiscordChannel channel = ctx.Interaction.Channel;
             await channel.SendMessageAsync(embed);
             return;
+        }
+
+        [SlashCommand("ticketmodal", "Test ticketmodal lmaoz")]
+        [Command("ticketmodal")]
+        [Description("my sanity is gone")]
+        public async Task ticketmodal(SlashCommandContext ctx)
+        {
+            DiscordModalBuilder modal = new DiscordModalBuilder()
+                                                            .WithCustomId("gameappealmodal")
+                                                            .WithTitle("Create a game appeal...")
+                                                            .AddTextInput(new DiscordTextInputComponent("robloxusername", "stormyxvreal", "", true, DiscordTextInputStyle.Short), "Your ROBLOX username")
+                                                            .AddFileUpload(new DiscordFileUploadComponent("proof", 1, 1, false), "Screenshot or clip of you getting banned", "Incase you cannot screenshot or do not have a medal clip, leave this field out. It is not required.");
+
+            await ctx.RespondWithModalAsync(modal);
         }
     }
 }

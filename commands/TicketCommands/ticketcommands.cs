@@ -22,18 +22,23 @@ using Stormtility.events;
 using System.Text.Json.Nodes;
 using DSharpPlus.Net.Models;
 using System.Net.Http.Json;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Trees.Metadata;
 
 namespace Stormtility.commands.TicketCommands
 {
-    public class ticketcommands : ApplicationCommandModule
+    public class ticketcommands
     {
         [SlashCommandGroup("ticket", "ticket system")]
-        public class ticketingCommands : ApplicationCommandModule
+        [Command("ticket")]
+        [Description("ticket system")]
+        public class ticketingCommands
         {
-            public static async Task<bool> permissionCheck(InteractionContext ctx)
+            public static async Task<bool> permissionCheck(SlashCommandContext ctx)
             {
                 bool gamemodRole = ctx.Member.Roles.Any(r => r.Id == 1474165198947356793);
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ModerateMembers) && !gamemodRole)
+                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) && !gamemodRole)
                 {
                     var permissionErrorEmbed = new DiscordEmbedBuilder
                     {
@@ -42,14 +47,17 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
                     return false;
                 }
                 return true;
             }
 
             [SlashCommand("setup", "Set the ticket system up")]
-            public async Task ticketsetup(InteractionContext ctx)
+            [Command("setup")]
+            [Description("Set the ticket system up.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task ticketsetup(SlashCommandContext ctx)
             {
                 try
                 {
@@ -57,7 +65,7 @@ namespace Stormtility.commands.TicketCommands
 
                     if(!check) { return; }
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Setting up...").AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Setting up...").AsEphemeral());
 
                     var select = new DiscordSelectComponent(
                         customId: "ticketoptions",
@@ -77,8 +85,8 @@ namespace Stormtility.commands.TicketCommands
                     };
 
                     await ctx.Channel.SendMessageAsync(new DiscordMessageBuilder()
-                        .WithEmbed(supportEmbed)
-                        .AddComponents(select));
+                        .AddEmbed(supportEmbed)
+                        .AddActionRowComponent(select));
                 }
                 catch (Exception e)
                 {
@@ -87,7 +95,10 @@ namespace Stormtility.commands.TicketCommands
             }
 
             [SlashCommand("update", "Update the last ticket message when adding new options.")]
-            public async Task update(InteractionContext ctx)
+            [Command("update")]
+            [Description("Update the last ticket message when adding new options.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task update(SlashCommandContext ctx)
             {
                 bool isAdmin = await permissionCheck(ctx);
                 if(!isAdmin) { return; }
@@ -114,20 +125,23 @@ namespace Stormtility.commands.TicketCommands
                 };
 
                 await discordMessage.ModifyAsync(new DiscordMessageBuilder()
-                    .WithEmbed(supportEmbed)
-                    .AddComponents(select));
+                    .AddEmbed(supportEmbed)
+                    .AddActionRowComponent(select));
 
-                await ctx.CreateResponseAsync("Updated the message successfully.", true);
+                await ctx.RespondAsync("Updated the message successfully.", true);
             }
 
             [SlashCommand("transcript", "View the transcript of a ticket")]
-            public async Task viewTranscript(InteractionContext ctx, [Option("ticketId", "The ID of the ticket to view")] [Autocomplete(typeof(autocompletehandler))] string ticketId)
+            [Command("transcript")]
+            [Description("View the transcript of a ticket")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task viewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][Autocomplete(typeof(autocompletehandler))] string ticketId)
             {
                 var check = await permissionCheck(ctx);
 
                 if (!check) { return; }
 
-                await ctx.DeferAsync(ephemeral: false);
+                await ctx.DeferResponseAsync(ephemeral: false);
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Preparing transcript..."));
 
                 var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
@@ -182,20 +196,26 @@ namespace Stormtility.commands.TicketCommands
             }
 
             [SlashCommand("close", "Prompt to close the ticket")]
-            public async Task closeTicket(InteractionContext ctx)
+            [Command("close")]
+            [Description("Prompt to close the ticket")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task closeTicket(SlashCommandContext ctx)
             {
                 var embed = new DiscordEmbedBuilder
                 {
                     Title="Close Ticket",
                     Color=DiscordColor.Red
                 };
-                var button = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+                var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(button).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddActionRowComponent(button).AsEphemeral());
             }
 
             [SlashCommand("delete", "Delete the current ticket.")]
-            public async Task deleteTicket(InteractionContext ctx)
+            [Command("delete")]
+            [Description("Delete the current ticket")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task deleteTicket(SlashCommandContext ctx)
             {
                 var embed = new DiscordEmbedBuilder
                 {
@@ -203,13 +223,16 @@ namespace Stormtility.commands.TicketCommands
                     Description = "Are you sure you want to delete this ticket? This action cannot be undone.",
                     Color = DiscordColor.Red
                 };
-                var button = new DiscordButtonComponent(ButtonStyle.Danger, "deleteticket", "Delete Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+                var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "deleteticket", "Delete Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddComponents(button).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddActionRowComponent(button).AsEphemeral());
             }
 
             [SlashCommand("claim", "Claim the ticket you are currently in.")]
-            public async Task claim(InteractionContext ctx)
+            [Command("claim")]
+            [Description("Claim the ticket you are currently in.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task claim(SlashCommandContext ctx)
             {
                 var check = await permissionCheck(ctx);
 
@@ -248,7 +271,7 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
                     return;
                 }
 
@@ -256,16 +279,19 @@ namespace Stormtility.commands.TicketCommands
                 {
                     Title = "Successfully claimed the ticket."
                 };
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
                 successEmbed.Title = $"{ctx.Member.Nickname} has claimed this ticket.";
                 successEmbed.Color = DiscordColor.Gold;
-                await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(successEmbed));
+                await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(successEmbed));
                 await ctx.Interaction.Channel.ModifyAsync(c => c.Name = $"{ctx.User.Username}-{matchedPrefix}-{ticketId}");
                 return;
             }
 
             [SlashCommand("add", "Add a user to the current ticket.")]
-            public async Task addUser(InteractionContext ctx, [Option("user", "The user to add to the ticket.")] DiscordUser user)
+            [Command("add")]
+            [Description("Add a user to the current ticket")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task addUser(SlashCommandContext ctx, [Parameter("user")][Description("The user to add to the ticket.")] DiscordUser user)
             {
                 var check = await permissionCheck(ctx);
 
@@ -303,7 +329,7 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
                     return;
                 }
 
@@ -317,13 +343,13 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
                     return;
                 }
 
-                var allowPerms = Permissions.AccessChannels | Permissions.ReadMessageHistory | Permissions.AttachFiles | Permissions.AddReactions | Permissions.EmbedLinks | Permissions.SendMessages;
+                DiscordPermissions allowPerms = new([DiscordPermission.ViewChannel, DiscordPermission.ReadMessageHistory, DiscordPermission.AttachFiles, DiscordPermission.AddReactions, DiscordPermission.EmbedLinks, DiscordPermission.SendMessages]);
 
-                await ctx.Interaction.Channel.AddOverwriteAsync(member, allowPerms, Permissions.None);
+                await ctx.Interaction.Channel.AddOverwriteAsync(member, allowPerms, DiscordPermissions.None);
 
                 var successEmbed = new DiscordEmbedBuilder
                 {
@@ -331,13 +357,16 @@ namespace Stormtility.commands.TicketCommands
                     Color = DiscordColor.Gold
                 };
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
 
                 return;
             }
 
             [SlashCommand("remove", "Remove a user from the current ticket")]
-            public async Task removeUser(InteractionContext ctx, [Option("User", "The user to remove")] DiscordUser user)
+            [Command("remove")]
+            [Description("Remove a user from the current ticket.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task removeUser(SlashCommandContext ctx, [Parameter("User")][Description("The user to remove")] DiscordUser user)
             {
                 var check = await permissionCheck(ctx);
 
@@ -375,7 +404,7 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
                     return;
                 }
 
@@ -389,7 +418,7 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
                     return;
                 }
 
@@ -401,21 +430,24 @@ namespace Stormtility.commands.TicketCommands
                     Color = DiscordColor.Gold
                 };
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
 
                 return;
             }
 
             [SlashCommand("staff", "Create a plain ticket.")]
-            public async Task staffTicket(InteractionContext ctx)
+            [Command("staff")]
+            [Description("Create a plain ticket.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task staffTicket(SlashCommandContext ctx)
             {
                 var check = await permissionCheck(ctx);
 
                 if (!check) { return; }
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Creating channel...").AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Creating channel...").AsEphemeral());
 
-                var openStaffTicketCategory = ctx.Interaction.Guild.GetChannel(1429871426386526310);
+                var openStaffTicketCategory = await ctx.Interaction.Guild.GetChannelAsync(1429871426386526310);
 
                 if (openStaffTicketCategory == null) { return; }
 
@@ -440,10 +472,10 @@ namespace Stormtility.commands.TicketCommands
                 File.WriteAllText("tickets.json", json.ToString());
 
                 ulong staffRole = 1370422448763437207;
-                var staff = ctx.Interaction.Guild.GetRole(staffRole);
+                var staff = await ctx.Interaction.Guild.GetRoleAsync(staffRole);
 
-                var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(Permissions.AccessChannels | Permissions.SendMessages | Permissions.AttachFiles | Permissions.EmbedLinks | Permissions.UseApplicationCommands | Permissions.ReadMessageHistory);
-                var defaultRoleOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.EveryoneRole).Deny(Permissions.AccessChannels);
+                var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(new([DiscordPermission.ViewChannel, DiscordPermission.SendMessages, DiscordPermission.AttachFiles, DiscordPermission.EmbedLinks, DiscordPermission.UseApplicationCommands, DiscordPermission.ReadMessageHistory]));
+                var defaultRoleOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel);
 
                 try {
                     var channel = await ctx.Guild.CreateTextChannelAsync($"support-{ticketId}", openStaffTicketCategory, overwrites: [staffOverwrites, defaultRoleOverwrites]);
@@ -455,9 +487,9 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Aquamarine
                     };
 
-                    var closeBtn = new DiscordButtonComponent(ButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
+                    var closeBtn = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-                    await channel.SendMessageAsync(new DiscordMessageBuilder().WithEmbed(supportEmbed).AddComponents(closeBtn));
+                    await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(supportEmbed).AddActionRowComponent(closeBtn));
                     await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created in {channel.Mention}."));
                 } catch (Exception e)
                 {
@@ -495,7 +527,7 @@ namespace Stormtility.commands.TicketCommands
 
             }
 
-            public async Task<bool> checkChannelName(InteractionContext ctx, DiscordChannel channel)
+            public async Task<bool> checkChannelName(SlashCommandContext ctx, DiscordChannel channel)
             {
                 var channelName = ctx.Interaction.Channel.Name;
                 string[] ticketTypes = { "support", "appeal", "speedtypist", "exploiter" };
@@ -527,25 +559,28 @@ namespace Stormtility.commands.TicketCommands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
                     return false;
                 }
                 return true;
             }
 
             [SlashCommand("addrole", "Add a role to the current ticket.")]
-            public async Task addrole(InteractionContext ctx, [Option("role", "The role to add to the current ticket.")] DiscordRole role)
+            [Command("addrole")]
+            [Description("Add a role and their members into the ticket")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task addrole(SlashCommandContext ctx, [Parameter("role")][Description("The role to add to the current ticket.")] DiscordRole role)
             {
                 bool permissions = await permissionCheck(ctx);
                 if(!permissions) { return; }
 
-                await ctx.DeferAsync(true);
+                await ctx.DeferResponseAsync(true);
 
                 bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
 
                 if (!isTicket) { return; }
 
-                await ctx.Interaction.Channel.AddOverwriteAsync(role, allow: Permissions.SendMessages | Permissions.AccessChannels | Permissions.AttachFiles | Permissions.EmbedLinks, deny: Permissions.None);
+                await ctx.Interaction.Channel.AddOverwriteAsync(role, allow: new([DiscordPermission.SendMessages, DiscordPermission.ViewChannel, DiscordPermission.AttachFiles, DiscordPermission.EmbedLinks]));
 
                 var embed = new DiscordEmbedBuilder
                 {
@@ -558,13 +593,16 @@ namespace Stormtility.commands.TicketCommands
             }
 
             [SlashCommand("removerole", "Remove a role from the current ticket")]
-            public async Task removerole(InteractionContext ctx, [Option("role", "The role to remove from the current ticket.")] DiscordRole role)
+            [Command("removerole")]
+            [Description("Remove a role and their members from the curent ticket.")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task removerole(SlashCommandContext ctx, [Parameter("role")][Description("The role to remove from the current ticket.")] DiscordRole role)
             {
                 bool permissions = await permissionCheck(ctx);
 
                 if (!permissions) { return; }
 
-                await ctx.DeferAsync(true);
+                await ctx.DeferResponseAsync(true);
 
                 bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
 
@@ -583,29 +621,30 @@ namespace Stormtility.commands.TicketCommands
             }
 
             //[SlashCommand("bulkdelete", "Bulk delete closed tickets in the closed tickets category.")]
-            public async Task bulkDelete(InteractionContext ctx)
+            public async Task bulkDelete(SlashCommandContext ctx)
             {
                 bool permissions = await permissionCheck(ctx);
-                await ctx.DeferAsync(true);
+                await ctx.DeferResponseAsync(true);
 
                 if (!permissions) { return; }
 
-                var button = new DiscordButtonComponent(ButtonStyle.Danger, "bulkdelete", "Confirm Bulk Delete", emoji: new DiscordComponentEmoji("⚠️"));
+                var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "bulkdelete", "Confirm Bulk Delete", emoji: new DiscordComponentEmoji("⚠️"));
                 var embed = new DiscordEmbedBuilder
                 {
                     Title = "Bulk Delete Closed Tickets",
                     Description = "This will bulk delete all closed tickets in the closed tickets category. This action cannot be undone. Are you sure you want to proceed?",
                     Color = DiscordColor.Red
                 };
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).AddComponents(button));
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).AddActionRowComponent(button));
                 return;
             }
 
             [SlashCommand("forcedelete", "Force delete a ticket channel.")]
-            public async Task forceDelete(InteractionContext ctx)
+            [Command("forcedelete")]
+            [Description("Force delete the current ticket you are in.")]
+            public async Task forceDelete(SlashCommandContext ctx)
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, 
-                    new DiscordInteractionResponseBuilder().AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AsEphemeral());
 
                 bool isAdmin = await permissionCheck(ctx);
                 if(!isAdmin) 

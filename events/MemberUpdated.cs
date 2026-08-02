@@ -78,7 +78,7 @@ namespace Stormtility.events
             return true;
         }
 
-        public static async Task<Task> Client_GuildMemberUpdated(DiscordClient sender, GuildMemberUpdateEventArgs args)
+        public static async Task<Task> Client_GuildMemberUpdated(DiscordClient sender, GuildMemberUpdatedEventArgs args)
         {
             if(vars.commandTriggered)
             {
@@ -87,7 +87,7 @@ namespace Stormtility.events
 
             _ = await verifyDisplayName(args.Member);
 
-            var blacklist = args.Guild.GetRole(1397404869702320260);
+            var blacklist = await args.Guild.GetRoleAsync(1397404869702320260);
 
             bool hadBefore = args.RolesBefore.Any(r => r.Id == blacklist.Id);
             bool hasAfter = args.RolesAfter.Any(r => r.Id == blacklist.Id);

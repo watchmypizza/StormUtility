@@ -1,4 +1,8 @@
+using System.ComponentModel;
 using System.Text;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Microsoft.Data.Sqlite;
@@ -7,11 +11,13 @@ using Stormtility.Helpers;
 
 namespace Stormtility.commands
 {
-    public class mutecounter : ApplicationCommandModule
+    public class mutecounter
     {
 
-        [SlashCommandGroup("mutes", "Mute counter group")]
-        public class MCounter : ApplicationCommandModule
+        [Command("mutes")]
+        [Description("Mute counter group")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public class MCounter
         {
             private async Task<Dictionary<ulong, int>> mutes()
             {
@@ -56,12 +62,15 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("mutes", "Check how many times you have been muted for saying ts = this")]
-            public async Task mutecounter(InteractionContext ctx)
+            [Command("mutes")]
+            [Description("Check how many times you have been muted for saying ts = this")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task mutecounter(SlashCommandContext ctx)
             {
-                await ctx.DeferAsync(ephemeral: true);
+                await ctx.DeferResponseAsync(true);
 
                 var totalmutes = await mutes();
-                if (!totalmutes.TryGetValue(ctx.Interaction.User.Id, out int key))
+                if (!totalmutes.TryGetValue(ctx.User.Id, out int key))
                 {
                     key = 0;
                 }
@@ -77,9 +86,12 @@ namespace Stormtility.commands
             }
 
             [SlashCommand("leaderboard", "Mute counter leaderboards. COMPETITIVE???;3")]
-            public async Task leaderboard(InteractionContext ctx)
+            [Command("leaderboard")]
+            [Description("Mute counter leaderboards. COMPETITIVE???;3")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task leaderboard(SlashCommandContext ctx)
             {
-                await ctx.DeferAsync(true);
+                await ctx.DeferResponseAsync(true);
 
                 var totalmute = await mutes();
                 var sortedLeaderboards = totalmute.OrderByDescending(pair => pair.Value).Take(10).ToList();

@@ -1,8 +1,11 @@
 ﻿using DSharpPlus;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -10,14 +13,16 @@ using System.Threading.Tasks;
 
 namespace Stormtility.commands.Anti_Raid_Commands
 {
-    public class antiraidcommands : ApplicationCommandModule
+    public class antiraidcommands
     {
-        [SlashCommandGroup("antiraid", "Raid prevention commands")]
-        public class antiraidcmds : ApplicationCommandModule
+        [Command("antiraid")]
+        [Description("Antiraid group")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public class antiraidcmds
         {
-            public static async Task<bool> permissionCheck(InteractionContext ctx)
+            public static async ValueTask<bool> permissionCheck(CommandContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(Permissions.ManageChannels))
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ManageChannels))
                 {
                     var permissionsError = new DiscordEmbedBuilder
                     {
@@ -26,15 +31,17 @@ namespace Stormtility.commands.Anti_Raid_Commands
                         Color = DiscordColor.Red
                     };
 
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsError).AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionsError).AsEphemeral());
 
                     return false;
                 }
                 return true;
             }
 
-            [SlashCommand("slowmode", "Set a custom slowmode for the channel this command is executed in.")]
-            public async Task slowmode(InteractionContext ctx, [Option("Duration", "The duration of the slowmode")] string duration)
+            [Command("slowmode")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            [Description("Apply slowmode to a channel")]
+            public static async ValueTask slowmode(CommandContext ctx, [Parameter("Duration")][Description("How long the slowmode is supposed to be")] string duration)
             {
                 var check = await permissionCheck(ctx);
 
@@ -44,7 +51,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 if (duration.Length < 2 || !int.TryParse(duration[..^1], out value))
                 {
-                    await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Invalid number in duration.").AsEphemeral());
+                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Invalid number in duration.").AsEphemeral());
                     return;
                 }
 
@@ -60,11 +67,11 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 if (slowmode.TotalSeconds > 21000)
                 {
-                    await ctx.CreateResponseAsync("Slowmode cannot exceed 6 hours.");
+                    await ctx.RespondAsync("Slowmode cannot exceed 6 hours.");
                     return;
                 }
 
-                await ctx.Interaction.Channel.ModifyAsync(ch => ch.PerUserRateLimit = (int)slowmode.TotalSeconds);
+                await ctx.Channel.ModifyAsync(ch => ch.PerUserRateLimit = (int)slowmode.TotalSeconds);
 
                 var successEmbed = new DiscordEmbedBuilder
                 {
@@ -72,12 +79,14 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     Color = DiscordColor.Gold
                 };
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
                 return;
             }
 
-            [SlashCommand("massban", "Raid cleanup command, mass ban anyone and delete their minutes in a specified time frame.")]
-            public async Task massban(InteractionContext ctx, [Option("Duration", "The people to ban that joined in that duration")] string duration)
+            [Command("massban")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            [Description("Mass ban users in a timeframe")]
+            public static async ValueTask massban(SlashCommandContext ctx, [Parameter("duration")][Description("Duration of the massban")] string duration)
             {
                 var check = await permissionCheck(ctx);
 
@@ -85,7 +94,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 if (duration.Length < 2 || !int.TryParse(duration[..^1], out int value))
                 {
-                    await ctx.CreateResponseAsync("Invalid duration format.");
+                    await ctx.RespondAsync("Invalid duration format.");
                     return;
                 }
 
@@ -101,13 +110,13 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 if (window == TimeSpan.Zero)
                 {
-                    await ctx.CreateResponseAsync("Invalid time unit.");
+                    await ctx.RespondAsync("Invalid time unit.");
                     return;
                 }
 
                 var cutoff = DateTimeOffset.UtcNow - window;
 
-                await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("Collecting members...").AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Collecting members...").AsEphemeral());
 
                 int banned = 0;
                 const int BAN_LIMIT = 50;
@@ -125,14 +134,14 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     }
 
                     if (member.Id == ctx.User.Id) continue;
-                    if (member.Permissions.HasPermission(Permissions.Administrator)) continue;
+                    if (member.Permissions.HasPermission(DiscordPermission.Administrator)) continue;
 
                     if (member.JoinedAt >= cutoff)
                     {
                         try
                         {
                             await member.BanAsync(
-                                delete_message_days: 1,
+                                deleteMessageDuration: TimeSpan.FromDays(1),
                                 reason: $"Massban: Suspected raid (TRIGGERED BY {ctx.Member.Username}");
 
                             banned++;
@@ -149,10 +158,12 @@ namespace Stormtility.commands.Anti_Raid_Commands
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Massban complete. Banned **{banned}** users."));
             }
 
-            [SlashCommand("lift", "Lift slowmode of all channels again")]
-            public async Task lift(InteractionContext ctx)
+            [Command("lift")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            [Description("Lift slowmode of all channels again")]
+            public static async ValueTask lift(SlashCommandContext ctx)
             {
-                await ctx.DeferAsync();
+                await ctx.DeferResponseAsync(true);
 
                 var check = await permissionCheck(ctx);
 
@@ -190,7 +201,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(successEmbed));
             }
-            public static async Task<bool> antiRaidActions(List<DiscordChannel> channels)
+            public static async ValueTask<bool> antiRaidActions(List<DiscordChannel> channels)
             {
                 bool antiraid = false;
 
@@ -224,16 +235,18 @@ namespace Stormtility.commands.Anti_Raid_Commands
                 return antiraid;
             }
 
-            [SlashCommand("test", "Test the automatic slowmode feature.")]
-            public async Task antiraidTest(InteractionContext ctx)
+            [Command("test")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            [Description("Test the automatic slowmode feature.")]
+            public static async ValueTask antiraidTest(SlashCommandContext ctx)
             {
-                await ctx.DeferAsync(true);
+                await ctx.DeferResponseAsync(true);
 
                 var check = await permissionCheck(ctx);
 
                 if (!check) { return; }
 
-                var channels = await ctx.Interaction.Guild.GetChannelsAsync();
+                var channels = await ctx.Guild.GetChannelsAsync();
 
                 await antiRaidActions(channels.ToList());
 

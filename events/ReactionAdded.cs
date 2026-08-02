@@ -12,7 +12,7 @@ namespace Stormtility.events
         private static bool isInit = false;
         private static readonly SemaphoreSlim initLock = new(1, 1);
 
-        public static async Task Client_ReactionAddedEvent(DiscordClient sender, MessageReactionAddEventArgs args)
+        public static async Task Client_ReactionAddedEvent(DiscordClient sender, MessageReactionAddedEventArgs args)
         {
             if(args.Message.Id != 1386497117379493980)
             {
@@ -27,9 +27,10 @@ namespace Stormtility.events
                     if(!isInit)
                     {
                         var check = DiscordEmoji.FromUnicode("✅");
-                        var historicUsers = await args.Message.GetReactionsAsync(check, 1000);
+                        CancellationToken token = new();
+                        var historicUsers = args.Message.GetReactionsAsync(check, token);
 
-                        foreach(var user in historicUsers)
+                        await foreach(var user in historicUsers)
                         {
                             if(!user.IsBot)
                             {

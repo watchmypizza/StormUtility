@@ -1,4 +1,5 @@
 ﻿using DSharpPlus;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -13,7 +14,7 @@ namespace Stormtility.commands.UtilityCommands
     public class TestCommands : BaseCommandModule
     {
         [Command("test")]
-        public async Task test(CommandContext ctx)
+        public async Task test(SlashCommandContext ctx)
         {
             var msg = await ctx.Channel.SendMessageAsync("Commands are enabled:3");
 
@@ -22,9 +23,9 @@ namespace Stormtility.commands.UtilityCommands
         }
 
         [Command("blacklist")]
-        public async Task blacklist(CommandContext ctx, DiscordMember member, string reason)
+        public async Task blacklist(SlashCommandContext ctx, DiscordMember member, string reason)
         {
-            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.ModerateMembers))
+            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
             {
                 return;
             }
@@ -47,7 +48,7 @@ namespace Stormtility.commands.UtilityCommands
                 }
             }
 
-            var mod_log_ch = ctx.Guild.GetChannel(1373144394382966834);
+            var mod_log_ch = await ctx.Guild.GetChannelAsync(1373144394382966834);
 
             var message = new DiscordMessageBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
@@ -65,7 +66,7 @@ namespace Stormtility.commands.UtilityCommands
 
             var origmsg = await ctx.Channel.SendMessageAsync(message);
             await mod_log_ch.SendMessageAsync(logEmbed);
-            await member.GrantRoleAsync(ctx.Guild.GetRole(1397404869702320260));
+            await member.GrantRoleAsync(await ctx.Guild.GetRoleAsync(1397404869702320260));
             await Task.Delay(3000);
             await origmsg.DeleteAsync();
         }

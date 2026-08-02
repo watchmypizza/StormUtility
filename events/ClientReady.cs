@@ -15,9 +15,9 @@ namespace Stormtility.events
 {
     public class ClientReady
     {
-        public static async Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
+        public static async Task Client_Ready(DiscordClient sender, SessionCreatedEventArgs args)
         {
-            await sender.UpdateStatusAsync(new DiscordActivity("Chasing 2026 EF5", ActivityType.Playing), UserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
+            await sender.UpdateStatusAsync(new DiscordActivity("Chasing 2026 EF5", DiscordActivityType.Playing), DiscordUserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
             Console.WriteLine($"Logged in as {sender.CurrentUser.Username}#{sender.CurrentUser.Discriminator}");
             autocompletehandler.LoadTranscriptCache("transcripts.json");
             autocompletehandler.fileSysWatcher("./transcripts.json");
