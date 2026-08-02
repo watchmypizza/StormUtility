@@ -22,30 +22,55 @@ namespace Stormtility.events
         {
             Regex regex = new Regex("[^A-Za-z0-9()!?,.\"$':#+:;_\\s]+");
             DiscordMember discordMember = (DiscordMember)user;
-            
             var nickname = discordMember.DisplayName;
-            
-            if (regex.IsMatch(nickname))
+            var match = regex.Match(nickname);
+
+            if(match.Success)
             {
-                string replacedNick = regex.Replace(nickname, "");
-
-                if (string.IsNullOrWhiteSpace(replacedNick))
-                {
-                    replacedNick = "Restricted Name"; 
-                }
-
-                try 
-                {
-                    await discordMember.ModifyAsync(a => a.Nickname = replacedNick);
-                } 
-                catch (UnauthorizedException e)
+                string currentNick = nickname;
+                var replacedNick = currentNick.Replace(match.Value, "");
+                try {
+                    await discordMember.ModifyAsync(a => a.Nickname = replacedNick ?? user.Username);
+                } catch (UnauthorizedException e)
                 {
                     Console.WriteLine($"Not authorized to perform action on {discordMember.Mention} ({discordMember.Username})");
                     await logger.LOGGER(e);
                     return false;
-                } 
-                catch (Exception e)
+                } catch (Exception e)
                 {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("--- STACK BEGIN ---");
+                    Console.WriteLine(e.StackTrace);
+                    Console.WriteLine("--- STACK SPLIT ---");
+                    Console.WriteLine(e.Message);
+                    Console.WriteLine("---  STACK END  ---");
+
+                    try 
+                    {
+                        using HttpClient httpClient = new();
+                        var url = Program.webhookURL;
+
+                        var payload = new
+                        {
+                            content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                        };
+
+                        string json = JsonSerializer.Serialize(payload);
+
+                        using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
+
+                        var response = await httpClient.PostAsync(url, stringContent);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception logEx)
+                    {
+                        Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
+                    }
+
                     return false;
                 }
             }
