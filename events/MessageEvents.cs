@@ -506,6 +506,9 @@ namespace Stormtility.events
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
                 await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author.Mention}");
                 await args.Message.DeleteAsync();
+                ulong stickerId = 1533600293630251008;
+                var sticker = await args.Guild.GetStickerAsync(stickerId);
+                await args.Message.Channel.SendMessageAsync(new DiscordMessageBuilder().WithStickers(new[] { sticker }));
             }
 
             if(isConsideredSpamPing)
