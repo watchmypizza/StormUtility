@@ -23,6 +23,7 @@ using DSharpPlus.SlashCommands;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using CommunityToolkit.HighPerformance;
+using System.Globalization;
 
 namespace Stormtility.events
 {
@@ -476,6 +477,7 @@ namespace Stormtility.events
         public static async Task Client_MessageDeleted(DiscordClient sender, MessageDeletedEventArgs args)
         {
             await routeMessages(args.Message, deleted: true);
+
             return;
         }
 
@@ -491,6 +493,16 @@ namespace Stormtility.events
             if(args.Channel.Id == 1533206494181462137)
             {
                 await receiveMessageAndForwardToChannel(sender, args.Message);
+            }
+
+            if(member.Roles.Any(r => r.Id == 1370422448763437207))
+            {
+                Dictionary<string, Object> staffActivity = await Helpers.StaffActivityTracker.GetActivity(args.Author.Id);
+                int messagesSent = (int)staffActivity["messagesSent"];
+                messagesSent += 1;
+                string lastSeen = (string)staffActivity["lastSeen"];
+                lastSeen = DateTime.UtcNow.ToString("O");
+                await Helpers.StaffActivityTracker.UpsertActivity(args.Author.Id, staffActivity);
             }
 
             if(result)

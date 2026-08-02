@@ -32,8 +32,26 @@ namespace Stormtility.Helpers
                     count INTEGER
                 );";
 
+            string staffactivityconn = "Data Source=staffactivity.db";
+            string staffactivitysql = @"
+                CREATE TABLE IF NOT EXISTS staffactivity (
+                    user INTEGER PRIMARY KEY,
+                    messagessent INTEGER DEFAULT 0,
+                    actionstaken INTEGER DEFAULT 0,
+                    vcminutes INTEGER DEFAULT 0,
+                    lastactive TEXT)";
+
             try
             {
+                using (var connection = new SqliteConnection(staffactivityconn))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = new SqliteCommand(staffactivitysql, connection))
+                    {
+                        await command.ExecuteNonQueryAsync();
+                    }
+                }
                 using (var connection = new SqliteConnection(activeticketsconn))
                 {
                     await connection.OpenAsync();
