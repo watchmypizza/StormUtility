@@ -495,16 +495,6 @@ namespace Stormtility.events
                 await receiveMessageAndForwardToChannel(sender, args.Message);
             }
 
-            if(member.Roles.Any(r => r.Id == 1370422448763437207))
-            {
-                Dictionary<string, Object> staffActivity = await Helpers.StaffActivityTracker.GetActivity(args.Author.Id);
-                int messagesSent = (int)staffActivity["messagesSent"];
-                messagesSent += 1;
-                string lastSeen = (string)staffActivity["lastSeen"];
-                lastSeen = DateTime.UtcNow.ToString("O");
-                await Helpers.StaffActivityTracker.UpsertActivity(args.Author.Id, staffActivity);
-            }
-
             if(result)
             {
                 if(member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
