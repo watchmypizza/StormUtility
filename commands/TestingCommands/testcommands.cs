@@ -6,6 +6,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.ModalCommands;
 using DSharpPlus.SlashCommands;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -102,7 +103,11 @@ namespace Stormtility.commands.TestingCommands
                                                             .WithCustomId("gameappealmodal")
                                                             .WithTitle("Create a game appeal...")
                                                             .AddTextInput(new DiscordTextInputComponent("robloxusername", "stormyxvreal", "", true, DiscordTextInputStyle.Short), "Your ROBLOX username")
-                                                            .AddFileUpload(new DiscordFileUploadComponent("proof", 1, 1, false), "Screenshot or clip of you getting banned", "Incase you cannot screenshot or do not have a medal clip, leave this field out. It is not required.");
+                                                            .AddFileUpload(new DiscordFileUploadComponent("proof", 1, 1, false), "Screenshot or clip of you getting banned", "Incase you cannot screenshot or do not have a medal clip, leave this field out. It is not required.")
+                                                            .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree",
+                                                                                new List<DiscordCheckboxGroupOption> {  new DiscordCheckboxGroupOption("agreed", "Agree to rules",
+                                                                                description: "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", selectedByDefault: false)},
+                                                                            1, 1, true), "Ticket Rules");
 
             await ctx.RespondWithModalAsync(modal);
         }
