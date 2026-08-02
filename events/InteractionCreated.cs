@@ -237,6 +237,50 @@ namespace Stormtility.events {
             return;
         }
 
+        public static async Task bulkDeleteTickets(DiscordClient sender, ComponentInteractionCreatedEventArgs args)
+        {
+            await args.Interaction.DeferAsync(true);
+            await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Deleting channels..."));
+            var autoTranscript = new AutoTranscript();
+            DiscordChannel category = await args.Interaction.Guild.GetChannelAsync(1429871639658762281);
+            DiscordMember mem = null!;
+            bool result = true;
+            foreach(DiscordChannel channel in category.Children) {
+                if(channel.Name.Contains("-closed-")) {
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Deleting {channel.Mention}..."));
+                    await logger.debugLog("Trying to delete alrady closed ticket...");
+                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel.Id);
+                    await logger.debugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
+                    if(channelId == null || userId == null)
+                    {
+                        await logger.debugLog("Setting values to default...");
+                        channelId = args.Interaction.Channel.Id;
+                        userId = args.Interaction.User.Id;
+                        await logger.debugLog($"channelId is now {channelId}");
+                        await logger.debugLog($"userId is now {userId}");
+                    }
+                    await logger.debugLog($"Grabbed {channel.Id}");
+                    await logger.debugLog($"Attempting to grab member");
+                    mem = await args.Guild.GetMemberAsync(userId.Value);
+                    await logger.debugLog($"Grabbed {mem.Id}");
+                    await logger.debugLog($"Auto transcripting ticket...");
+                    result = await autoTranscript.ProcessTranscript(sender, args.Interaction, channel, "delete");
+                    await logger.debugLog($"Received as result: {result}");
+                } else
+                {
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("CANCELLED TRYING TO DELETE NON TICKET CHANNEL."));
+                    return;
+                } 
+                if (!result)
+                {
+                    continue;
+                }
+            }
+
+            await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Finished deleting all tickets!"));
+            return;
+        }
+
         public static async Task Client_ComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreatedEventArgs args)
         {
             try
@@ -663,6 +707,12 @@ namespace Stormtility.events {
                             await logger.LOGGER(e);
                         }
                     }
+                }
+
+                if (args.Id == "bulkdelete")
+                {
+                    await bulkDeleteTickets(sender, args);
+                    return;
                 }
 
                 if (args.Id == "closeticket")
