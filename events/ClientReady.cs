@@ -48,7 +48,7 @@ namespace Stormtility.events
                     if (!openTickets.Any())
                     {
                         Console.WriteLine("[Startup Sync] No tickets found in the category (or cache is empty).");
-                        return;
+                        continue;
                     }
 
                     foreach (var channel in openTickets)

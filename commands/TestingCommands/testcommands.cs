@@ -111,5 +111,49 @@ namespace Stormtility.commands.TestingCommands
 
             await ctx.RespondWithModalAsync(modal);
         }
+
+        [Command("speedtypistmodal")]
+        [Description("I have reacquired my sanity")]
+        public async Task speedtypistmodal(SlashCommandContext ctx)
+        {
+            DiscordModalBuilder modal = new DiscordModalBuilder()
+                                            .WithCustomId("speedtypistmodal")
+                                            .WithTitle("Apply for speedtypist role...")
+                                            .AddTextInput(new DiscordTextInputComponent("monkeytypeprofile", "https://monkeytype.com/profile/peanutxvreal", "", required: true, style: DiscordTextInputStyle.Short), "Your MonkeyType profile", "You can find this under Username at the top → Public Profile → Copy link in the URL bar")
+                                            .AddFileUpload(new DiscordFileUploadComponent("proof", 1, 1, true), "15 Second recording of your run", "Upload a 15s Monkeytype recording. Drag your Discord window into view at the end.")
+                                            .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
+        
+            await ctx.RespondWithModalAsync(modal);
+        }
+
+        [Command("supportmodal")]
+        [Description("I am very motivated for no reason today")]
+        public async Task supportmodal(SlashCommandContext ctx)
+        {
+            DiscordModalBuilder modal = new DiscordModalBuilder()
+                                            .WithCustomId("supportmodal")
+                                            .WithTitle("Create a support ticket...")
+                                            .AddTextInput(new DiscordTextInputComponent("problemoverview", "Short overview of your problem", null, true, DiscordTextInputStyle.Short, 6, 25), "A short overview of your problem.")
+                                            .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 150, 4000), "Describe your problem in best detail.")
+                                            .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Additional attachments", "Not needed if you don't have any, but is beneficial.")
+                                            .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
+        
+            await ctx.RespondWithModalAsync(modal);
+        }
+
+        [Command("exploitermodal")]
+        [Description("WEEEE LAST MODAL AWWWWW:( Anyways suki will kill me if I make more modals (she hates popups)")]
+        public async Task exploitermodal(SlashCommandContext ctx)
+        {
+            DiscordModalBuilder modal = new DiscordModalBuilder()
+                                            .WithCustomId("exploitermodal")
+                                            .WithTitle("Report an exploiter...")
+                                            .AddTextInput(new DiscordTextInputComponent("reportedusername", "John Doe", "", true, DiscordTextInputStyle.Short), "Name or UserId of the reported user.", "Do not use the display name.")
+                                            .AddTextInput(new DiscordTextInputComponent("reporterusername", "Jane Doe", "", true, DiscordTextInputStyle.Short), "Your username", "Not your display name either.")
+                                            .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Proof of the user exploiting", "If you do not have any, leave this field out.")
+                                            .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
+            
+            await ctx.RespondWithModalAsync(modal);
+        }
     }
 }
