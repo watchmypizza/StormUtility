@@ -100,15 +100,46 @@ namespace Stormtility.events
             return false;
         }
 
+        public struct spamPingData
+        {
+            public int Count { get; set; }
+            public DateTime lastSeen { get; set; }
+        }
+        private static Dictionary<ulong, spamPingData> pingSpamCounter = [];
+        private static Regex rex = new Regex(@"<@[0-9]+>");
+
         private static async Task<bool> checkPingSpam(DiscordMessage message)
         {
-            Regex rex = new Regex(@"<@[0-9]+>");
             int i = 0;
             foreach(var match in rex.Matches(message.Content))
             {
                 i++;
-                if(i >= 5)
+                if(i >= 3)
                 {
+                    pingSpamCounter.TryGetValue(message.Author.Id, out spamPingData data);
+
+                    if(data.Count > 0 && DateTime.UtcNow - data.lastSeen > TimeSpan.FromMinutes(2))
+                    {
+                        data = new spamPingData { Count = 0, lastSeen = DateTime.UtcNow };
+                    }
+
+                    if(data.Count >= 5)
+                    {
+                        var member = (DiscordMember) message.Author;
+                        try {
+                            await member.TimeoutAsync(DateTime.UtcNow.AddMinutes(5), "Spam pinging.");
+                        } catch(Exception ex)
+                        {
+                            await logger.LOGGER(ex);
+                        }
+                        pingSpamCounter.Remove(message.Author.Id);
+                    } else {
+                        pingSpamCounter[message.Author.Id] = new spamPingData
+                        {
+                            Count = data.Count + 1,
+                            lastSeen = DateTime.UtcNow
+                        };
+                    }
                     return true;
                 }
             }
