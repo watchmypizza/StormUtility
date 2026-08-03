@@ -25,6 +25,7 @@ using System.Net.Http.Json;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Trees.Metadata;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 
 namespace Stormtility.commands.TicketCommands
 {
@@ -135,7 +136,7 @@ namespace Stormtility.commands.TicketCommands
             [Command("transcript")]
             [Description("View the transcript of a ticket")]
             [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task viewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][Autocomplete(typeof(autocompletehandler))] string ticketId)
+            public async Task viewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<autocompletehandler>] string ticketId)
             {
                 var check = await permissionCheck(ctx);
 
