@@ -4,12 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
 
 namespace Stormtility.commands.TicketCommands.autocompletehelper
 {
-    public class autocompletehandler : IAutocompleteProvider
+    public class autocompletehandler : IAutoCompleteProvider
     {
         public static List<string> _cachedEntries = [];
         public static void LoadTranscriptCache(string jsonFilePath)
@@ -42,16 +43,16 @@ namespace Stormtility.commands.TicketCommands.autocompletehelper
             watcher.EnableRaisingEvents = true;
         }
 
-        public Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext ctx)
+        public ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext ctx)
         {
-            var userInput = ctx.OptionValue?.ToString() ?? string.Empty;
+            var userInput = ctx.Options?.ToString() ?? string.Empty;
 
             var results = _cachedEntries
                 .Where(name => name.StartsWith(userInput, StringComparison.OrdinalIgnoreCase))
                 .Take(25)
                 .Select(name => new DiscordAutoCompleteChoice(name, name));
 
-            return Task.FromResult(results);
+            return ValueTask.FromResult(results);
         }
     }
 }
