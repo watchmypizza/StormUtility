@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Stormtility.commands.TicketCommands.autocompletehelper;
 using System.Text.Json;
 using Stormtility.Helpers;
+using System.Security.Cryptography;
+using DiscordRPC;
 
 namespace Stormtility.events
 {
@@ -23,8 +25,31 @@ namespace Stormtility.events
             autocompletehandler.fileSysWatcher("./transcripts.json");
 
             _ = Task.Run(async () => await SyncAllOpenTickets(sender));
+            _ = Task.Run(async () => await cycleBanners(sender));
 
             return;
+        }
+
+        private static async Task cycleBanners(DiscordClient client)
+        {
+            using PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromHours(1));
+            do {
+                try {
+                    var banners = Directory.GetFiles("Banners/");
+                    
+                    int randIdx = Random.Shared.Next(banners.Length);
+                    string randFile = banners[randIdx];
+                    using FileStream stream = new FileStream(randFile, FileMode.Open, FileAccess.Read);
+
+                    await client.ModifyCurrentUserAsync(banner: stream);
+                } catch(DirectoryNotFoundException e)
+                {
+                    await logger.LOGGER(e);
+                } catch(Exception ex)
+                {
+                    await logger.LOGGER(ex);
+                }
+            } while(await timer.WaitForNextTickAsync());
         }
 
         private static async Task SyncAllOpenTickets(DiscordClient client)

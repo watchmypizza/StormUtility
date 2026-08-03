@@ -7,16 +7,7 @@
     <RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
     <Optimize>false</Optimize>
   </PropertyGroup>
-  <ItemGroup>
-    <None Remove="config\config.json"/>
-    <None Remove="config\economy.json"/>
-    <None Remove="config\jobs.json"/>
-  </ItemGroup>
-  <ItemGroup>
-    <ApplicationDefinition Include="config\economy.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </ApplicationDefinition>
-  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="DiscordRichPresence" Version="1.143.0"/>
     <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02596"/>
@@ -29,32 +20,29 @@
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3"/>
     <PackageReference Include="XeroxDev.DSharpPlus.ModalCommands" Version="2.0.0"/>
   </ItemGroup>
+
   <ItemGroup>
-    <Content Include="config\config.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Content>
-    <Content Include="config\jobs.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="activetickets.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Remove="config\config.json"/>
+    <Content Remove="config\jobs.json"/>
+    <Content Remove="activetickets.json"/>
+    <Content Remove="*.db"/>
+    <Content Remove="*.json"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Banners\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
   <ItemGroup>
     <Folder Include="commands\Utility\"/>
   </ItemGroup>
+
   <ItemGroup>
-    <None Update="config\blacklists.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="config\mutecounter.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="config\tickets.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="config\transcripts.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Remove="config\blacklists.json"/>
+    <None Remove="config\mutecounter.json"/>
+    <None Remove="config\tickets.json"/>
+    <None Remove="config\transcripts.json"/>
   </ItemGroup>
 </Project>

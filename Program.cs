@@ -23,7 +23,7 @@ namespace Stormtility
             {
                 if(arg == "-v" || arg == "--version")
                 {
-                    await logger.consoleLog("v1.0.0 Migrated from legacy 4.5.2 to 5.0.0 nightly");
+                    await logger.consoleLog("v1.1.2 Overwrites!");
                     return;
                 }
             }
