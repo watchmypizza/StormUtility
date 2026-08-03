@@ -472,7 +472,7 @@ namespace Stormtility.events {
                                             .WithCustomId("supportmodal")
                                             .WithTitle("Create a support ticket...")
                                             .AddTextInput(new DiscordTextInputComponent("problemoverview", "Short overview of your problem", null, true, DiscordTextInputStyle.Short, 6, 25), "A short overview of your problem.")
-                                            .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 150, 4000), "Describe your problem in best detail.")
+                                            .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 0, 4000), "Describe your problem in best detail.")
                                             .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Additional attachments", "Not needed if you don't have any, but is beneficial.")
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
         
@@ -561,7 +561,7 @@ namespace Stormtility.events {
                                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree",
                                                                                 new List<DiscordCheckboxGroupOption> {  new DiscordCheckboxGroupOption("agreed", "Agree to rules",
                                                                                 description: "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", selectedByDefault: false)},
-                                                                            1, 1, true), "Ticket Rules");
+                                                                            1, 1, true), "Ticket ToS");
                     
                     await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
                     return;
@@ -587,7 +587,7 @@ namespace Stormtility.events {
                                             .WithCustomId("supportmodal")
                                             .WithTitle("Create a support ticket...")
                                             .AddTextInput(new DiscordTextInputComponent("problemoverview", "Short overview of your problem", null, true, DiscordTextInputStyle.Short, 6, 25), "A short overview of your problem.")
-                                            .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 150, 4000), "Describe your problem in best detail.")
+                                            .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 0, 4000), "Describe your problem in best detail.")
                                             .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Additional attachments", "Not needed if you don't have any, but is beneficial.")
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
         
