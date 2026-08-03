@@ -1,6 +1,7 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
 using System;
@@ -37,6 +38,8 @@ namespace Stormtility.commands.Anti_Raid_Commands
                 }
                 return true;
             }
+
+            public static Dictionary<ulong, int?> existingSlowmodes = [];
 
             [Command("slowmode")]
             [AllowedProcessors(typeof(SlashCommandProcessor))]
@@ -190,7 +193,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
                     if (channelsToSkip.Contains(channel.Id)) { continue; }
 
-                    await channel.ModifyAsync(mod => mod.PerUserRateLimit = 0);
+                    await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int?)existingSlowmodes[channel.Id]);
                 }
 
                 var successEmbed = new DiscordEmbedBuilder
@@ -201,7 +204,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(successEmbed));
             }
-            public static async ValueTask<bool> antiRaidActions(List<DiscordChannel> channels)
+            public static async ValueTask<bool> antiRaidActions(List<DiscordChannel> channels, SlashCommandContext ctx)
             {
                 bool antiraid = false;
 
@@ -227,7 +230,11 @@ namespace Stormtility.commands.Anti_Raid_Commands
                     if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
                     if (channelsToSkip.Contains(channel.Id)) { continue; }
 
+                    var getCurrentChannelSlowMode = channel.PerUserRateLimit;
+                    existingSlowmodes.Add(channel.Id, getCurrentChannelSlowMode);
+
                     await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int)duration.TotalSeconds);
+                    await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Modifying {channel.Mention}"));
                 }
 
                 antiraid = true;
@@ -238,7 +245,10 @@ namespace Stormtility.commands.Anti_Raid_Commands
             [Command("test")]
             [AllowedProcessors(typeof(SlashCommandProcessor))]
             [Description("Test the automatic slowmode feature.")]
-            public static async ValueTask antiraidTest(SlashCommandContext ctx)
+            public static async ValueTask antiraidTest(SlashCommandContext ctx, [Parameter("autolift")]
+                                                                                [Description("Autolift slowmode automatically.")]
+                                                                                [SlashAutoCompleteProvider<AntiRaidAutoCompleteHandler.autocomplete>]
+                                                                                bool option = false)
             {
                 await ctx.DeferResponseAsync(true);
 
@@ -248,7 +258,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
 
                 var channels = await ctx.Guild.GetChannelsAsync();
 
-                await antiRaidActions(channels.ToList());
+                await antiRaidActions(channels.ToList(), ctx);
 
                 await Task.Delay(10000);
 
@@ -267,12 +277,15 @@ namespace Stormtility.commands.Anti_Raid_Commands
                         1391814759418171645
                     };
 
-                foreach (DiscordChannel channel in channels)
-                {
-                    if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
-                    if (channelsToSkip.Contains(channel.Id)) { continue; }
+                if(option) {
+                    foreach (DiscordChannel channel in channels)
+                    {
+                        if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
+                        if (channelsToSkip.Contains(channel.Id)) { continue; }
 
-                    await channel.ModifyAsync(mod => mod.PerUserRateLimit = 0);
+                        await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int?)existingSlowmodes[channel.Id] ?? 0);
+                        await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Modifying {channel.Mention}"));
+                    }
                 }
 
                 var successEmbed = new DiscordEmbedBuilder

@@ -24,6 +24,7 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using CommunityToolkit.HighPerformance;
 using System.Globalization;
+using Stormtility.commands.Anti_Raid_Commands;
 
 namespace Stormtility.events
 {
@@ -284,6 +285,8 @@ namespace Stormtility.events
 
                 if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
                 if(channelsToSkip.Contains(channel.Id)) { continue; }
+
+                antiraidcommands.antiraidcmds.existingSlowmodes.Add(channel.Id, channel.PerUserRateLimit);
 
                 await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int)duration.TotalSeconds);
             }

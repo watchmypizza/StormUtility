@@ -49,6 +49,7 @@ namespace Stormtility.events
                                             .AddFile(name ?? "Uploaded", stream);
                 
                 await events.InteractionCreated.createAppealChannel(args, sendToDagestan);
+                return;
             }
             else if(args.Id == "speedtypistmodal")
             {
@@ -83,6 +84,7 @@ namespace Stormtility.events
                 }
                 
                 await InteractionCreated.handleSpeedTypistApplicationModalReceivedState(args, sendToDagestan);
+                return;
             }
             else if(args.Id == "supportmodal")
             {
@@ -117,6 +119,7 @@ namespace Stormtility.events
                 }
 
                 await InteractionCreated.handleSupportModalReceivedState(args, sendToDagestan);
+                return;
             }
             else if(args.Id == "exploitermodal")
             {
@@ -151,6 +154,7 @@ namespace Stormtility.events
                 }
 
                 await InteractionCreated.handleExploiterReportModalReceivedStateSubmissionTicketCreationAction(args, sendToDagestan);
+                return;
             }
         }
     }

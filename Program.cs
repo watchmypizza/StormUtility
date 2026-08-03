@@ -46,7 +46,6 @@ namespace Stormtility
                 eventBuilder.HandleModalSubmitted(events.ModalSubmitted.Client_ModalSubmittedEvent);
                 eventBuilder.HandleGuildMemberAdded(events.MemberJoined.Client_GuildMemberAdded);
                 eventBuilder.HandleComponentInteractionCreated( events.InteractionCreated.Client_ComponentInteractionCreated);
-                eventBuilder.HandleModalSubmitted(events.ModalSubmitted.Client_ModalSubmittedEvent);
             });
 
             builder.UseCommands(async (serviceProvider, extension) =>
