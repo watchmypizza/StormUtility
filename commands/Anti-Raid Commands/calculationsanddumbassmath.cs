@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath
 {
     public static class calculationsanddumbassmath
@@ -31,6 +33,27 @@ namespace Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath
             int maxLen = Math.Max(a.Length, b.Length);
 
             return 1.0 - (double)distance / maxLen;
+        }
+
+        public static bool IsZalgoText(string text, int maxDiacriticsPerLetter = 3)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+
+            TextElementEnumerator elementEnumerator = StringInfo.GetTextElementEnumerator(text);
+
+            while (elementEnumerator.MoveNext())
+            {
+                string currentCluster = elementEnumerator.GetTextElement();
+
+                int diacriticCount = currentCluster.Count(c => CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark);
+
+                if (diacriticCount > maxDiacriticsPerLetter)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

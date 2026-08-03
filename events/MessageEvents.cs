@@ -31,13 +31,16 @@ namespace Stormtility.events
     public class MessageEvents
     {
         private static HttpClient client = new();
+        private static readonly List<string> blacklistedWords = new() 
+        { 
+            "18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", 
+            "erp", "erotic", "hanime", "hentai", "uttp", "cp", "private", "cam" 
+        };
         private static async Task<bool> checkMessage(DiscordMessage message)
         {
             bool debug = RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.X86;
             TranslateMorsecode translator = new TranslateMorsecode();
             await translator.translateMorse(message);
-
-            List<string> blacklistedWords = new List<string> {"18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", "erp", "erotic", "hanime", "hentai", "uttp", "cp", "private", "cam"};
 
             string content = message.Content;
 
@@ -65,8 +68,7 @@ namespace Stormtility.events
 
                 string url = $"https://discord.com/api/v10/invites/{inviteCode}?with_counts=true";
 
-                using var http = new HttpClient();
-                var response = await http.GetAsync(url);
+                var response = await client.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode)
                     continue;
@@ -90,7 +92,6 @@ namespace Stormtility.events
                     await logger.debugLog($"Bad Name {guildName}");
                     isBad = true;
                 }
-
 
                 vars.inviteCache[inviteCode] = (isBad, DateTime.UtcNow.AddMinutes(10));
 
@@ -161,6 +162,8 @@ namespace Stormtility.events
             return false;
         }
 
+        private static Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
+
         private static async Task<bool> deleteAnyInvite(DiscordMessage message)
         {
             try {
@@ -178,7 +181,6 @@ namespace Stormtility.events
                 }
                 builtCb = contentBuilder.ToString();
 
-                Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
                 var matches = inviteRegex.Matches(builtCb);
 
                 List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
@@ -188,6 +190,12 @@ namespace Stormtility.events
                   && userChannelPerms.HasPermission(DiscordPermission.EmbedLinks);
 
                 bool linkViolationFound = false;
+                bool isZalgoText = calculationsanddumbassmath.IsZalgoText(message.Content);
+
+                if(isZalgoText)
+                {
+                    await message.DeleteAsync("Zalgo text detected");
+                }
 
                 foreach(Match match in matches) {
                     if(match.Groups[3].Success)
