@@ -163,7 +163,7 @@ namespace Stormtility.commands.TicketCommands
             }
 
             [SlashCommand("transcript", "View the transcript of a ticket")]
-            //[Command("transcript")]
+            [Command("legacytranscript")]
             [Description("View the transcript of a ticket")]
             [AllowedProcessors(typeof(SlashCommandProcessor))]
             public async Task viewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<autocompletehandler>] string ticketId)
