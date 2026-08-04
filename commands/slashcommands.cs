@@ -113,18 +113,38 @@ namespace Stormtility.commands
             }
         }
 
-        [SlashCommand("blacklist", "Blacklist someone")]
+        private static async Task<bool> permissionCheck(SlashCommandContext ctx)
+        {
+            bool gamemodRole = ctx.Member.Roles.Any(r => r.Id == 1474165198947356793);
+            if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) && !gamemodRole)
+            {
+                var permissionErrorEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "404 - No Permissions",
+                    Description = "You do not have the necessary permissions to use this command.",
+                    Color = DiscordColor.Red
+                };
+
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                return false;
+            }
+            return true;
+        }
+
         [Command("blacklist")]
         [Description("Blacklist someone")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
         public async Task blacklist(SlashCommandContext ctx, [Parameter("Member")][Description("Specify the member to blacklist")] DiscordMember user, [Parameter("Reason")][Description("The reason for the blacklist")] string reason)
         {
-            vars.commandTriggered = true;
+            await ctx.DeferResponseAsync(true);
+            
 
-            if (!user.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
+            if (!(await permissionCheck(ctx)))
             {
                 return;
             }
+
+            vars.commandTriggered = true;
 
             string isBlacklist = await getBlacklist(user);
             if(!(isBlacklist == string.Empty))
@@ -138,7 +158,7 @@ namespace Stormtility.commands
 
                 errorEmbed.AddField("Reason", isBlacklist);
 
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                 return;
             }
 
@@ -166,26 +186,26 @@ namespace Stormtility.commands
                 Description = $"{user.Mention} has been blacklisted for `{reason}` by {ctx.Interaction.User.Mention}"
             };
 
-            await ctx.DeferResponseAsync(true);
             await mod_log_ch.SendMessageAsync(logEmbed);
-            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(message));
+            await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(message));
             await user.GrantRoleAsync(await ctx.Guild.GetRoleAsync(1397404869702320260));
             vars.commandTriggered = false;
         }
 
-        [SlashCommand("unblacklist", "Unblacklist someone that is blacklisted")]
         [Command("unblacklist")]
         [Description("Unblacklist someone that is blacklisted")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
         public async Task unblacklist(SlashCommandContext ctx, [Parameter("Member")][Description("Specify the member to unblacklist")] DiscordMember user)
         {
-            vars.commandTriggered = true;
+            await ctx.DeferResponseAsync(true);
             bool roleFound = false;
 
-            if (!user.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
+            if (!(await permissionCheck(ctx)))
             {
                 return;
             }
+
+            vars.commandTriggered = true;
 
             string isBlacklisted = await getBlacklist(user);
             if(isBlacklisted == string.Empty)
@@ -197,7 +217,7 @@ namespace Stormtility.commands
                     Description = "This user is not blacklisted."
                 };
 
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                 return;
             }
 
@@ -211,7 +231,7 @@ namespace Stormtility.commands
                     Description = "An unexpected error happened while trying to process your request."
                 };
 
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(errorEmbed).AsEphemeral());
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                 await logger.LOGGER(new Exception("removeBlacklist() threw false in command removeBlacklist!"));
                 return;
             }
@@ -226,8 +246,7 @@ namespace Stormtility.commands
                     Color = DiscordColor.Red,
                     Description = $"{user.Mention} is not blacklisted."
                 };
-                await ctx.DeferResponseAsync(ephemeral: true);
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(notblacklisted));
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(notblacklisted));
                 return;
             }
 
@@ -246,14 +265,12 @@ namespace Stormtility.commands
                 Description = $"{user.Mention} has been unblacklisted by {ctx.Interaction.User.Mention}."
             };
 
-            await ctx.DeferResponseAsync(ephemeral:true);
-            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(message));
+            await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(message));
             await mod_log_ch.SendMessageAsync(logEmbed);
             await user.RevokeRoleAsync(await ctx.Interaction.Guild.GetRoleAsync(1397404869702320260));
             vars.commandTriggered = false;
         }
 
-        [SlashCommand("checkblacklist", "Check whether a user is blacklisted or not.")]
         [Command("checkblacklist")]
         [Description("Check whether a user is blacklisted or not.")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
@@ -261,7 +278,7 @@ namespace Stormtility.commands
         {
             var member = (DiscordMember)user;
             var IDString = member.Id.ToString();
-            if (!user.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
+            if (!(await permissionCheck(ctx)))
             {
                 return;
             }
@@ -299,7 +316,6 @@ namespace Stormtility.commands
             }
         }
 
-        [SlashCommand("debug", "Toggle debug mode")]
         [Command("debug")]
         [Description("Debug")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]

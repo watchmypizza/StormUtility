@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>#{{ channel_name }}</title>
+<style>
+  :root {
+    --bg-primary: #313338;
+    --bg-secondary: #2b2d31;
+    --bg-tertiary: #1e1f22;
+    --bg-embed: #2b2d31;
+    --text-normal: #dbdee1;
+    --text-muted: #949ba4;
+    --text-header: #f2f3f5;
+    --brand: #5865f2;
+    --danger: #da373c;
+    --success: #248046;
+    --divider: #3f4147;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; width: 100%; height: 100%; }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-normal);
+    font-family: "gg sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .channel-header {
+    height: 48px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--divider);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+    background-color: var(--bg-primary);
+  }
+
+  .channel-header .hash { color: var(--text-muted); font-size: 22px; font-weight: 400; margin-right: 8px; }
+
+  .channel-header .name {
+    color: var(--text-header);
+    font-weight: 600;
+    font-size: 16px;
+    margin-right: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .channel-header .divider { width: 1px; height: 24px; background-color: var(--divider); margin: 0 12px; }
+
+  .channel-header .topic {
+    color: var(--text-muted);
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 0 32px;
+    scrollbar-width: thin;
+    scrollbar-color: #1e1f22 transparent;
+  }
+
+  .messages-inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .channel-intro { padding: 16px 16px 24px; border-bottom: 1px solid var(--divider); margin-bottom: 16px; }
+
+  .channel-intro .intro-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .channel-intro h1 { color: var(--text-header); font-size: 28px; margin: 0 0 8px; }
+  .channel-intro p { color: var(--text-muted); margin: 0; }
+
+  .empty-transcript { color: var(--text-muted); text-align: center; padding: 48px 20px; font-size: 14px; }
+
+  .message {
+    display: flex;
+    position: relative;
+    padding: 2px 16px 2px 72px;
+    margin-top: 17px;
+    min-height: 44px;
+  }
+
+  .message:hover { background-color: rgba(0, 0, 0, 0.08); }
+
+  .message.compact { margin-top: 0; min-height: 22px; }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    left: 16px;
+    top: 2px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #5865f2;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    user-select: none;
+  }
+
+  .msg-body { flex: 1; min-width: 0; }
+
+  .msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+
+  .msg-header .username { color: var(--text-header); font-weight: 500; font-size: 15px; }
+
+  .msg-header .timestamp { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+
+  .msg-content {
+    color: var(--text-normal);
+    line-height: 1.375rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .message.compact .msg-content { margin-left: 0; }
+
+  .date-divider {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    margin: 20px 16px 8px;
+  }
+
+  .date-divider::before,
+  .date-divider::after { content: ""; flex: 1; height: 1px; background-color: var(--divider); }
+
+  .date-divider span { padding: 0 8px; white-space: nowrap; }
+
+  .msg-content a { color: #00a8fc; text-decoration: none; }
+  .msg-content a:hover { text-decoration: underline; }
+
+  .msg-attachment {
+    display: block;
+    max-width: 400px;
+    max-height: 300px;
+    border-radius: 8px;
+    margin-top: 4px;
+  }
+
+  .medal-embed {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    padding-bottom: 56.25%;
+    height: 0;
+    margin-top: 4px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .medal-embed iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .messages::-webkit-scrollbar { width: 8px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background-color: #1e1f22; border-radius: 4px; }
+  .messages::-webkit-scrollbar-thumb:hover { background-color: #18191c; }
+
+  @media (max-width: 600px) {
+    .channel-header { padding: 0 12px; }
+    .channel-header .topic,
+    .channel-header .divider { display: none; }
+    .message { padding-left: 64px; padding-right: 12px; }
+    .avatar { left: 12px; }
+    .channel-intro { padding-left: 12px; padding-right: 12px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="channel-header">
+    <span class="hash">#</span>
+    <span class="name">{{ channel_name }}</span>
+    <div class="divider"></div>
+    <span class="topic">This is a private ticket channel.</span>
+  </div>
+
+  <div class="messages">
+    <div class="messages-inner">
+
+      <div class="channel-intro">
+        <div class="intro-icon">#</div>
+        <h1>Welcome to #{{ channel_name }}!</h1>
+        <p>This is the start of the <strong>#{{ channel_name }}</strong> private channel.</p>
+      </div>
+
+      {% if messages %}
+        {% set namespace = namespace(previous_user=None, previous_date=None) %}
+        {% for message in messages %}
+          {% set compact = namespace.previous_user == message.username and message.date_key == namespace.previous_date %}
+          {% if message.date_key != namespace.previous_date %}
+            {% if namespace.previous_date is not none %}
+      <div class="date-divider"><span>{{ message.date_label }}</span></div>
+            {% endif %}
+            {% set namespace.previous_date = message.date_key %}
+          {% endif %}
+      <div class="message{% if compact %} compact{% endif %}">
+        {% if not compact %}
+        <div class="avatar">{{ (message.username[0] if message.username else "U") | upper }}</div>
+        {% endif %}
+        <div class="msg-body">
+          {% if not compact %}
+          <div class="msg-header">
+            <span class="username">{{ message.username }}</span>
+            {% if message.timestamp %}
+            <span class="timestamp">{{ message.timestamp }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+          <div class="msg-content">{{ message.content | render_content }}</div>
+        </div>
+      </div>
+          {% set namespace.previous_user = message.username %}
+        {% endfor %}
+      {% else %}
+      <div class="empty-transcript">This ticket contains no messages.</div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</body>
+</html>

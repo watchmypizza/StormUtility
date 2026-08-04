@@ -54,6 +54,8 @@ namespace Stormtility.commands.TicketCommands
                 return true;
             }
 
+            private static HttpClient client = new();
+
             [SlashCommand("setup", "Set the ticket system up")]
             [Command("setup")]
             [Description("Set the ticket system up.")]
@@ -132,8 +134,36 @@ namespace Stormtility.commands.TicketCommands
                 await ctx.RespondAsync("Updated the message successfully.", true);
             }
 
-            [SlashCommand("transcript", "View the transcript of a ticket")]
             [Command("transcript")]
+            [Description("View the transcript of a ticket")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task viewNewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<autocompletehandler>] string ticketId)
+            {
+                var check = await permissionCheck(ctx);
+
+                if (!check) { return; }
+
+                await ctx.DeferResponseAsync(true);                
+                var payload = new { ticketId = ticketId };
+
+                var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
+                var response = await request.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(response);
+
+                if (!request.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"createInterface failed: {response}");
+                    return;
+                }
+
+                var url = doc.RootElement.GetProperty("url").GetString();
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Your URL is ready! Visit {url} to see the transcript. This link is valid for ten minutes."));
+                return;
+            }
+
+            [SlashCommand("transcript", "View the transcript of a ticket")]
+            //[Command("transcript")]
             [Description("View the transcript of a ticket")]
             [AllowedProcessors(typeof(SlashCommandProcessor))]
             public async Task viewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<autocompletehandler>] string ticketId)

@@ -12,6 +12,7 @@ using System.Text.Json;
 using Stormtility.Helpers;
 using System.Security.Cryptography;
 using DiscordRPC;
+using System.Diagnostics;
 
 namespace Stormtility.events
 {
@@ -26,10 +27,54 @@ namespace Stormtility.events
 
             _ = Task.Run(async () => await SyncAllOpenTickets(sender));
             _ = Task.Run(async () => await cycleBanners(sender));
+            _ = Task.Run(async () => await startServer());
 
             return;
         }
 
+        private static async Task startServer()
+        {
+            ProcessStartInfo start = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = "TranscriptServer/Server/app.py",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using (Process process = new Process { StartInfo = start })
+            {
+                process.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        Console.WriteLine($"[Python Output]: {e.Data}");
+                    }
+                };
+
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        Console.WriteLine($"[Python Error]: {e.Data}");
+                    }
+                };
+
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                Console.WriteLine("Transcript Server is starting up in the background...");
+
+                await process.WaitForExitAsync(); 
+                
+                Console.WriteLine($"Python server exited with code: {process.ExitCode}");
+            }
+        }
+        
         private static async Task cycleBanners(DiscordClient client)
         {
             using PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromHours(1));
