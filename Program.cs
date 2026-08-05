@@ -9,6 +9,7 @@ using Stormtility.Helpers;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.TextCommands;
+using CommunityToolkit.HighPerformance;
 
 namespace Stormtility
 {
@@ -17,6 +18,8 @@ namespace Stormtility
         private static DiscordClient? Client { get; set; }
         public static string? webhookURL { get; set; }
         public static string? wbhurl2 { get; set; }
+        public static string? nonce { get; set; }
+        public static string? botToken { get; set; }
         static async Task Main(string[] args)
         {
             foreach(string arg in args)
@@ -31,6 +34,8 @@ namespace Stormtility
             List<string>? envLines = EnvReader.GetEnvVariables(".config");
             webhookURL = envLines[1];
             wbhurl2 = envLines[2];
+            nonce = envLines[3];
+            botToken = envLines[0];
 
             await autostart.createTable();
 

@@ -26,6 +26,7 @@ using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
+using System.Security.Cryptography;
 
 namespace Stormtility.commands.TicketCommands
 {
@@ -143,8 +144,26 @@ namespace Stormtility.commands.TicketCommands
 
                 if (!check) { return; }
 
-                await ctx.DeferResponseAsync(true);                
-                var payload = new { ticketId = ticketId };
+                await ctx.DeferResponseAsync(true);
+                string nonce = Convert.ToBase64String(
+                    RandomNumberGenerator.GetBytes(32)
+                );
+
+                long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                string message = $"{nonce}.{timestamp}";
+
+                using var hmac = new HMACSHA256(
+                    Encoding.UTF8.GetBytes(Program.nonce)
+                );
+
+                string signature = Convert.ToHexString(
+                    hmac.ComputeHash(Encoding.UTF8.GetBytes(message))
+                ).ToLowerInvariant();
+
+                var payload = new { ticketId = ticketId,
+                                    nonce = nonce,
+                                    timestamp = timestamp,
+                                    signature = signature };
 
                 var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
                 var response = await request.Content.ReadAsStringAsync();

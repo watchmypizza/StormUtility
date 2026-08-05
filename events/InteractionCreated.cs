@@ -5,11 +5,19 @@ using Stormtility.config;
 using Microsoft.Data.Sqlite;
 using Stormtility.Helpers;
 using DSharpPlus.Exceptions;
+using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using System.Text;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Stormtility.events {
     public class InteractionCreated
     {
         public static DiscordClient Client = null!;
+        private static Regex channelNameFix = new(@".+-(?:closed)?-");
+        private static Regex checkArgId = new(@"(support|appeal|exploiter|speedtypist)-(\d+)");
+        private static HttpClient client = new();
 
         private static async Task<int> getTicketCountAsync(string ticketType)
         {
@@ -447,7 +455,52 @@ namespace Stormtility.events {
         {
             try
             {
-                if (args.Id == "ticketoptions")
+                if(checkArgId.IsMatch(args.Id))
+                {
+                    var regexresult = checkArgId.Match(args.Id);
+                    await args.Interaction.DeferAsync(true);
+                    string nonce = Convert.ToBase64String(
+                        RandomNumberGenerator.GetBytes(32)
+                    );
+
+                    long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    string message = $"{nonce}.{timestamp}";
+
+                    using var hmac = new HMACSHA256(
+                        Encoding.UTF8.GetBytes(Program.nonce)
+                    );
+
+                    string signature = Convert.ToHexString(
+                        hmac.ComputeHash(Encoding.UTF8.GetBytes(message))
+                    ).ToLowerInvariant();
+                    try {
+                        var payload = new { ticketId = $"{regexresult.Groups[1].Value}-{regexresult.Groups[2].Value}",
+                                            nonce = nonce,
+                                            timestamp = timestamp,
+                                            signature = signature };
+
+                        var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
+                        var response = await request.Content.ReadAsStringAsync();
+
+                        using var doc = JsonDocument.Parse(response);
+
+                        if (!request.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"createInterface failed: {response}");
+                            return;
+                        }
+
+                        var url = doc.RootElement.GetProperty("url").GetString();
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Your URL is ready! Visit {url} to see the transcript. This link is valid for ten minutes."));
+                        return;
+                    } catch(Exception e)
+                    {
+                        await logger.LOGGER(e);
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("An unexpected error occured. Please report this to the bot developer."));
+                        return;
+                    }
+                }
+                else if (args.Id == "ticketoptions")
                 {
                     var selected = args.Values.FirstOrDefault();
 
@@ -759,9 +812,16 @@ namespace Stormtility.events {
 
                                 embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
 
+                                string strippedTicketName = channelNameFix.Replace(channel.Name, "");
+                                var closedTicketButtonCreateUserTranscript = new DiscordButtonComponent(DiscordButtonStyle.Primary, strippedTicketName, "Generate Transcript", false, new DiscordComponentEmoji("📜"));
+
                                 try {
-                                    await mem.SendMessageAsync(embed);
+                                    await mem.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(closedTicketButtonCreateUserTranscript));
                                 } catch(UnauthorizedException e)
+                                {
+                                    await logger.LOGGER(e);
+                                    return;
+                                } catch(NotFoundException e)
                                 {
                                     await logger.LOGGER(e);
                                     return;

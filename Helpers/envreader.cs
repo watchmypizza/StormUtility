@@ -28,6 +28,10 @@ namespace Stormtility
                     {
                         env.Add(line.Substring("LOGGING_WEBHOOK=".Length));
                     }
+                    if(line.StartsWith("NONCE"))
+                    {
+                        env.Add(line.Substring("NONCE=".Length));
+                    }
                 }
             }
             return env;

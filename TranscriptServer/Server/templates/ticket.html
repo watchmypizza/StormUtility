@@ -24,7 +24,7 @@
   html, body { margin: 0; width: 100%; height: 100%; }
 
   body {
-    background-color: var(--bg-primary);
+    background-color: var(--bg-secondary);
     color: var(--text-normal);
     font-family: "gg sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 15px;
@@ -41,7 +41,7 @@
     padding: 0 16px;
     border-bottom: 1px solid var(--divider);
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    background-color: var(--bg-primary);
+    background-color: var(--bg-secondary);
   }
 
   .channel-header .hash { color: var(--text-muted); font-size: 22px; font-weight: 400; margin-right: 8px; }
@@ -51,7 +51,6 @@
     font-weight: 600;
     font-size: 16px;
     margin-right: 12px;
-    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -61,7 +60,6 @@
   .channel-header .topic {
     color: var(--text-muted);
     font-size: 14px;
-    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -69,8 +67,9 @@
   .messages {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 0 32px;
-    scrollbar-width: thin;
+    padding: 16px 0 90px 0; 
+    scrollbar-width: none;
+    overflow: scroll;
     scrollbar-color: #1e1f22 transparent;
   }
 
@@ -205,6 +204,44 @@
     .avatar { left: 12px; }
     .channel-intro { padding-left: 12px; padding-right: 12px; }
   }
+
+  .messageBox {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    z-index: 9999; 
+
+    display: flex;
+    align-items: center;
+    width: 90%;
+    max-width: 760px;
+    box-sizing: border-box;
+    padding: 12px 16px;
+
+    background-color: #2b2d31;
+    color: #949ba4;
+    font-family: sans-serif;
+    border-radius: 8px;
+    border: none;
+    cursor: not-allowed;
+  }
+
+  .channelContent {
+    background-color: var(--bg-tertiary);
+    width: 100%;
+    height: 100%;
+    position: relative;
+    margin: auto auto auto auto;
+    border-radius: 5;
+    overflow: scroll;
+    scrollbar-width: none;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
 </style>
 </head>
 <body>
@@ -215,48 +252,55 @@
     <div class="divider"></div>
     <span class="topic">This is a private ticket channel.</span>
   </div>
+  <div class="channelContent">
+    <div class="messages">
+      <div class="messages-inner">
 
-  <div class="messages">
-    <div class="messages-inner">
-
-      <div class="channel-intro">
-        <div class="intro-icon">#</div>
-        <h1>Welcome to #{{ channel_name }}!</h1>
-        <p>This is the start of the <strong>#{{ channel_name }}</strong> private channel.</p>
-      </div>
-
-      {% if messages %}
-        {% set namespace = namespace(previous_user=None, previous_date=None) %}
-        {% for message in messages %}
-          {% set compact = namespace.previous_user == message.username and message.date_key == namespace.previous_date %}
-          {% if message.date_key != namespace.previous_date %}
-            {% if namespace.previous_date is not none %}
-      <div class="date-divider"><span>{{ message.date_label }}</span></div>
-            {% endif %}
-            {% set namespace.previous_date = message.date_key %}
-          {% endif %}
-      <div class="message{% if compact %} compact{% endif %}">
-        {% if not compact %}
-        <div class="avatar">{{ (message.username[0] if message.username else "U") | upper }}</div>
-        {% endif %}
-        <div class="msg-body">
-          {% if not compact %}
-          <div class="msg-header">
-            <span class="username">{{ message.username }}</span>
-            {% if message.timestamp %}
-            <span class="timestamp">{{ message.timestamp }}</span>
-            {% endif %}
-          </div>
-          {% endif %}
-          <div class="msg-content">{{ message.content | render_content }}</div>
+        <div class="channel-intro">
+          <div class="intro-icon"></div>
+          <h1>Welcome to #{{ channel_name }}!</h1>
+          <p>This is the start of the <strong>#{{ channel_name }}</strong> private channel.</p>
         </div>
-      </div>
-          {% set namespace.previous_user = message.username %}
-        {% endfor %}
-      {% else %}
-      <div class="empty-transcript">This ticket contains no messages.</div>
-      {% endif %}
 
+        {% if messages %}
+          {% set namespace = namespace(previous_user=None, previous_date=None) %}
+          {% for message in messages %}
+            {% set compact = namespace.previous_user == message.username and message.date_key == namespace.previous_date %}
+            {% if message.date_key != namespace.previous_date %}
+              {% if namespace.previous_date is not none %}
+        <div class="date-divider"><span>{{ message.date_label }}</span></div>
+              {% endif %}
+              {% set namespace.previous_date = message.date_key %}
+            {% endif %}
+        <div class="message{% if compact %} compact{% endif %}">
+          {% if not compact %}
+          <img class="avatar" src="{{ message.avatar }}" alt="https://cdn.discordapp.com/embed/avatars/1.png"></img>
+          {% endif %}
+          <div class="msg-body">
+            {% if not compact %}
+            <div class="msg-header">
+              <span class="username">{{ message.username }}</span>
+              {% if message.timestamp %}
+              <span class="timestamp">{{ message.timestamp }}</span>
+              {% endif %}
+            </div>
+            {% endif %}
+            <div class="msg-content">{{ message.content | render_content }}</div>
+          </div>
+        </div>
+            {% set namespace.previous_user = message.username %}
+          {% endfor %}
+        {% else %}
+        <div class="empty-transcript">This ticket contains no messages.</div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <div class="messageBox">
+    <div class="messageBoxText">
+      <span class="accessDenied">You do not have permissions to send messages in this channel.</span>
     </div>
   </div>
 

@@ -8,8 +8,20 @@ import secrets
 import hashlib
 import time
 import json
+import hmac
+import os
+import requests
+import dotenv
 
 app = Flask(__name__)
+
+dotenv.load_dotenv(".config")
+token = os.getenv("DISCORD_TOKEN")
+BOT_SECRET = os.getenv("NONCE")
+
+used_nonces = {}
+
+NONCE_EXPIRY = 10
 
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
@@ -17,6 +29,67 @@ app.jinja_env.lstrip_blocks = True
 URL_RE = re.compile(r'(https?://[^\s<>"]+)')
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
+def extractUserProfilePicture(userId):
+    headers = {"Authorization": f"Bot {token}"}
+
+    try:
+        response = requests.get(
+            f"https://discord.com/api/v9/users/{userId}",
+            headers=headers,
+            timeout=10
+        )
+
+        if not response.ok:
+            print(f"Discord API error {response.status_code}: {response.text}")
+            return "https://cdn.discordapp.com/embed/avatars/1.png"
+
+        data = response.json()
+        avatar = data.get("avatar")
+
+        if not avatar:
+            return "https://cdn.discordapp.com/embed/avatars/1.png"
+
+        return f"https://cdn.discordapp.com/avatars/{userId}/{avatar}.png"
+
+    except (requests.RequestException, ValueError) as e:
+        print(f"Failed to get Discord avatar for {userId}: {e}")
+        return "https://cdn.discordapp.com/embed/avatars/1.png"
+
+def create_nonce():
+    nonce = secrets.token_urlsafe(32)
+
+    used_nonces[nonce] = time.time() + NONCE_EXPIRY
+    return nonce
+
+def consume_nonce(nonce):
+    expiry = used_nonces.pop(nonce, None)
+
+    if expiry is None:
+        return False
+
+    if time.time() >= expiry:
+        return False
+
+    return True
+
+def verify_bot_request(nonce, timestamp, signature):
+    try:
+        timestamp = int(timestamp)
+    except(TypeError, ValueError):
+        return False
+
+    if(abs(time.time() - timestamp) > 60):
+        return False
+
+    message = f"{nonce}.{timestamp}"
+
+    expected_signature = hmac.new(
+        BOT_SECRET.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected_signature)
 
 def embed_url(url):
     parsed = urlparse(url)
@@ -53,7 +126,6 @@ def embed_url(url):
     safe_url = escape(url)
     return Markup(f'<a href="{safe_url}" target="_blank" rel="noopener noreferrer">{safe_url}</a>')
 
-
 def render_content(text):
 
     if not text:
@@ -84,14 +156,12 @@ def render_content(text):
 
     return Markup("".join(pieces))
 
-
 app.jinja_env.filters["render_content"] = render_content
 
 sessions = {}
 
 TRANSCRIPT_EXPIRY = 10 * 60
 TRANSCRIPTS_FILE = "transcripts.json"
-
 
 def hash_password(password):
     return hashlib.sha256(
@@ -102,7 +172,6 @@ def hash_password(password):
 def load_transcripts():
     with open(TRANSCRIPTS_FILE, "r", encoding="utf-8") as file:
         return json.load(file)
-
 
 def parse_timestamp(raw):
     if not raw:
@@ -115,13 +184,11 @@ def parse_timestamp(raw):
     except ValueError:
         return None
 
-
 def format_clock(dt):
     hour = dt.hour % 12
     hour = 12 if hour == 0 else hour
 
     return f"{hour}:{dt.strftime('%M %p')}"
-
 
 def format_timestamp(dt):
     if dt is None:
@@ -139,13 +206,11 @@ def format_timestamp(dt):
     else:
         return f"{dt.month}/{dt.day}/{dt.year} {clock}"
 
-
 def format_date_label(dt):
     if dt is None:
         return ""
 
     return f"{dt.strftime('%B')} {dt.day}, {dt.year}"
-
 
 def get_transcript(ticket_id):
     data = load_transcripts()
@@ -160,6 +225,7 @@ def get_transcript(ticket_id):
     messages = []
 
     for user_id, user_data in ticket.items():
+        avatar = extractUserProfilePicture(user_id)
 
         for message in user_data.get("messages", []):
 
@@ -167,7 +233,8 @@ def get_transcript(ticket_id):
                 "username": message.get("username", "Unknown User"),
                 "content": message.get("content", ""),
                 "raw_timestamp": message.get("timestamp", ""),
-                "messageId": message.get("messageId", "")
+                "messageId": message.get("messageId", ""),
+                "avatar": avatar
             })
 
     messages.sort(
@@ -183,16 +250,46 @@ def get_transcript(ticket_id):
 
     return messages
 
-
 @app.post("/transcript/createInterface")
 def create_interface():
-
     data = request.get_json(silent=True)
 
     if not data:
         return jsonify({
             "error": "Invalid JSON body"
         }), 400
+
+    nonce = data.get("nonce")
+    timestamp = data.get("timestamp")
+    signature = data.get("signature")
+
+    if not nonce or not timestamp or not signature:
+        token = secrets.token_urlsafe(32)
+        ticket_id = "getout"
+        
+        sessions[token] = {
+            "ticket_id": ticket_id,
+            "expires": time.time() + TRANSCRIPT_EXPIRY
+        }
+
+        return jsonify({
+            "url": f"https://ilikepeanutbutter.duckdns.org/ticket?id={token}",
+            "expires": TRANSCRIPT_EXPIRY
+        })
+
+    if not verify_bot_request(nonce, timestamp, signature):
+        token = secrets.token_urlsafe(32)
+        ticket_id = "getout"
+        
+        sessions[token] = {
+            "ticket_id": ticket_id,
+            "expires": time.time() + TRANSCRIPT_EXPIRY
+        }
+
+        return jsonify({
+            "url": f"https://ilikepeanutbutter.duckdns.org/ticket?id={token}",
+            "expires": TRANSCRIPT_EXPIRY
+        })
 
     ticket_id = data.get("ticketId")
 
@@ -223,7 +320,6 @@ def create_interface():
 
 @app.get("/ticket")
 def ticket():
-
     token = request.args.get("id")
 
     if not token:
@@ -239,6 +335,9 @@ def ticket():
 
         return "Ticket link expired.", 410
 
+    if session["ticket_id"] == "getout":
+        return render_content("you stink")
+
     messages = get_transcript(
         session["ticket_id"]
     )
@@ -249,9 +348,8 @@ def ticket():
     return render_template(
         "ticket.html",
         channel_name=session["ticket_id"],
-        messages=messages
+        messages=messages,
     )
-
 
 if __name__ == "__main__":
     app.run(
