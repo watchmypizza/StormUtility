@@ -341,7 +341,7 @@ namespace Stormtility.events
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
-            await routeMessages(args.Message, args.MessageBefore.Content, true);
+            await routeMessages(args.Message, msgBefore: args.MessageBefore.Content, edited: true);
 
             if(result)
             {
@@ -409,7 +409,7 @@ namespace Stormtility.events
                 await logger.LOGGER(e);
             }
         }
-        public static async Task routeMessages(DiscordMessage message, string msgBefore = "", bool edited = false, bool deleted = false)
+        public static async Task routeMessages(DiscordMessage message, MessageReactionRemovedEventArgs? reactionRem = null, MessageReactionAddedEventArgs? reaction = null, string msgBefore = "", bool edited = false, bool deleted = false, bool isReaction = false)
         {
             if(message.Author.IsBot)
             {
@@ -446,6 +446,15 @@ namespace Stormtility.events
             else if(deleted)
             {
                 cc = $"In {channel.Mention}: DELETED: `{content}`";
+            }
+            else if(isReaction)
+            {
+                if(reaction != null) {
+                    cc = $"User {reaction.User.Mention} reacted with {reaction.Emoji} to {reaction.Message.JumpLink}";
+                } else if(reactionRem != null)
+                {
+                    cc = $"User {reactionRem.User.Mention} removed the reaction with {reactionRem.Emoji} to {reactionRem.Message.JumpLink}";
+                }
             }
 
             // Get profile picture if exists of user

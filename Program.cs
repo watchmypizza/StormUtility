@@ -6,6 +6,7 @@ using Stormtility.commands.TicketCommands;
 using Stormtility.commands.UtilityCommands;
 using Stormtility.commands.TestingCommands;
 using Stormtility.Helpers;
+using Stormtility.events;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.TextCommands;
@@ -51,6 +52,8 @@ namespace Stormtility
                 eventBuilder.HandleModalSubmitted(events.ModalSubmitted.Client_ModalSubmittedEvent);
                 eventBuilder.HandleGuildMemberAdded(events.MemberJoined.Client_GuildMemberAdded);
                 eventBuilder.HandleComponentInteractionCreated( events.InteractionCreated.Client_ComponentInteractionCreated);
+                eventBuilder.HandleMessageReactionAdded(events.ReactionEvents.Client_ReactionAddedEvent);
+                eventBuilder.HandleMessageReactionRemoved(events.ReactionEvents.Client_ReactionRemovedEvent);
             });
 
             builder.UseCommands(async (serviceProvider, extension) =>
