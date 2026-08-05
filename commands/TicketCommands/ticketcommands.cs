@@ -27,6 +27,7 @@ using DSharpPlus.Commands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using System.Security.Cryptography;
+using TskLib;
 
 namespace Stormtility.commands.TicketCommands
 {
@@ -119,7 +120,7 @@ namespace Stormtility.commands.TicketCommands
                     new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
                     new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
                     new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
-                });
+                }, disabled: false);
 
                 var supportEmbed = new DiscordEmbedBuilder
                 {
@@ -160,7 +161,7 @@ namespace Stormtility.commands.TicketCommands
                     hmac.ComputeHash(Encoding.UTF8.GetBytes(message))
                 ).ToLowerInvariant();
 
-                var payload = new { ticketId = ticketId,
+                var payload = new { ticketId = $"{ticketId}",
                                     nonce = nonce,
                                     timestamp = timestamp,
                                     signature = signature };
@@ -194,40 +195,27 @@ namespace Stormtility.commands.TicketCommands
                 await ctx.DeferResponseAsync(ephemeral: false);
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Preparing transcript..."));
 
-                var jsonText = File.Exists("transcripts.json") ? File.ReadAllText("transcripts.json") : null;
+                TskDocument ticket;
 
-                if (string.IsNullOrEmpty(jsonText))
-                {
+                try {
+                    ticket = Tsk.Read($"transcripts/{ticketId}.tsk");
+                } catch(Exception e) {
                     await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("No transcripts found."));
                     return;
                 }
 
-                JObject json = JObject.Parse(jsonText);
-
-                if (json["transcripts"]?[ticketId.ToString()] == null)
-                {
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"No transcript found for ticket ID {ticketId}"));
-                    return;
-                }
-
-                JObject ticketTranscript = (JObject)json?["transcripts"]?[ticketId.ToString()];
-
                 var allMsg = new List<(string userId, string username, string content, DateTime timestamp)>();
 
-                foreach(var userProp in ticketTranscript.Properties())
+                foreach(var userProp in ticket.Tickets[0].Messages)
                 {
-                    string userId = userProp.Name;
-                    var userMessages = userProp.Value["messages"] as JArray;
+                    string userId = userProp.UserId.ToString();
 
-                    foreach(var msgObj in userMessages!)
+                    string content = userProp.Content ?? "";
+                    string timestampStr = userProp.Timestamp.ToString() ?? "";
+                    string username = userProp.Username.ToString() ?? "";
+                    if (DateTime.TryParse(timestampStr, out var timestamp))
                     {
-                        string content = msgObj["content"]?.ToString() ?? "";
-                        string timestampStr = msgObj["timestamp"]?.ToString() ?? "";
-                        string username = msgObj["username"]?.ToString() ?? "";
-                        if (DateTime.TryParse(timestampStr, out var timestamp))
-                        {
-                            allMsg.Add((userId, username, content, timestamp));
-                        }
+                        allMsg.Add((userId, username, content, timestamp));
                     }
                 }
 
@@ -730,6 +718,38 @@ namespace Stormtility.commands.TicketCommands
                 {
                     await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("This is not a valid ticket channel."));
                 }
+            }
+
+            [Command("disabletickets")]
+            [Description("Temporarily disable tickets")]
+            public async Task disableTickets(SlashCommandContext ctx)
+            {
+                if (!await permissionCheck(ctx)) { return; }
+
+                var pins = await ctx.Interaction.Channel.GetPinnedMessagesAsync();
+                DiscordMessage discordMessage = pins[0];
+
+                var select = new DiscordSelectComponent(
+                customId: "ticketoptions",
+                placeholder: "Tickets are currently disabled.",
+                options: new List<DiscordSelectComponentOption>()
+                {
+                    new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
+                    new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
+                    new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
+                    new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
+                }, disabled: true);
+
+                var supportEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Stormy's Shelter Support",
+                    Description = "To create a ticket, make a selection below.",
+                    Color = DiscordColor.Gold
+                };
+
+                await discordMessage.ModifyAsync(new DiscordMessageBuilder()
+                    .AddEmbed(supportEmbed)
+                    .AddActionRowComponent(select));
             }
         }
     }

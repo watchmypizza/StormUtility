@@ -799,34 +799,34 @@ namespace Stormtility.events {
                         System.Console.WriteLine($"ERROR: {result}");
                     } else
                     { try {
-                            if(!doNotDm) {
-                                DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
-                                DiscordChannel channel = await args.Guild.GetChannelAsync(channelId.Value);
-                                
-                                var embed = new DiscordEmbedBuilder
-                                {
-                                    Title = "Ticket Closed",
-                                    Description = $"The ticket {channel.Name} has been closed.",
-                                    Color = DiscordColor.Red
-                                };
+                        if(!doNotDm) {
+                            DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
+                            DiscordChannel channel = await args.Guild.GetChannelAsync(channelId.Value);
+                            
+                            var embed = new DiscordEmbedBuilder
+                            {
+                                Title = "Ticket Closed",
+                                Description = $"The ticket {channel.Name} has been closed.",
+                                Color = DiscordColor.Red
+                            };
 
-                                embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+                            embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
 
-                                string strippedTicketName = channelNameFix.Replace(channel.Name, "");
-                                var closedTicketButtonCreateUserTranscript = new DiscordButtonComponent(DiscordButtonStyle.Primary, strippedTicketName, "Generate Transcript", false, new DiscordComponentEmoji("📜"));
+                            string strippedTicketName = channelNameFix.Replace(channel.Name, "");
+                            var closedTicketButtonCreateUserTranscript = new DiscordButtonComponent(DiscordButtonStyle.Primary, strippedTicketName, "Generate Transcript", false, new DiscordComponentEmoji("📜"));
 
-                                try {
-                                    await mem.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(closedTicketButtonCreateUserTranscript));
-                                } catch(UnauthorizedException e)
-                                {
-                                    await logger.LOGGER(e);
-                                    return;
-                                } catch(NotFoundException e)
-                                {
-                                    await logger.LOGGER(e);
-                                    return;
-                                }
+                            try {
+                                await mem.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(closedTicketButtonCreateUserTranscript));
+                            } catch(UnauthorizedException e)
+                            {
+                                await logger.LOGGER(e);
+                                return;
+                            } catch(NotFoundException e)
+                            {
+                                await logger.LOGGER(e);
+                                return;
                             }
+                        }
                         } catch(NullReferenceException)
                         {
                             return;

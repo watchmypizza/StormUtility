@@ -27,7 +27,7 @@ namespace Stormtility
             {
                 if(arg == "-v" || arg == "--version")
                 {
-                    await logger.consoleLog("v1.1.2 Overwrites!");
+                    await logger.consoleLog("v1.2.1 regex fix!");
                     return;
                 }
             }

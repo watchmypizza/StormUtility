@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Drawing;
 using System.Security.Cryptography.X509Certificates;
+using TskLib;
 
 namespace Stormtility.commands.UtilityCommands
 {
@@ -102,7 +103,7 @@ namespace Stormtility.commands.UtilityCommands
                 }
 
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"Changed promt to: {prompt}").AsEphemeral());
-                vars.AIPrompt = prompt;  
+                vars.AIPrompt = prompt;
             }
 
             [SlashCommand("whitelist", "Add someone to AI whitelist")]
@@ -136,13 +137,95 @@ namespace Stormtility.commands.UtilityCommands
             [AllowedProcessors(typeof(SlashCommandProcessor))]
             public async Task clearhistory(SlashCommandContext ctx)
             {
-                if(ctx.User.Id != 1116315001330880602)
+                if (ctx.User.Id != 1116315001330880602)
                 {
                     return;
                 }
 
                 vars.chatHistory = [];
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Cleared history").AsEphemeral());
+            }
+
+            [Command("converttranscripts")]
+            [Description("Convert all the transcripts into .tsk files")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task converttranscripts(SlashCommandContext ctx) {
+                if (ctx.User.Id != 1116315001330880602)
+                {
+                    return;
+                }
+
+                await ctx.DeferResponseAsync(true);
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Please standby..."));
+                Tsk.Convert("transcripts.json", "transcripts");
+            }
+
+            [SlashCommand("fixbrokentsk", "Scan and repair broken .tsk transcript files")]
+            [Command("fixbrokentsk")]
+            [Description("Scan the transcripts folder and repair any .tsk files that fail to parse")]
+            [AllowedProcessors(typeof(SlashCommandProcessor))]
+            public async Task fixbrokentsk(SlashCommandContext ctx)
+            {
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
+                {
+                    await ctx.RespondAsync("You do not have permission to use this command.", true);
+                    return;
+                }
+            
+                await ctx.DeferResponseAsync(true);
+            
+                const string transcriptsFolder = "transcripts";
+            
+                if (!Directory.Exists(transcriptsFolder))
+                {
+                    await ctx.Interaction.EditOriginalResponseAsync(
+                        new DiscordWebhookBuilder().WithContent("No transcripts folder found.")
+                    );
+                    return;
+                }
+            
+                var repaired = new List<TskRepairResult>();
+                var failed = new List<string>();
+            
+                foreach (string file in Directory.EnumerateFiles(transcriptsFolder, "*.tsk"))
+                {
+                    try
+                    {
+                        TskRepairResult result = await TskRepair.RepairAsync(file);
+            
+                        if (result.WasBroken)
+                            repaired.Add(result);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[FixBrokenTsk] Failed on {file}: {ex}");
+                        failed.Add(Path.GetFileName(file));
+                    }
+                }
+            
+                if (repaired.Count == 0 && failed.Count == 0)
+                {
+                    await ctx.Interaction.EditOriginalResponseAsync(
+                        new DiscordWebhookBuilder().WithContent("Scanned all .tsk files — none were broken.")
+                    );
+                    return;
+                }
+            
+                var summaryLines = repaired.Select(r =>
+                    $"`{Path.GetFileName(r.FilePath)}` — recovered {r.MessagesRecovered} message(s), backup: `{Path.GetFileName(r.BackupPath!)}`"
+                ).ToList();
+            
+                if (failed.Count > 0)
+                    summaryLines.Add($"Failed to process: {string.Join(", ", failed.Select(f => $"`{f}`"))}");
+            
+                string summary = string.Join("\n", summaryLines);
+            
+                if (summary.Length > 1900)
+                    summary = summary[..1900] + "\n... (truncated)";
+            
+                await ctx.Interaction.EditOriginalResponseAsync(
+                    new DiscordWebhookBuilder().WithContent($"Repaired {repaired.Count} broken file(s):\n{summary}")
+                );
             }
         }
     }

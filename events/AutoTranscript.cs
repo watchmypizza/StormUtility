@@ -1,24 +1,36 @@
-using System.Text.Json;
+using System.Text;
 using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Stormtility.commands.TicketCommands.autocompletehelper;
+using TskLib;
 
 namespace Stormtility.events
 {
     public class AutoTranscript
     {
-        
         private const ulong OpenTicketCategoryId = 1429871426386526310;
         private const ulong ClosedTicketCategoryId = 1429871639658762281;
         private const ulong StaffRoleId = 1370422448763437207;
-        private readonly string[] _ticketTypes = { "support", "exploiter", "speedtypist", "appeal" };
 
-        public async Task<bool> ProcessTranscript(DiscordClient client, DiscordInteraction? interaction, DiscordChannel channel, string action = "auto")
+        private readonly string[] _ticketTypes =
         {
-            if (!IsValidTicketChannel(channel, out string matchedPrefix, out int ticketId))
+            "support",
+            "exploiter",
+            "speedtypist",
+            "appeal"
+        };
+
+        public async Task<bool> ProcessTranscript(
+            DiscordClient client,
+            DiscordInteraction? interaction,
+            DiscordChannel channel,
+            string action = "auto")
+        {
+            if (!IsValidTicketChannel(
+                    channel,
+                    out string matchedPrefix,
+                    out int ticketId))
             {
                 return false;
             }
@@ -27,17 +39,32 @@ namespace Stormtility.events
 
             if (action == "close")
             {
-                bool moved = await TryCloseTicket(interaction, channel, matchedPrefix);
-                if (!moved) return false;
-            }
-            else if (action == "delete")
-            {
+                if (interaction is null)
+                {
+                    return false;
+                }
+
+                bool moved = await TryCloseTicket(
+                    interaction,
+                    channel,
+                    matchedPrefix
+                );
+
+                if (!moved)
+                {
+                    return false;
+                }
             }
 
             try
             {
-                await ExecuteTranscriptGeneration(client, interaction, channel, ticketKey, action);
-                
+                await ExecuteTranscriptGeneration(
+                    interaction,
+                    channel,
+                    ticketKey,
+                    action
+                );
+
                 if (action == "delete")
                 {
                     await channel.DeleteAsync();
@@ -52,49 +79,84 @@ namespace Stormtility.events
             }
         }
 
-        private bool IsValidTicketChannel(DiscordChannel channel, out string prefix, out int id)
+        private bool IsValidTicketChannel(
+            DiscordChannel channel,
+            out string prefix,
+            out int id)
         {
             prefix = string.Empty;
             id = 0;
 
-            foreach (var type in _ticketTypes)
+            foreach (string type in _ticketTypes)
             {
-                var match = Regex.Match(channel.Name, $@".*-{type}-(\d+)$");
-                if (match.Success)
+                Match match = Regex.Match(
+                    channel.Name,
+                    $@"(?:.)+?({type})-(\d+)$"
+                );
+
+                if (!match.Success)
                 {
-                    prefix = type;
-                    id = int.Parse(match.Groups[1].Value);
-                    return true;
+                    continue;
                 }
+
+                prefix = match.Groups[1].Value;
+                id = int.Parse(match.Groups[2].Value);
+
+                return true;
             }
+
             return false;
         }
 
-        private async Task<bool> TryCloseTicket(DiscordInteraction interaction, DiscordChannel channel, string prefix)
+        private async Task<bool> TryCloseTicket(
+            DiscordInteraction interaction,
+            DiscordChannel channel,
+            string prefix)
         {
             try
             {
-                await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder()
-                    .WithContent("Closing...").AsEphemeral());
+                await interaction.CreateFollowupMessageAsync(
+                    new DiscordFollowupMessageBuilder()
+                        .WithContent("Closing...")
+                        .AsEphemeral()
+                );
 
-                var closeEmbed = new DiscordEmbedBuilder 
-                { 
-                    Title = "Closing Ticket...", 
-                    Description = "Saving transcript and archiving...", 
-                    Color = DiscordColor.Red 
+                var closeEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Closing Ticket...",
+                    Description = "Saving transcript and archiving...",
+                    Color = DiscordColor.Red
                 };
+
                 await channel.SendMessageAsync(closeEmbed);
 
-                var staffRole = await interaction.Guild.GetRoleAsync(StaffRoleId);
+                var staffRole =
+                    await interaction.Guild.GetRoleAsync(StaffRoleId);
+
                 var overwrites = new List<DiscordOverwriteBuilder>
                 {
-                    new DiscordOverwriteBuilder(staffRole).Deny(DiscordPermission.SendMessages).Allow(DiscordPermission.ViewChannel),
-                    new DiscordOverwriteBuilder(interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel)
+                    new DiscordOverwriteBuilder(staffRole)
+                        .Deny(DiscordPermission.SendMessages)
+                        .Allow(DiscordPermission.ViewChannel),
+
+                    new DiscordOverwriteBuilder(
+                        interaction.Guild.EveryoneRole
+                    )
+                        .Deny(DiscordPermission.ViewChannel)
                 };
 
-                await channel.ModifyAsync(async ch => {
-                    ch.Name = channel.Name.Replace($"{prefix}-", $"closed-{prefix}-");
-                    ch.Parent = await interaction.Guild.GetChannelAsync(ClosedTicketCategoryId);
+                await channel.ModifyAsync(async ch =>
+                {
+                    ch.Name = channel.Name.Replace(
+                        $"{prefix}-",
+                        $"closed-{prefix}-"
+                    );
+
+                    ch.Parent =
+                        await interaction.Guild.GetChannelAsync(
+                            ClosedTicketCategoryId
+                        );
+
                     ch.PermissionOverwrites = overwrites;
                 });
 
@@ -103,64 +165,89 @@ namespace Stormtility.events
             catch (Exception ex)
             {
                 await LogErrorToWebhook(ex);
-                await interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder()
-                    .WithContent("Failed to move category (Full?). Proceeding with transcript only."));
-                return true; 
+
+                await interaction.CreateFollowupMessageAsync(
+                    new DiscordFollowupMessageBuilder()
+                        .WithContent(
+                            "Failed to move category (Full?). Proceeding with transcript only."
+                        )
+                );
+
+                return true;
             }
         }
 
-        private async Task ExecuteTranscriptGeneration(DiscordClient client, DiscordInteraction interaction, DiscordChannel channel, string ticketKey, string action)
+        private async Task ExecuteTranscriptGeneration(
+            DiscordInteraction? interaction,
+            DiscordChannel channel,
+            string ticketKey,
+            string action)
         {
-            string path = "transcripts.json";
-            string jsonText = File.Exists(path) ? File.ReadAllText(path) : "{}";
-            var root = JObject.Parse(jsonText);
+            string path = Path.Combine("transcripts", $"{ticketKey}.tsk");
+            Directory.CreateDirectory("transcripts");
 
-            if (root["transcripts"] == null) root["transcripts"] = new JObject();
-            var transcripts = (JObject)root["transcripts"];
-            
-            if (transcripts[ticketKey] == null) transcripts[ticketKey] = new JObject();
-            var ticketData = (JObject)transcripts[ticketKey];
+            if (!File.Exists(path))
+            {
+                await Tsk.CreateAsync(path);
+            }
 
-            int limit = (action == "auto") ? 100 : 1000;
+            int limit = action == "auto" ? 100 : 1000;
+
             var rawMessages = channel.GetMessagesAsync(limit);
-            var sortedMessages = rawMessages.Where(m => !m.Author.IsBot).OrderBy(m => m.CreationTimestamp);
 
-            await foreach (var msg in sortedMessages)
+            var sortedMessages = rawMessages
+                .Where(message => !message.Author.IsBot)
+                .OrderBy(message => message.CreationTimestamp);
+
+            await foreach (var message in sortedMessages)
             {
-                string uid = msg.Author.Id.ToString();
-                if (ticketData[uid] == null) ticketData[uid] = new JObject { ["messages"] = new JArray() };
+                string content = SanitizeForTsk(message.Content ?? string.Empty);
 
-                var userMsgs = (JArray)ticketData[uid]["messages"];
-                
-                
-                if (userMsgs.Any(m => (string)m["messageId"] == msg.Id.ToString())) continue;
+                string attachments = string.Join(
+                    " ",
+                    message.Attachments.Select(a => a.Url)
+                );
 
-                var attachments = string.Join(" ", msg.Attachments.Select(a => a.Url));
-                userMsgs.Add(new JObject
+                if (!string.IsNullOrWhiteSpace(attachments))
                 {
-                    ["username"] = msg.Author.Username,
-                    ["content"] = $"{msg.Content} {attachments}".Trim(),
-                    ["timestamp"] = msg.CreationTimestamp.UtcDateTime.ToString("o"),
-                    ["messageId"] = msg.Id.ToString()
-                });
-            }
-            
-            if (action != "auto")
-            {
-                string sysId = "System";
-                if (ticketData[sysId] == null) ticketData[sysId] = new JObject { ["messages"] = new JArray() };
-                
-                ((JArray)ticketData[sysId]["messages"]).Add(new JObject
-                {
-                    ["username"] = "Log",
-                    ["content"] = $"{interaction.User.Username} performed action: {action.ToUpper()}",
-                    ["timestamp"] = DateTime.UtcNow.ToString("o"),
-                    ["messageId"] = $"SYS-{DateTime.UtcNow.Ticks}"
-                });
+                    content = $"{content} {attachments}".Trim();
+                }
+
+                await Tsk.InsertAsync(
+                    path,
+                    new TskMessage
+                    {
+                        UserId = message.Author.Id,
+                        Username = message.Author.Username,
+                        Content = content,
+                        Timestamp = message.CreationTimestamp.UtcDateTime.ToString("O")
+                    }
+                );
             }
 
-            File.WriteAllText(path, root.ToString(Formatting.Indented));
+            if (action != "auto" && interaction is not null)
+            {
+                await Tsk.InsertAsync(
+                    path,
+                    new TskMessage
+                    {
+                        UserId = 1,
+                        Username = "System",
+                        Content = $"{interaction.User.Username} performed action: {action.ToUpper()}",
+                        Timestamp = DateTime.UtcNow.ToString("O")
+                    }
+                );
+            }
+
             autocompletehandler.LoadTranscriptCache(path);
+        }
+        
+        private static string SanitizeForTsk(string text)
+        {
+            return text
+                .Replace("\r\n", "\\n")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\n");
         }
 
         private async Task LogErrorToWebhook(Exception e)
@@ -168,11 +255,29 @@ namespace Stormtility.events
             try
             {
                 using HttpClient http = new();
-                var payload = new { content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 500)]}```" };
-                await http.PostAsync(Program.webhookURL, new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json"));
-            } catch
+
+                var payload = new
+                {
+                    content =
+                        $"**[ERROR]** {DateTime.Now}\n```\n" +
+                        $"{e.Message}\n" +
+                        $"{e.StackTrace?[..Math.Min(
+                            e.StackTrace.Length,
+                            500
+                        )]}```"
+                };
+
+                await http.PostAsync(
+                    Program.webhookURL,
+                    new StringContent(
+                        System.Text.Json.JsonSerializer.Serialize(payload),
+                        Encoding.UTF8,
+                        "application/json"
+                    )
+                );
+            }
+            catch
             {
-                
             }
         }
     }
