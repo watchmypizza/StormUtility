@@ -166,7 +166,7 @@ namespace Stormtility.commands.UtilityCommands
             [AllowedProcessors(typeof(SlashCommandProcessor))]
             public async Task fixbrokentsk(SlashCommandContext ctx)
             {
-                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.ModerateMembers))
+                if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.Administrator))
                 {
                     await ctx.RespondAsync("You do not have permission to use this command.", true);
                     return;
@@ -206,7 +206,7 @@ namespace Stormtility.commands.UtilityCommands
                 if (repaired.Count == 0 && failed.Count == 0)
                 {
                     await ctx.Interaction.EditOriginalResponseAsync(
-                        new DiscordWebhookBuilder().WithContent("Scanned all .tsk files — none were broken.")
+                        new DiscordWebhookBuilder().WithContent("Scanned all .tsk files, none were broken.")
                     );
                     return;
                 }
