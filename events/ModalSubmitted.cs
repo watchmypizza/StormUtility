@@ -16,7 +16,7 @@ namespace Stormtility.events
                 await args.Interaction.DeferAsync(true);
 
                 var usernameInput = args.Values?["robloxusername"] as TextInputModalSubmission;
-                string? username = usernameInput.Value;
+                string? username = usernameInput!.Value;
                 var sendToDagestan = new DiscordMessageBuilder();
 
                 var submissionEmbed = new DiscordEmbedBuilder()
@@ -34,7 +34,7 @@ namespace Stormtility.events
                     sendToDagestan = new DiscordMessageBuilder()
                                             .AddEmbed(submissionEmbed);
 
-                    await events.InteractionCreated.createAppealChannel(args, sendToDagestan);
+                    await events.InteractionCreated.CreateAppealChannel(args, sendToDagestan);
                     return;
                 }
 
@@ -47,8 +47,8 @@ namespace Stormtility.events
                 sendToDagestan = new DiscordMessageBuilder()
                                             .AddEmbed(submissionEmbed)
                                             .AddFile(name ?? "Uploaded", stream);
-                
-                await events.InteractionCreated.createAppealChannel(args, sendToDagestan);
+
+                await events.InteractionCreated.CreateAppealChannel(args, sendToDagestan);
                 return;
             }
             else if(args.Id == "speedtypistmodal")
@@ -59,7 +59,7 @@ namespace Stormtility.events
                 var videoShared = args.Values["proof"] as FileUploadModalSubmission;
 
                 using HttpClient http = new();
-                string? url = videoShared.UploadedFiles.FirstOrDefault()?.Url;
+                string? url = videoShared!.UploadedFiles.FirstOrDefault()?.Url;
                 string? name = videoShared.UploadedFiles.FirstOrDefault()?.FileName;
 
                 Stream fStream = await http.GetStreamAsync(url);
@@ -75,15 +75,15 @@ namespace Stormtility.events
                 var sendToDagestan = new DiscordMessageBuilder()
                                         .AddEmbed(submissionEmbed)
                                         .AddFile(name ?? "Uploaded", fStream);
-                    
+
                 Regex isValidURL = new(@"https?\:\/\/(?:www\.)?monkeytype\.com\/profile\/[A-Za-z0-9]+");
                 if(!isValidURL.IsMatch(profileLinkInput?.Value ?? "no url"))
                 {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Please supply a valid URL!"));
                     return;
                 }
-                
-                await InteractionCreated.handleSpeedTypistApplicationModalReceivedState(args, sendToDagestan);
+
+                await InteractionCreated.HandleSpeedTypistApplicationModalReceivedState(args, sendToDagestan);
                 return;
             }
             else if(args.Id == "supportmodal")
@@ -118,7 +118,7 @@ namespace Stormtility.events
                     }
                 }
 
-                await InteractionCreated.handleSupportModalReceivedState(args, sendToDagestan);
+                await InteractionCreated.HandleSupportModalReceivedState(args, sendToDagestan);
                 return;
             }
             else if(args.Id == "exploitermodal")
@@ -153,7 +153,7 @@ namespace Stormtility.events
                     }
                 }
 
-                await InteractionCreated.handleExploiterReportModalReceivedStateSubmissionTicketCreationAction(args, sendToDagestan);
+                await InteractionCreated.HandleExploiterReportModalReceivedStateSubmissionTicketCreationAction(args, sendToDagestan);
                 return;
             }
         }

@@ -9,12 +9,12 @@ namespace Stormtility.events
     {
         public static async Task Client_ReactionAddedEvent(DiscordClient sender, MessageReactionAddedEventArgs args)
         {
-            await MessageEvents.routeMessages(args.Message, reaction: args, isReaction: true);
+            await MessageEvents.RouteMessages(args.Message, reaction: args, isReaction: true);
         }
 
         public static async Task Client_ReactionRemovedEvent(DiscordClient sender, MessageReactionRemovedEventArgs args)
         {
-            await MessageEvents.routeMessages(args.Message, reactionRem: args, isReaction: true);
+            await MessageEvents.RouteMessages(args.Message, reactionRem: args, isReaction: true);
         }
     }
 }

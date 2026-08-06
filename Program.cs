@@ -27,7 +27,7 @@ namespace Stormtility
             {
                 if(arg == "-v" || arg == "--version")
                 {
-                    await logger.consoleLog("v1.2.1 regex fix!");
+                    await Logger.ConsoleLog("v1.2.1 regex fix!");
                     return;
                 }
             }
@@ -38,7 +38,7 @@ namespace Stormtility
             nonce = envLines[3];
             botToken = envLines[0];
 
-            await autostart.createTable();
+            await Autostart.CreateTable();
 
             DiscordClientBuilder builder = DiscordClientBuilder.CreateDefault(envLines[0], DiscordIntents.All);
 
@@ -59,15 +59,15 @@ namespace Stormtility
             builder.UseCommands(async (serviceProvider, extension) =>
             {
                 extension.AddCommands([
-                    typeof(slashcommands),
-                    typeof(ticketcommands.ticketingCommands),
-                    typeof(antiraidcommands.antiraidcmds),
-                    typeof(utilitycommands.UtilityCommandsGroup),
+                    typeof(Slashcommands),
+                    typeof(TicketCommands),
+                    typeof(AntiRaidCommands),
+                    typeof(Utilitycommands),
                     typeof(HelpCommand),
-                    typeof(mutecounter.MCounter)
+                    typeof(MuteCounter)
                 ]);
 
-                extension.AddCommands([typeof(testcommands)], 1349792051134468156);
+                extension.AddCommands([typeof(TestCommands)], 1349792051134468156);
             });
 
             Client = builder.Build();

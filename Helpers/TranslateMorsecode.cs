@@ -54,7 +54,7 @@ namespace Stormtility
 
         public async Task<bool> translateMorse(DiscordMessage message)
         {
-            if (message.Author.IsBot)
+            if (message.Author!.IsBot)
                 return false;
 
             string msgContent = message.Content.Trim();
@@ -84,12 +84,12 @@ namespace Stormtility
                 }
             }
 
-            if (foundMorse && alerts >= 3 && vars.morseTranslateEnabled)
+            if (foundMorse && alerts >= 3 && Vars.MorseTranslateEnabled)
             {
                 await message.RespondAsync("Translated morsecode: " + sb.ToString());
             }
 
-            if(!vars.morseTranslateEnabled && foundMorse && alerts >= 3)
+            if(!Vars.MorseTranslateEnabled && foundMorse && alerts >= 3)
             {
                 await message.DeleteAsync();
             }

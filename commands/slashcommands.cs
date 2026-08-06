@@ -26,96 +26,82 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace Stormtility.commands
 {
-    public class slashcommands
+    public class Slashcommands
     {
 
-        public async Task<string> getBlacklist(DiscordMember member)
+        public async Task<string> GetBlacklist(DiscordMember member)
         {
             try {
                 string conn = "Data Source=blacklists.db";
                 string sql = "SELECT reason FROM blacklists WHERE member = @id";
 
-                using (var connection = new SqliteConnection(conn))
-                {
-                    await connection.OpenAsync();
+                using var connection = new SqliteConnection(conn);
+                await connection.OpenAsync();
 
-                    using(var command = new SqliteCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@id", member.Id);
+                using var command = new SqliteCommand(sql, connection);
+                command.Parameters.AddWithValue("@id", member.Id);
 
-                        using(var reader = await command.ExecuteReaderAsync())
-                        {
-                            await reader.ReadAsync();
-                            return reader?["reason"]?.ToString() ?? "";
-                        }
-                    }
-                }
-            } catch (InvalidOperationException e)
+                using var reader = await command.ExecuteReaderAsync();
+                await reader.ReadAsync();
+                return reader?["reason"]?.ToString() ?? "";
+            } catch (InvalidOperationException)
             {
                 return "";
             } catch (Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return "";
             }
         }
 
-        public async Task<bool> insertBlacklist(DiscordMember member, string reason)
+        public async Task<bool> InsertBlacklist(DiscordMember member, string reason)
         {
             try
             {
                 string conn = "Data Source=blacklists.db";
                 string sql = @"INSERT INTO blacklists (member, reason) VALUES (@id, @reason)";
 
-                using(var connection = new SqliteConnection(conn))
-                {
-                    await connection.OpenAsync();
+                using var connection = new SqliteConnection(conn);
+                await connection.OpenAsync();
 
-                    using(var command = new SqliteCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@id", member.Id);
-                        command.Parameters.AddWithValue("@reason", reason.ToString());
+                using var command = new SqliteCommand(sql, connection);
+                command.Parameters.AddWithValue("@id", member.Id);
+                command.Parameters.AddWithValue("@reason", reason.ToString());
 
-                        int rows = await command.ExecuteNonQueryAsync();
-                        return rows > 0;
-                    }
-                }
+                int rows = await command.ExecuteNonQueryAsync();
+                return rows > 0;
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return false;
             }
         }
 
-        public async Task<bool> removeBlacklist(DiscordMember member)
+        public async Task<bool> RemoveBlacklist(DiscordMember member)
         {
             try
             {
                 string conn = "Data Source=blacklists.db";
                 string sql = "DELETE FROM blacklists WHERE member = @id";
 
-                using(var connection = new SqliteConnection(conn))
-                {
-                    await connection.OpenAsync();
+                using var connection = new SqliteConnection(conn);
+                await connection.OpenAsync();
 
-                    using(var command = new SqliteCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@id", member.Id);
+                using var command = new SqliteCommand(sql, connection);
+                command.Parameters.AddWithValue("@id", member.Id);
 
-                        await command.ExecuteNonQueryAsync();
-                        return true;
-                    }
-                }
+                await command.ExecuteNonQueryAsync();
+                return true;
             } catch (Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return false;
             }
         }
 
-        private static async Task<bool> permissionCheck(SlashCommandContext ctx)
+        private static async Task<bool> PermissionCheck(SlashCommandContext ctx)
         {
-            bool gamemodRole = ctx.Member.Roles.Any(r => r.Id == 1474165198947356793);
+            bool gamemodRole = ctx.Member!.Roles.Any(r => r.Id == 1474165198947356793);
             if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) && !gamemodRole)
             {
                 var permissionErrorEmbed = new DiscordEmbedBuilder
@@ -134,19 +120,19 @@ namespace Stormtility.commands
         [Command("blacklist")]
         [Description("Blacklist someone")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
-        public async Task blacklist(SlashCommandContext ctx, [Parameter("Member")][Description("Specify the member to blacklist")] DiscordMember user, [Parameter("Reason")][Description("The reason for the blacklist")] string reason)
+        public async Task Blacklist(SlashCommandContext ctx, [Parameter("Member")][Description("Specify the member to blacklist")] DiscordMember user, [Parameter("Reason")][Description("The reason for the blacklist")] string reason)
         {
             await ctx.DeferResponseAsync(true);
-            
 
-            if (!(await permissionCheck(ctx)))
+
+            if (!await PermissionCheck(ctx))
             {
                 return;
             }
 
-            vars.commandTriggered = true;
+            Vars.CommandTriggered = true;
 
-            string isBlacklist = await getBlacklist(user);
+            string isBlacklist = await GetBlacklist(user);
             if(!(isBlacklist == string.Empty))
             {
                 var errorEmbed = new DiscordEmbedBuilder()
@@ -162,15 +148,15 @@ namespace Stormtility.commands
                 return;
             }
 
-            bool blacklist = await insertBlacklist(user, reason);
+            bool blacklist = await InsertBlacklist(user, reason);
 
             if(!blacklist)
             {
-                await logger.LOGGER(new Exception("Blacklist threw false response. (BLACKLIST COMMAND)"));
+                await Logger.LOGGER(new Exception("Blacklist threw false response. (BLACKLIST COMMAND)"));
                 return;
             }
 
-            var mod_log_ch = await ctx.Guild.GetChannelAsync(vars.modLogs);
+            var mod_log_ch = await ctx.Guild!.GetChannelAsync(Vars.ModLogs);
 
             var message = new DiscordEmbedBuilder
             {
@@ -189,25 +175,25 @@ namespace Stormtility.commands
             await mod_log_ch.SendMessageAsync(logEmbed);
             await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(message));
             await user.GrantRoleAsync(await ctx.Guild.GetRoleAsync(1397404869702320260));
-            vars.commandTriggered = false;
+            Vars.CommandTriggered = false;
         }
 
         [Command("unblacklist")]
         [Description("Unblacklist someone that is blacklisted")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
-        public async Task unblacklist(SlashCommandContext ctx, [Parameter("Member")][Description("Specify the member to unblacklist")] DiscordMember user)
+        public async Task Unblacklist(SlashCommandContext ctx, [Parameter("Member")][Description("Specify the member to unblacklist")] DiscordMember user)
         {
             await ctx.DeferResponseAsync(true);
             bool roleFound = false;
 
-            if (!(await permissionCheck(ctx)))
+            if (!await PermissionCheck(ctx))
             {
                 return;
             }
 
-            vars.commandTriggered = true;
+            Vars.CommandTriggered = true;
 
-            string isBlacklisted = await getBlacklist(user);
+            string isBlacklisted = await GetBlacklist(user);
             if(isBlacklisted == string.Empty)
             {
                 var errorEmbed = new DiscordEmbedBuilder()
@@ -221,7 +207,7 @@ namespace Stormtility.commands
                 return;
             }
 
-            bool success = await removeBlacklist(user);
+            bool success = await RemoveBlacklist(user);
             if(!success)
             {
                 var errorEmbed = new DiscordEmbedBuilder()
@@ -232,7 +218,7 @@ namespace Stormtility.commands
                 };
 
                 await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
-                await logger.LOGGER(new Exception("removeBlacklist() threw false in command removeBlacklist!"));
+                await Logger.LOGGER(new Exception("removeBlacklist() threw false in command removeBlacklist!"));
                 return;
             }
 
@@ -250,7 +236,7 @@ namespace Stormtility.commands
                 return;
             }
 
-            var mod_log_ch = await ctx.Interaction.Guild.GetChannelAsync(vars.modLogs);
+            var mod_log_ch = await ctx.Interaction.Guild!.GetChannelAsync(Vars.ModLogs);
 
             var message = new DiscordEmbedBuilder
             {
@@ -267,25 +253,25 @@ namespace Stormtility.commands
 
             await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(message));
             await mod_log_ch.SendMessageAsync(logEmbed);
-            await user.RevokeRoleAsync(await ctx.Interaction.Guild.GetRoleAsync(1397404869702320260));
-            vars.commandTriggered = false;
+            await user.RevokeRoleAsync(await ctx.Interaction.Guild!.GetRoleAsync(1397404869702320260));
+            Vars.CommandTriggered = false;
         }
 
         [Command("checkblacklist")]
         [Description("Check whether a user is blacklisted or not.")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
-        public async Task checkblacklist(SlashCommandContext ctx, [Parameter("User")][Description("The user to check")] DiscordMember user)
+        public async Task CheckBlacklist(SlashCommandContext ctx, [Parameter("User")][Description("The user to check")] DiscordMember user)
         {
             var member = (DiscordMember)user;
             var IDString = member.Id.ToString();
-            if (!(await permissionCheck(ctx)))
+            if (!await PermissionCheck(ctx))
             {
                 return;
             }
 
             try
             {
-                string blacklist = await getBlacklist((DiscordMember) user);
+                string blacklist = await GetBlacklist((DiscordMember) user);
 
                 if(blacklist == string.Empty)
                 {
@@ -312,16 +298,16 @@ namespace Stormtility.commands
                 return;
             } catch (Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
             }
         }
 
         [Command("debug")]
         [Description("Debug")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
-        public async Task debugMode(SlashCommandContext ctx)
+        public async Task DebugMode(SlashCommandContext ctx)
         {
-            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.Administrator))
+            if (!ctx.Member!.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.Administrator))
             {
                 var errorEmbed = new DiscordEmbedBuilder
                 {
@@ -333,14 +319,14 @@ namespace Stormtility.commands
                 return;
             }
 
-            if (!vars.debugMode)
+            if (!Vars.DebugMode)
             {
-                vars.debugMode = true;
+                Vars.DebugMode = true;
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Enabled debug mode").AsEphemeral());
                 return;
             } else
             {
-                vars.debugMode = false;
+                Vars.DebugMode = false;
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Disabled debug mode").AsEphemeral());
                 return;
             }

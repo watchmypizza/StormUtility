@@ -11,9 +11,9 @@ using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using DSharpPlus.SlashCommands;
 using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
 
-namespace Stormtility.commands.TicketCommands.autocompletehelper
+namespace Stormtility.commands.TicketCommands
 {
-    public class autocompletehandler : IAutoCompleteProvider
+    public class AutoCompleteHandler : IAutoCompleteProvider
     {
         public static List<string> LoadTranscriptFiles()
         {
@@ -34,7 +34,7 @@ namespace Stormtility.commands.TicketCommands.autocompletehelper
             var files = LoadTranscriptFiles();
             var userInput = ctx.Options?.ToString() ?? string.Empty;
 
-            var result = files.OrderBy(x => calculationsanddumbassmath.LevenshteinRatio(x, userInput)).Take(3).Select(x => new DiscordAutoCompleteChoice(x, x));
+            var result = files.OrderBy(x => Calculationsanddumbassmath.LevenshteinRatio(x, userInput)).Take(3).Select(x => new DiscordAutoCompleteChoice(x, x));
 
             return ValueTask.FromResult(result);
         }

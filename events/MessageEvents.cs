@@ -25,18 +25,20 @@ using Microsoft.Data.Sqlite;
 using CommunityToolkit.HighPerformance;
 using System.Globalization;
 using Stormtility.commands.Anti_Raid_Commands;
+using System.Threading.Channels;
 
 namespace Stormtility.events
 {
     public class MessageEvents
     {
         private static HttpClient client = new();
-        private static readonly List<string> blacklistedWords = new() 
-        { 
-            "18", "e-girl", "condo", "csam", "dropbox", "porn", "rape", 
-            "erp", "erotic", "hanime", "hentai", "uttp", "cp", "private", "cam" 
+        private static readonly List<string> blacklistedWords = new()
+        {
+            "18", "e-girl", "condo", "csam", "dropbox", "porn", "rape",
+            "erp", "erotic", "hanime", "hentai", "uttp", "cp", "private", "cam"
         };
-        private static async Task<bool> checkMessage(DiscordMessage message)
+
+        private static async Task<bool> CheckMessage(DiscordMessage message)
         {
             bool debug = RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.X86;
             TranslateMorsecode translator = new TranslateMorsecode();
@@ -44,9 +46,7 @@ namespace Stormtility.events
 
             string content = message.Content;
 
-            Regex inviteRegex = new Regex(@"discord(?:app)?.[a-zA-Z]+\/(?:invite)?(attachments)?\/?([A-Za-z0-9]+)");
-
-            var matches = inviteRegex.Matches(content);
+            var matches = InviteRegex.Matches(content);
             foreach (Match match in matches)
             {
                 if (!match.Success)
@@ -54,7 +54,7 @@ namespace Stormtility.events
 
                 string inviteCode = match.Groups[2].Value;
 
-                if (vars.inviteCache.TryGetValue(inviteCode, out var cacheEntry))
+                if (Vars.inviteCache.TryGetValue(inviteCode, out var cacheEntry))
                 {
                     if (DateTime.UtcNow < cacheEntry.expiresAt)
                     {
@@ -62,7 +62,7 @@ namespace Stormtility.events
                     }
                     else
                     {
-                        vars.inviteCache.Remove(inviteCode);
+                        Vars.inviteCache.Remove(inviteCode);
                     }
                 }
 
@@ -79,21 +79,20 @@ namespace Stormtility.events
                 string? guildName = json["guild"]?["name"]?.ToString();
                 if(debug)
                 {
-                    await logger.debugLog($"Name: {guildName}");
+                    await Logger.DebugLog($"Name: {guildName}");
                 }
-                Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
                 if (guildName == null)
                     continue;
 
                 bool isBad = blacklistedWords.Any(word => guildName.Contains(word, StringComparison.OrdinalIgnoreCase));
-                
-                if(nameRegex.IsMatch(guildName) && debug)
+
+                if(NameRegex.IsMatch(guildName) && debug)
                 {
-                    await logger.debugLog($"Bad Name {guildName}");
+                    await Logger.DebugLog($"Bad Name {guildName}");
                     isBad = true;
                 }
 
-                vars.inviteCache[inviteCode] = (isBad, DateTime.UtcNow.AddMinutes(10));
+                Vars.inviteCache[inviteCode] = (isBad, DateTime.UtcNow.AddMinutes(10));
 
                 return isBad;
             }
@@ -108,8 +107,12 @@ namespace Stormtility.events
         }
         private static Dictionary<ulong, spamPingData> pingSpamCounter = [];
         private static Regex rex = new Regex(@"<@[0-9]+>");
+        private static Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
+        private static Regex checkMessageForBio = new Regex(@"([ '""\/\\!?:*A-Za-z0-9]+)");
+        private static Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
+        private static Regex regex = new(@"<#([0-9]+)>");
 
-        private static async Task<bool> checkPingSpam(DiscordMessage message)
+        private static async Task<bool> CheckPingSpam(DiscordMessage message)
         {
             int i = 0;
             foreach(var match in rex.Matches(message.Content))
@@ -117,7 +120,7 @@ namespace Stormtility.events
                 i++;
                 if(i >= 3)
                 {
-                    pingSpamCounter.TryGetValue(message.Author.Id, out spamPingData data);
+                    pingSpamCounter.TryGetValue(message.Author!.Id, out spamPingData data);
 
                     if(data.Count > 0 && DateTime.UtcNow - data.lastSeen > TimeSpan.FromMinutes(2))
                     {
@@ -131,7 +134,7 @@ namespace Stormtility.events
                             await member.TimeoutAsync(DateTime.UtcNow.AddMinutes(5), "Spam pinging.");
                         } catch(Exception ex)
                         {
-                            await logger.LOGGER(ex);
+                            await Logger.LOGGER(ex);
                         }
                         pingSpamCounter.Remove(message.Author.Id);
                     } else {
@@ -148,10 +151,9 @@ namespace Stormtility.events
             return false;
         }
 
-        private static async Task<bool> bioCheck(DiscordMessage message)
+        private static async Task<bool> BioCheck(DiscordMessage message)
         {
-            Regex checkMessageForBio = new Regex(@"([ '""\/\\!?:*A-Za-z0-9]+)");
-            var match = checkMessageForBio.Match(message.Content.ToLower());
+            var match = CheckMessageForBio.Match(message.Content.ToLower());
             if(match.Success)
             {
                 if(match.Groups[1].Value.Contains("check") && match.Groups[1].Value.Contains("bio"))
@@ -162,12 +164,16 @@ namespace Stormtility.events
             return false;
         }
 
-        private static Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
+        public static Regex Rex { get => rex; set => rex = value; }
+        public static Regex NameRegex { get => nameRegex; set => nameRegex = value; }
+        public static Regex CheckMessageForBio { get => checkMessageForBio; set => checkMessageForBio = value; }
+        public static Regex InviteRegex { get => inviteRegex; set => inviteRegex = value; }
+        public static Regex Regex { get => regex; set => regex = value; }
 
-        private static async Task<bool> deleteAnyInvite(DiscordMessage message)
+        private static async Task<bool> DeleteAnyInvite(DiscordMessage message)
         {
             try {
-                if(message.Author.IsBot)
+                if(message.Author!.IsBot)
                 {
                     return false;
                 }
@@ -181,16 +187,16 @@ namespace Stormtility.events
                 }
                 builtCb = contentBuilder.ToString();
 
-                var matches = inviteRegex.Matches(builtCb);
+                var matches = InviteRegex.Matches(builtCb);
 
                 List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
-                DiscordMember user = await message.Channel.Guild.GetMemberAsync(message.Author.Id, true);
+                DiscordMember user = await message.Channel!.Guild.GetMemberAsync(message.Author.Id, true);
                 DiscordPermissions userChannelPerms = user.PermissionsIn(message.Channel);
-                bool hasMediaPerms = userChannelPerms.HasPermission(DiscordPermission.AttachFiles) 
+                bool hasMediaPerms = userChannelPerms.HasPermission(DiscordPermission.AttachFiles)
                   && userChannelPerms.HasPermission(DiscordPermission.EmbedLinks);
 
                 bool linkViolationFound = false;
-                bool isZalgoText = calculationsanddumbassmath.IsZalgoText(message.Content);
+                bool isZalgoText = Calculationsanddumbassmath.IsZalgoText(message.Content);
 
                 if(isZalgoText)
                 {
@@ -218,66 +224,66 @@ namespace Stormtility.events
 
                 if(linkViolationFound)
                 {
-                    await checkMessage(message);
+                    await CheckMessage(message);
                     return true;
                 }
 
-                var biocheck = await bioCheck(message);
+                var biocheck = await BioCheck(message);
                 if(biocheck)
                 {
-                    await checkMessage(message);
+                    await CheckMessage(message);
                     return true;
                 }
 
                 return false;
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return true;
             }
         }
 
         private class Payload
         {
-            public string model {get; set;} = "";
-            public JsonArray messages { get; set; } = [];
-            public bool stream {get; set;} = new();
-            public bool think { get; set; }
+            public string Model {get; set;} = "";
+            public JsonArray Messages { get; set; } = [];
+            public bool Stream {get; set;} = new();
+            public bool Think { get; set; }
         }
 
         private class OllamaResponse
         {
-            public OllamaMessage message { get; set; } = new();
+            public OllamaMessage Message { get; set; } = new();
         }
 
         private class OllamaMessage
         {
-            public string role { get; set; } = "";
-            public string content { get; set; } = "";
+            public string Role { get; set; } = "";
+            public string Content { get; set; } = "";
         }
 
 
-        private static async Task<bool> sendApiRequest(DiscordMessage message, MessageCreatedEventArgs ctx)
+        private static async Task<bool> SendApiRequest(DiscordMessage message, MessageCreatedEventArgs ctx)
         {
-            string newMessage = $"<{message.CreationTimestamp.ToString("O")}> ({message.Author.Username}): {message.Content}";
+            string newMessage = $"<{message.CreationTimestamp.ToString("O")}> ({message.Author!.Username}): {message.Content}";
 
-            bool isInWhitelist = vars.userIdsAI.Exists(u => ctx.Author.Id == u);
+            bool isInWhitelist = Vars.UserIdsAI.Exists(u => ctx.Author.Id == u);
             if (!isInWhitelist) return false;
-            if (!vars.aiToggle || vars.AIChannel != ctx.Channel.Id) return true;
+            if (!Vars.AiToggle || Vars.AIChannel != ctx.Channel.Id) return true;
 
-            vars.chatHistory.Add(new { role = "user", content = newMessage });
+            Vars.chatHistory.Add(new { role = "user", content = newMessage });
 
             using HttpClient httpClient = new();
             string url = "http://192.168.2.120:11434/api/chat";
 
             var messagesArray = new JsonArray();
 
-            messagesArray.Add(JsonNode.Parse(JsonSerializer.Serialize(new { role = "system", content = vars.AIPrompt })));
+            messagesArray.Add(JsonNode.Parse(JsonSerializer.Serialize(new { role = "system", content = Vars.AIPrompt })));
 
-            foreach (var msg in vars.chatHistory)
+            foreach (var msg in Vars.chatHistory)
                 messagesArray.Add(JsonNode.Parse(JsonSerializer.Serialize(msg)));
 
-            var payload = new Payload { model = "qwen3:8b", messages = messagesArray, stream = false, think = true };
+            var payload = new Payload { Model = "qwen3:8b", Messages = messagesArray, Stream = false, Think = true };
 
             try
             {
@@ -285,38 +291,38 @@ namespace Stormtility.events
                 if (!response.IsSuccessStatusCode) return false;
 
                 var result = await response.Content.ReadFromJsonAsync<OllamaResponse>();
-                string botReply = result?.message?.content ?? "none";
+                string botReply = result?.Message?.Content ?? "none";
 
-                vars.chatHistory.Add(new { role = "assistant", content = botReply });
+                Vars.chatHistory.Add(new { role = "assistant", content = botReply });
 
                 await ctx.Message.RespondAsync(botReply);
                 return true;
             }
             catch (Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return false;
             }
         }
 
-        public static async Task<bool> antiRaidActions(List<DiscordChannel> channels)
+        public static async Task<bool> AntiRaidActions(List<DiscordChannel> channels)
         {
             bool antiraid = false;
 
-            HashSet<ulong> StaffCategoryIds = new()
-            {
+            HashSet<ulong> StaffCategoryIds =
+            [
                 1373974093191315527,
                 1370149123692560577,
                 1373979817174634576
-            };
+            ];
 
-            HashSet<ulong> channelsToSkip = new()
-            {
+            HashSet<ulong> channelsToSkip =
+            [
                 1450164600384258058,
                 1323692478301470752,
                 1322350501081124977,
                 1391814759418171645
-            };
+            ];
 
             foreach(DiscordChannel channel in channels)
             {
@@ -325,7 +331,7 @@ namespace Stormtility.events
                 if (channel.ParentId.HasValue && StaffCategoryIds.Contains(channel.ParentId.Value)) { continue; }
                 if(channelsToSkip.Contains(channel.Id)) { continue; }
 
-                antiraidcommands.antiraidcmds.existingSlowmodes.Add(channel.Id, channel.PerUserRateLimit);
+                AntiRaidCommands.existingSlowmodes.Add(channel.Id, channel.PerUserRateLimit);
 
                 await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int)duration.TotalSeconds);
             }
@@ -337,11 +343,11 @@ namespace Stormtility.events
 
         public static async Task Client_MessageUpdated(DiscordClient sender, MessageUpdatedEventArgs args)
         {
-            bool result = await deleteAnyInvite(message: args.Message);
+            bool result = await DeleteAnyInvite(message: args.Message);
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
-            await routeMessages(args.Message, msgBefore: args.MessageBefore.Content, edited: true);
+            await RouteMessages(args.Message, msgBefore: args.MessageBefore!.Content, edited: true);
 
             if(result)
             {
@@ -352,12 +358,12 @@ namespace Stormtility.events
                 DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
-                await channelLog.SendMessageAsync($"`{args.Message.Content.ToString()}` sent by {args.Message.Author.Mention}\nMessage before edited was `{args.MessageBefore.Content}`");
+                await channelLog.SendMessageAsync($"`{args.Message.Content.ToString()}` sent by {args.Message.Author!.Mention}\nMessage before edited was `{args.MessageBefore.Content}`");
                 await args.Message.DeleteAsync();
             }
         }
 
-        public static async Task<int> getCurCount(ulong userId)
+        public static async Task<int> GetCurCount(ulong userId)
         {
             string conn = "Data Source=mutecounter.db";
             string sql = "SELECT count WHERE user=@id FROM mutecounter";
@@ -383,11 +389,11 @@ namespace Stormtility.events
                 }
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return 7777;
             }
         }
-        public static async Task insertMuteDB(ulong userId)
+        public static async Task InsertMuteDB(ulong userId)
         {
             try
             {
@@ -406,12 +412,12 @@ namespace Stormtility.events
                 }
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
             }
         }
-        public static async Task routeMessages(DiscordMessage message, MessageReactionRemovedEventArgs? reactionRem = null, MessageReactionAddedEventArgs? reaction = null, string msgBefore = "", bool edited = false, bool deleted = false, bool isReaction = false)
+        public static async Task RouteMessages(DiscordMessage message, MessageReactionRemovedEventArgs? reactionRem = null, MessageReactionAddedEventArgs? reaction = null, string msgBefore = "", bool edited = false, bool deleted = false, bool isReaction = false)
         {
-            if(message.Author.IsBot)
+            if(message.Author!.IsBot)
             {
                 return;
             }
@@ -433,10 +439,10 @@ namespace Stormtility.events
             }
 
             // Figure out channel
-            DiscordChannel channel = message.Channel;
+            DiscordChannel channel = message.Channel!;
 
             // Compile content + channel
-            string cc = $"In {channel.Mention}: {content}";
+            string cc = $"In {channel!.Mention}: {content}";
 
             // check if edited
             if(edited)
@@ -475,44 +481,38 @@ namespace Stormtility.events
 
                 if(!response.IsSuccessStatusCode)
                 {
-                    await logger.LOGGER(new Exception($"Webhook failed with status: {response.StatusCode}"));
+                    await Logger.LOGGER(new Exception($"Webhook failed with status: {response.StatusCode}"));
                 }
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return;
             }
 
             return;
         }
 
-        public static async Task receiveMessageAndForwardToChannel(DiscordClient client, DiscordMessage message)
+        public static async Task ReceiveMessageAndForwardToChannel(DiscordClient client, DiscordMessage message)
         {
-            if (message.Author.IsBot) return;
+            if (message.Author!.IsBot) return;
 
             // Grab message content
             string content = message.Content;
 
             // Split content using regex AND normal string splitting
-            Regex regex = new(@"<#([0-9]+)>");
-            Match match = regex.Match(content);
+            Match match = Regex.Match(content);
             if (!match.Success || !ulong.TryParse(match.Groups[1].Value, out ulong chId))
             {
-                await logger.consoleLog("Invalid channel ID in message.");
+                await Logger.ConsoleLog("Invalid channel ID in message.");
                 return;
             }
 
             DiscordChannel? channel = await client.GetChannelAsync(chId);
-            if (channel == null)
-            {
-                await logger.consoleLog($"Channel with ID {chId} not found.");
-                return;
-            }
 
             string[] splits = content.Split(":", StringSplitOptions.RemoveEmptyEntries);
             if (splits.Length < 2)
             {
-                await logger.consoleLog("Invalid message format.");
+                await Logger.ConsoleLog("Invalid message format.");
                 return;
             }
 
@@ -522,28 +522,28 @@ namespace Stormtility.events
             }
             catch (Exception ex)
             {
-                await logger.consoleLog($"Error sending message: {ex.Message}");
+                await Logger.ConsoleLog($"Error sending message: {ex.Message}");
             }
         }
         public static async Task Client_MessageDeleted(DiscordClient sender, MessageDeletedEventArgs args)
         {
-            await routeMessages(args.Message, deleted: true);
+            await RouteMessages(args.Message, deleted: true);
 
             return;
         }
 
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreatedEventArgs args)
         {
-            bool result = await deleteAnyInvite(message: args.Message);
+            bool result = await DeleteAnyInvite(message: args.Message);
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
-            bool isConsideredSpamPing = await checkPingSpam(args.Message);
-            if(args.Channel.Id != 1533206494181462137) { await routeMessages(args.Message); }
+            bool isConsideredSpamPing = await CheckPingSpam(args.Message);
+            if(args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
 
             if(args.Channel.Id == 1533206494181462137)
             {
-                await receiveMessageAndForwardToChannel(sender, args.Message);
+                await ReceiveMessageAndForwardToChannel(sender, args.Message);
             }
 
             if(result)
@@ -555,11 +555,11 @@ namespace Stormtility.events
                 DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
-                await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author.Mention}");
+                await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author!.Mention}");
                 await args.Message.DeleteAsync();
                 ulong stickerId = 1533600293630251008;
                 var sticker = await args.Guild.GetStickerAsync(stickerId);
-                await args.Message.Channel.SendMessageAsync(new DiscordMessageBuilder().WithStickers(new[] { sticker }));
+                await args.Message.Channel!.SendMessageAsync(new DiscordMessageBuilder().WithStickers(new[] { sticker }));
             }
 
             if(isConsideredSpamPing)
@@ -572,16 +572,16 @@ namespace Stormtility.events
                 await args.Message.DeleteAsync();
             }
 
-            if(vars.aiToggle)
+            if(Vars.AiToggle)
             {
-                await sendApiRequest(args.Message, args);
+                await SendApiRequest(args.Message, args);
             }
             // if (result)
             // {
             //     await args.Message.DeleteAsync();
             //     foreach (var role in member.Roles)
             //     {
-            //         if (role.Id == args.Guild.GetRole(vars.blacklistRole).Id)
+            //         if (role.Id == args.Guild.GetRole(Vars.blacklistRole).Id)
             //         {
             //             return;
             //         }
@@ -592,7 +592,7 @@ namespace Stormtility.events
             //             string blacklisted = await blacklistfunc.getBlacklist((DiscordMember)args.Message.Author);
             //             if(blacklisted != string.Empty) { return; }
             //             bool success = await blacklistfunc.insertBlacklist((DiscordMember)args.Message.Author, $"Inappropiate invite: `{args.Message.Content}`");
-            //             DiscordRole blacklistRole = args.Guild.GetRole(vars.blacklistRole);
+            //             DiscordRole blacklistRole = args.Guild.GetRole(Vars.blacklistRole);
             //             await member.GrantRoleAsync(blacklistRole);
 
             //             break;
@@ -604,7 +604,7 @@ namespace Stormtility.events
             //         Description = $"{member.Mention} has been blacklisted for sending following invite: {args.Message.Content}",
             //         Color = DiscordColor.Red
             //     };
-            //     var logChannel = args.Guild.GetChannel(vars.modLogs);
+            //     var logChannel = args.Guild.GetChannel(Vars.modLogs);
             //     await logChannel.SendMessageAsync(embed);
             // }
 
@@ -643,7 +643,6 @@ namespace Stormtility.events
 
             if (matchesBad && !matchesException)
             {
-                if (args.Guild == null) return;
                 if (member.IsBot) return;
                 if (member.PermissionsIn(args.Channel).HasPermission(DiscordPermission.Administrator))
                 {
@@ -653,11 +652,11 @@ namespace Stormtility.events
 
                 try
                 {
-                    await insertMuteDB(args.Message.Author.Id);
+                    await InsertMuteDB(args.Message.Author!.Id);
                 } catch (OverflowException e)
                 {
                     Console.WriteLine("Welp thats a big number (2,147,483,647)");
-                    await logger.LOGGER(e);
+                    await Logger.LOGGER(e);
                 }
                 Console.WriteLine("Muted for wrong use of ts");
 
@@ -671,31 +670,31 @@ namespace Stormtility.events
                     return;
                 }
 
-                if (!vars.levenshteinsCache.TryGetValue(args.Author.Id, out var queue))
+                if (!Vars.levenshteinsCache.TryGetValue(args.Author.Id, out var queue))
                 {
                     queue = new Queue<string>();
-                    vars.levenshteinsCache[args.Author.Id] = queue;
+                    Vars.levenshteinsCache[args.Author.Id] = queue;
                 }
 
                 if (queue.Count >= 1)
                 {
                     string prevMsg = queue.Last();
 
-                    double levenshteinresult = calculationsanddumbassmath.LevenshteinRatio(prevMsg, content);
+                    double levenshteinresult = Calculationsanddumbassmath.LevenshteinRatio(prevMsg, content);
 
                     if (levenshteinresult >= 0.825)
                     {
-                        vars.levenshteinmessages++;
-                        if (vars.levenshteinmessages >= 3)
+                        Vars.levenshteinmessages++;
+                        if (Vars.levenshteinmessages >= 3)
                             await args.Message.DeleteAsync();
                     }
                     else
                     {
-                        vars.levenshteinmessages = 0;
+                        Vars.levenshteinmessages = 0;
                     }
                 }
 
-                addMessageToLevenshteinCache(args.Author.Id, content);
+                AddMessageToLevenshteinCache(args.Author.Id, content);
             }
             catch (Exception e)
             {
@@ -746,7 +745,7 @@ namespace Stormtility.events
                 if(args.Message.MessageType == DiscordMessageType.AutoModerationAlert)
                 {
                     var channels = await args.Guild.GetChannelsAsync();
-                    await antiRaidActions(channels.ToList());
+                    await AntiRaidActions([.. channels]);
                 }
             }
 
@@ -762,12 +761,12 @@ namespace Stormtility.events
             return;
         }
 
-        public static async void addMessageToLevenshteinCache(ulong userId, string messageContent)
+        public static async void AddMessageToLevenshteinCache(ulong userId, string messageContent)
         {
-            if(!vars.levenshteinsCache.TryGetValue(userId, out var queue))
+            if(!Vars.levenshteinsCache.TryGetValue(userId, out var queue))
             {
                 queue = new Queue<string>();
-                vars.levenshteinsCache[userId] = queue;
+                Vars.levenshteinsCache[userId] = queue;
             }
 
             if(queue.Count >= 5)

@@ -7,7 +7,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Stormtility.commands.TicketCommands.autocompletehelper;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.Marshalling;
@@ -28,99 +27,58 @@ using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using System.Security.Cryptography;
 using TskLib;
+using Stormtility.Helpers;
 
 namespace Stormtility.commands.TicketCommands
 {
-    public class ticketcommands
+    [SlashCommandGroup("ticket", "ticket system")]
+    [Command("ticket")]
+    [Description("ticket system")]
+    public class TicketCommands
     {
-        [SlashCommandGroup("ticket", "ticket system")]
-        [Command("ticket")]
-        [Description("ticket system")]
-        public class ticketingCommands
+        public static async Task<bool> PermissionCheck(SlashCommandContext ctx)
         {
-            public static async Task<bool> permissionCheck(SlashCommandContext ctx)
+            bool gamemodRole = ctx.Member!.Roles.Any(r => r.Id == 1474165198947356793);
+            if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) && !gamemodRole)
             {
-                bool gamemodRole = ctx.Member.Roles.Any(r => r.Id == 1474165198947356793);
-                if (!ctx.Member.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) && !gamemodRole)
+                var permissionErrorEmbed = new DiscordEmbedBuilder
                 {
-                    var permissionErrorEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "404 - No Permissions",
-                        Description = "You do not have the necessary permissions to use this command.",
-                        Color = DiscordColor.Red
-                    };
+                    Title = "404 - No Permissions",
+                    Description = "You do not have the necessary permissions to use this command.",
+                    Color = DiscordColor.Red
+                };
 
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
-                    return false;
-                }
-                return true;
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(permissionErrorEmbed).AsEphemeral());
+                return false;
             }
+            return true;
+        }
 
-            private static HttpClient client = new();
+        private static readonly HttpClient client = new();
 
-            [SlashCommand("setup", "Set the ticket system up")]
-            [Command("setup")]
-            [Description("Set the ticket system up.")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task ticketsetup(SlashCommandContext ctx)
+        [SlashCommand("setup", "Set the ticket system up")]
+        [Command("setup")]
+        [Description("Set the ticket system up.")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task TicketSetup(SlashCommandContext ctx)
+        {
+            try
             {
-                try
-                {
-                    var check = await permissionCheck(ctx);
+                var check = await PermissionCheck(ctx);
 
-                    if(!check) { return; }
+                if(!check) { return; }
 
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Setting up...").AsEphemeral());
-
-                    var select = new DiscordSelectComponent(
-                        customId: "ticketoptions",
-                        placeholder: "Choose an option...",
-                        options: new List<DiscordSelectComponentOption>()
-                        {
-                            new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
-                            new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
-                            //new("Exploit Report", "exploiter", "Create a ticket to report an exploiter in-game.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
-                        });
-
-                    var supportEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Stormy's Shelter Support",
-                        Description = "To create a ticket, make a selection below.",
-                        Color = DiscordColor.Gold
-                    };
-
-                    await ctx.Channel.SendMessageAsync(new DiscordMessageBuilder()
-                        .AddEmbed(supportEmbed)
-                        .AddActionRowComponent(select));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
-
-            [SlashCommand("update", "Update the last ticket message when adding new options.")]
-            [Command("update")]
-            [Description("Update the last ticket message when adding new options.")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task update(SlashCommandContext ctx)
-            {
-                bool isAdmin = await permissionCheck(ctx);
-                if(!isAdmin) { return; }
-
-                var pins = await ctx.Interaction.Channel.GetPinnedMessagesAsync();
-                DiscordMessage discordMessage = pins[0];
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Setting up...").AsEphemeral());
 
                 var select = new DiscordSelectComponent(
-                customId: "ticketoptions",
-                placeholder: "Choose an option...",
-                options: new List<DiscordSelectComponentOption>()
-                {
-                    new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
-                    new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
-                    new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
-                    new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
-                }, disabled: false);
+                    customId: "ticketoptions",
+                    placeholder: "Choose an option...",
+                    options:
+                    [
+                        new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
+                        new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
+                        //new("Exploit Report", "exploiter", "Create a ticket to report an exploiter in-game.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
+                    ]);
 
                 var supportEmbed = new DiscordEmbedBuilder
                 {
@@ -129,628 +87,578 @@ namespace Stormtility.commands.TicketCommands
                     Color = DiscordColor.Gold
                 };
 
-                await discordMessage.ModifyAsync(new DiscordMessageBuilder()
+                await ctx.Channel.SendMessageAsync(new DiscordMessageBuilder()
                     .AddEmbed(supportEmbed)
                     .AddActionRowComponent(select));
-
-                await ctx.RespondAsync("Updated the message successfully.", true);
             }
-
-            [Command("transcript")]
-            [Description("View the transcript of a ticket")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task viewNewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<autocompletehandler>] string ticketId)
+            catch (Exception e)
             {
-                var check = await permissionCheck(ctx);
+                Console.WriteLine(e);
+            }
+        }
 
-                if (!check) { return; }
+        [SlashCommand("update", "Update the last ticket message when adding new options.")]
+        [Command("update")]
+        [Description("Update the last ticket message when adding new options.")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task Update(SlashCommandContext ctx)
+        {
+            bool isAdmin = await PermissionCheck(ctx);
+            if(!isAdmin) { return; }
 
-                await ctx.DeferResponseAsync(true);
-                string nonce = Convert.ToBase64String(
-                    RandomNumberGenerator.GetBytes(32)
-                );
+            var pins = await ctx.Interaction.Channel.GetPinnedMessagesAsync();
+            DiscordMessage discordMessage = pins[0];
 
-                long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                string message = $"{nonce}.{timestamp}";
+            var select = new DiscordSelectComponent(
+            customId: "ticketoptions",
+            placeholder: "Choose an option...",
+            options:
+            [
+                new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
+                new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
+                new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
+                new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
+            ], disabled: false);
 
-                using var hmac = new HMACSHA256(
-                    Encoding.UTF8.GetBytes(Program.nonce)
-                );
+            var supportEmbed = new DiscordEmbedBuilder
+            {
+                Title = "Stormy's Shelter Support",
+                Description = "To create a ticket, make a selection below.",
+                Color = DiscordColor.Gold
+            };
 
-                string signature = Convert.ToHexString(
-                    hmac.ComputeHash(Encoding.UTF8.GetBytes(message))
-                ).ToLowerInvariant();
+            await discordMessage.ModifyAsync(new DiscordMessageBuilder()
+                .AddEmbed(supportEmbed)
+                .AddActionRowComponent(select));
 
-                var payload = new { ticketId = $"{ticketId}",
-                                    nonce = nonce,
-                                    timestamp = timestamp,
-                                    signature = signature };
+            await ctx.RespondAsync("Updated the message successfully.", true);
+        }
 
-                var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
-                var response = await request.Content.ReadAsStringAsync();
+        [Command("transcript")]
+        [Description("View the transcript of a ticket")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task ViewNewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<AutoCompleteHandler>] string ticketId)
+        {
+            var check = await PermissionCheck(ctx);
 
-                using var doc = JsonDocument.Parse(response);
+            if (!check) { return; }
 
-                if (!request.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"createInterface failed: {response}");
-                    return;
-                }
+            await ctx.DeferResponseAsync(true);
+            string nonce = Convert.ToBase64String(
+                RandomNumberGenerator.GetBytes(32)
+            );
 
-                var url = doc.RootElement.GetProperty("url").GetString();
-                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Your URL is ready! Visit {url} to see the transcript. This link is valid for ten minutes."));
+            long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            string message = $"{nonce}.{timestamp}";
+
+            using var hmac = new HMACSHA256(
+                Encoding.UTF8.GetBytes(Program.nonce ?? "")
+            );
+
+            string signature = Convert.ToHexString(
+                hmac.ComputeHash(Encoding.UTF8.GetBytes(message))
+            ).ToLowerInvariant();
+
+            var payload = (
+                ticketId: $"{ticketId}",
+                nonce: nonce,
+                timestamp: timestamp,
+                signature: signature
+            );
+
+            var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
+            var response = await request.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(response);
+
+            if (!request.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"createInterface failed: {response}");
                 return;
             }
 
-            [SlashCommand("transcript", "View the transcript of a ticket")]
-            [Command("legacytranscript")]
-            [Description("View the transcript of a ticket")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task viewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<autocompletehandler>] string ticketId)
-            {
-                var check = await permissionCheck(ctx);
+            var url = doc.RootElement.GetProperty("url").GetString();
+            await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Your URL is ready! Visit {url} to see the transcript. This link is valid for ten minutes."));
+            return;
+        }
 
-                if (!check) { return; }
+        [SlashCommand("transcript", "View the transcript of a ticket")]
+        [Command("legacytranscript")]
+        [Description("View the transcript of a ticket")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task ViewTranscript(SlashCommandContext ctx, [Parameter("ticketId")][Description("The ID of the ticket to view")][SlashAutoCompleteProvider<AutoCompleteHandler>] string ticketId)
+        {
+            var check = await PermissionCheck(ctx);
 
-                await ctx.DeferResponseAsync(ephemeral: false);
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Preparing transcript..."));
+            if (!check) { return; }
 
-                TskDocument ticket;
+            await ctx.DeferResponseAsync(ephemeral: false);
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Preparing transcript..."));
 
-                try {
-                    ticket = Tsk.Read($"transcripts/{ticketId}.tsk");
-                } catch(Exception e) {
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("No transcripts found."));
-                    return;
-                }
+            TskDocument ticket;
 
-                var allMsg = new List<(string userId, string username, string content, DateTime timestamp)>();
-
-                foreach(var userProp in ticket.Tickets[0].Messages)
-                {
-                    string userId = userProp.UserId.ToString();
-
-                    string content = userProp.Content ?? "";
-                    string timestampStr = userProp.Timestamp.ToString() ?? "";
-                    string username = userProp.Username.ToString() ?? "";
-                    if (DateTime.TryParse(timestampStr, out var timestamp))
-                    {
-                        allMsg.Add((userId, username, content, timestamp));
-                    }
-                }
-
-                var orderedMsgs = allMsg.OrderBy(m => m.timestamp).ToList();
-
-                var sb = new StringBuilder();
-                foreach(var (userId, username, content, timestamp) in orderedMsgs)
-                {
-                    sb.AppendLine($"[{timestamp:yyyy-MM-dd HH:mm:ss}] <@{userId}> {username}: {content}");
-                }
-
-                var transcriptText = sb.ToString();
-                using var ms = new MemoryStream(Encoding.UTF8.GetBytes(transcriptText));
-
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddFile($"transcript-{ticketId}.txt", ms));
-            }
-
-            [SlashCommand("close", "Prompt to close the ticket")]
-            [Command("close")]
-            [Description("Prompt to close the ticket")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task closeTicket(SlashCommandContext ctx)
-            {
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title="Close Ticket",
-                    Color=DiscordColor.Red
-                };
-                var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
-
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddActionRowComponent(button).AsEphemeral());
-            }
-
-            [SlashCommand("delete", "Delete the current ticket.")]
-            [Command("delete")]
-            [Description("Delete the current ticket")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task deleteTicket(SlashCommandContext ctx)
-            {
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title = "Delete Ticket",
-                    Description = "Are you sure you want to delete this ticket? This action cannot be undone.",
-                    Color = DiscordColor.Red
-                };
-                var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "deleteticket", "Delete Ticket", emoji: new DiscordComponentEmoji("⚠️"));
-
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddActionRowComponent(button).AsEphemeral());
-            }
-
-            [SlashCommand("claim", "Claim the ticket you are currently in.")]
-            [Command("claim")]
-            [Description("Claim the ticket you are currently in.")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task claim(SlashCommandContext ctx)
-            {
-                var check = await permissionCheck(ctx);
-
-                if (!check) { return; }
-
-                var channelName = ctx.Interaction.Channel.Name;
-                string[] ticketTypes = { "support", "speedtypist", "appeal", "exploiter" };
-
-                string matchedPrefix = null;
-                int ticketId = 0;
-
-                bool regExChannelName = false;
-
-                //bool regExChannelName = Regex.IsMatch(channelName, @"^support-\d+$");
-                //var match = Regex.Match(channelName, @"^support-(\d+)$");
-
-                foreach (var type in ticketTypes)
-                {
-                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
-                    var match = regex.Match(channelName);
-
-                    if (match.Success)
-                    {
-                        matchedPrefix = type;
-                        regExChannelName = true;
-                        ticketId = int.Parse(match.Groups[1].Value);
-                        break;
-                    }
-                }
-
-                if (!regExChannelName)
-                {
-                    var noTicketEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Please use this inside of an open ticket.",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
-                    return;
-                }
-
-                var successEmbed = new DiscordEmbedBuilder
-                {
-                    Title = "Successfully claimed the ticket."
-                };
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
-                successEmbed.Title = $"{ctx.Member.Nickname} has claimed this ticket.";
-                successEmbed.Color = DiscordColor.Gold;
-                await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(successEmbed));
-                await ctx.Interaction.Channel.ModifyAsync(c => c.Name = $"{ctx.User.Username}-{matchedPrefix}-{ticketId}");
+            try {
+                ticket = Tsk.Read($"transcripts/{ticketId}.tsk");
+            } catch(Exception e) {
+                await Logger.LOGGER(e);
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("No transcripts found."));
                 return;
             }
 
-            [SlashCommand("add", "Add a user to the current ticket.")]
-            [Command("add")]
-            [Description("Add a user to the current ticket")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task addUser(SlashCommandContext ctx, [Parameter("user")][Description("The user to add to the ticket.")] DiscordUser user)
+            var allMsg = new List<(string userId, string username, string content, DateTime timestamp)>();
+
+            foreach(var userProp in ticket.Tickets[0].Messages)
             {
-                var check = await permissionCheck(ctx);
+                string userId = userProp.UserId.ToString();
 
-                if (!check) { return; }
-
-                var member = (DiscordMember)user;
-
-                var channelName = ctx.Interaction.Channel.Name;
-                string[] ticketTypes = { "support", "appeal", "speedtypist", "exploiter" };
-
-                string matchedPrefix = null;
-                int ticketId = 0;
-
-                bool regExChannelName = false;
-
-                foreach (var type in ticketTypes)
+                string content = userProp.Content ?? "";
+                string timestampStr = userProp.Timestamp.ToString() ?? "";
+                string username = userProp.Username.ToString() ?? "";
+                if (DateTime.TryParse(timestampStr, out var timestamp))
                 {
-                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
-                    var match = regex.Match(channelName);
-
-                    if (match.Success)
-                    {
-                        matchedPrefix = type;
-                        regExChannelName = true;
-                        ticketId = int.Parse(match.Groups[1].Value);
-                        break;
-                    }
+                    allMsg.Add((userId, username, content, timestamp));
                 }
-
-                if (!regExChannelName)
-                {
-                    var noTicketEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Please use this inside of an open ticket.",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
-                    return;
-                }
-
-                bool overwrites = ctx.Interaction.Channel.PermissionOverwrites.Any(o => o.Id == member.Id);
-
-                if (overwrites)
-                {
-                    var failEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "User is already added to the ticket.",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
-                    return;
-                }
-
-                DiscordPermissions allowPerms = new([DiscordPermission.ViewChannel, DiscordPermission.ReadMessageHistory, DiscordPermission.AttachFiles, DiscordPermission.AddReactions, DiscordPermission.EmbedLinks, DiscordPermission.SendMessages]);
-
-                await ctx.Interaction.Channel.AddOverwriteAsync(member, allowPerms, DiscordPermissions.None);
-
-                var successEmbed = new DiscordEmbedBuilder
-                {
-                    Title = $"Successfully added {member.Username} to the ticket.",
-                    Color = DiscordColor.Gold
-                };
-
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
-
-                return;
             }
 
-            [SlashCommand("remove", "Remove a user from the current ticket")]
-            [Command("remove")]
-            [Description("Remove a user from the current ticket.")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task removeUser(SlashCommandContext ctx, [Parameter("User")][Description("The user to remove")] DiscordUser user)
+            var orderedMsgs = allMsg.OrderBy(m => m.timestamp).ToList();
+
+            var sb = new StringBuilder();
+            foreach(var (userId, username, content, timestamp) in orderedMsgs)
             {
-                var check = await permissionCheck(ctx);
-
-                if (!check) { return; }
-
-                var member = (DiscordMember)user;
-
-                var channelName = ctx.Interaction.Channel.Name;
-                string[] ticketTypes = { "support", "appeal", "speedtypist", "exploiter" };
-
-                string matchedPrefix = null;
-                int ticketId = 0;
-
-                bool regExChannelName = false;
-
-                foreach (var type in ticketTypes)
-                {
-                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
-                    var match = regex.Match(channelName);
-
-                    if (match.Success)
-                    {
-                        matchedPrefix = type;
-                        regExChannelName = true;
-                        ticketId = int.Parse(match.Groups[1].Value);
-                        break;
-                    }
-                }
-
-                if (!regExChannelName)
-                {
-                    var noTicketEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Please use this inside of an open ticket.",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
-                    return;
-                }
-
-                bool overwrites = ctx.Interaction.Channel.PermissionOverwrites.Any(o => o.Id == member.Id);
-
-                if (!overwrites)
-                {
-                    var failEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "User is not added to the ticket.",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
-                    return;
-                }
-
-                await ctx.Interaction.Channel.DeleteOverwriteAsync(member);
-
-                var successEmbed = new DiscordEmbedBuilder
-                {
-                    Title = $"Successfully removed {member.Username} to the ticket.",
-                    Color = DiscordColor.Gold
-                };
-
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
-
-                return;
+                sb.AppendLine($"[{timestamp:yyyy-MM-dd HH:mm:ss}] <@{userId}> {username}: {content}");
             }
 
-            [SlashCommand("staff", "Create a plain ticket.")]
-            [Command("staff")]
-            [Description("Create a plain ticket.")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task staffTicket(SlashCommandContext ctx)
+            var transcriptText = sb.ToString();
+            using var ms = new MemoryStream(Encoding.UTF8.GetBytes(transcriptText));
+
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddFile($"transcript-{ticketId}.txt", ms));
+        }
+
+        [SlashCommand("close", "Prompt to close the ticket")]
+        [Command("close")]
+        [Description("Prompt to close the ticket")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task CloseTicket(SlashCommandContext ctx)
+        {
+            var embed = new DiscordEmbedBuilder
             {
-                var check = await permissionCheck(ctx);
+                Title="Close Ticket",
+                Color=DiscordColor.Red
+            };
+            var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-                if (!check) { return; }
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddActionRowComponent(button).AsEphemeral());
+        }
 
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("Creating channel...").AsEphemeral());
+        [SlashCommand("delete", "Delete the current ticket.")]
+        [Command("delete")]
+        [Description("Delete the current ticket")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task DeleteTicket(SlashCommandContext ctx)
+        {
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Delete Ticket",
+                Description = "Are you sure you want to delete this ticket? This action cannot be undone.",
+                Color = DiscordColor.Red
+            };
+            var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "deleteticket", "Delete Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-                var openStaffTicketCategory = await ctx.Interaction.Guild.GetChannelAsync(1429871426386526310);
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AddActionRowComponent(button).AsEphemeral());
+        }
 
-                if (openStaffTicketCategory == null) { return; }
+        [SlashCommand("claim", "Claim the ticket you are currently in.")]
+        [Command("claim")]
+        [Description("Claim the ticket you are currently in.")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task Claim(SlashCommandContext ctx)
+        {
+            var check = await PermissionCheck(ctx);
 
-                int ticketId = 0;
+            if (!check) { return; }
 
-                var jsonText = File.ReadAllText("tickets.json");
-                var json = JObject.Parse(jsonText);
-                var entries = (JArray)json["tickets"];
+            var channelName = ctx.Interaction.Channel.Name;
+            string[] ticketTypes = ["support", "speedtypist", "appeal", "exploiter"];
 
-                foreach (JObject entry in entries)
+            string matchedPrefix = null ?? "";
+            int ticketId = 0;
+
+            bool regExChannelName = false;
+
+            //bool regExChannelName = Regex.IsMatch(channelName, @"^support-\d+$");
+            //var match = Regex.Match(channelName, @"^support-(\d+)$");
+
+            foreach (var type in ticketTypes)
+            {
+                var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                var match = regex.Match(channelName);
+
+                if (match.Success)
                 {
-                    var supportObj = entry["support"];
-                    if (supportObj != null)
-                    {
-                        ticketId = supportObj["id"]!.Value<int>();
-                        ticketId += 1;
-                        supportObj["id"] = ticketId;
-                    }
+                    matchedPrefix = type;
+                    regExChannelName = true;
+                    ticketId = int.Parse(match.Groups[1].Value);
                     break;
                 }
-
-                File.WriteAllText("tickets.json", json.ToString());
-
-                ulong staffRole = 1370422448763437207;
-                var staff = await ctx.Interaction.Guild.GetRoleAsync(staffRole);
-
-                var staffOverwrites = new DiscordOverwriteBuilder(staff).Allow(new([DiscordPermission.ViewChannel, DiscordPermission.SendMessages, DiscordPermission.AttachFiles, DiscordPermission.EmbedLinks, DiscordPermission.UseApplicationCommands, DiscordPermission.ReadMessageHistory]));
-                var defaultRoleOverwrites = new DiscordOverwriteBuilder(ctx.Interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel);
-
-                try {
-                    var channel = await ctx.Guild.CreateTextChannelAsync($"support-{ticketId}", openStaffTicketCategory, overwrites: [staffOverwrites, defaultRoleOverwrites]);
-                    
-                    var supportEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Support Ticket",
-                        Description = "Staff will assist you shortly, please give us a few minutes to respond.",
-                        Color = DiscordColor.Aquamarine
-                    };
-
-                    var closeBtn = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
-
-                    await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(supportEmbed).AddActionRowComponent(closeBtn));
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created in {channel.Mention}."));
-                } catch (Exception e)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("--- STACK BEGIN ---");
-                    Console.WriteLine(e);
-                    Console.WriteLine("---  STACK END  ---");
-                    Console.ResetColor();
-                    try 
-                    {
-                        using HttpClient httpClient = new();
-                        var url = Program.webhookURL;
-
-                        var payload = new
-                        {
-                            content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
-                        };
-
-                        string errorjson = JsonSerializer.Serialize(payload);
-
-                        using StringContent stringContent = new(errorjson, System.Text.Encoding.UTF8, "application/json");
-
-                        var response = await httpClient.PostAsync(url, stringContent);
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
-                        }
-                    }
-                    catch (Exception logEx)
-                    {
-                        Console.WriteLine($"FAILED TO SEND WEBHOOK: {logEx.Message}");
-                    }
-                }
-
             }
 
-            public async Task<bool> checkChannelName(SlashCommandContext ctx, DiscordChannel channel)
+            if (!regExChannelName)
             {
-                var channelName = ctx.Interaction.Channel.Name;
-                string[] ticketTypes = { "support", "appeal", "speedtypist", "exploiter" };
-
-                string matchedPrefix = null;
-                int ticketId = 0;
-
-                bool regExChannelName = false;
-
-                foreach (var type in ticketTypes)
+                var noTicketEmbed = new DiscordEmbedBuilder
                 {
-                    var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
-                    var match = regex.Match(channelName);
-
-                    if (match.Success)
-                    {
-                        matchedPrefix = type;
-                        regExChannelName = true;
-                        ticketId = int.Parse(match.Groups[1].Value);
-                        break;
-                    }
-                }
-
-                if (!regExChannelName)
-                {
-                    var noTicketEmbed = new DiscordEmbedBuilder
-                    {
-                        Title = "Please use this inside of an open ticket.",
-                        Color = DiscordColor.Red
-                    };
-
-                    await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
-                    return false;
-                }
-                return true;
-            }
-
-            [SlashCommand("addrole", "Add a role to the current ticket.")]
-            [Command("addrole")]
-            [Description("Add a role and their members into the ticket")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task addrole(SlashCommandContext ctx, [Parameter("role")][Description("The role to add to the current ticket.")] DiscordRole role)
-            {
-                bool permissions = await permissionCheck(ctx);
-                if(!permissions) { return; }
-
-                await ctx.DeferResponseAsync(true);
-
-                bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
-
-                if (!isTicket) { return; }
-
-                await ctx.Interaction.Channel.AddOverwriteAsync(role, allow: new([DiscordPermission.SendMessages, DiscordPermission.ViewChannel, DiscordPermission.AttachFiles, DiscordPermission.EmbedLinks]));
-
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title = $"Added role {role.Name} to the channel",
-                    Color = DiscordColor.Gold
-                };
-
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-                return;
-            }
-
-            [SlashCommand("removerole", "Remove a role from the current ticket")]
-            [Command("removerole")]
-            [Description("Remove a role and their members from the curent ticket.")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task removerole(SlashCommandContext ctx, [Parameter("role")][Description("The role to remove from the current ticket.")] DiscordRole role)
-            {
-                bool permissions = await permissionCheck(ctx);
-
-                if (!permissions) { return; }
-
-                await ctx.DeferResponseAsync(true);
-
-                bool isTicket = await checkChannelName(ctx, ctx.Interaction.Channel);
-
-                if (!isTicket) return;
-
-                await ctx.Interaction.Channel.DeleteOverwriteAsync(role);
-
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title = $"Removed role {role.Name} from the channel",
-                    Color = DiscordColor.Gold
-                };
-
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-                return;
-            }
-
-            //[SlashCommand("bulkdelete", "Bulk delete closed tickets in the closed tickets category.")]
-            [Command("bulkdelete")]
-            [Description("Bulk delete tickets")]
-            [AllowedProcessors(typeof(SlashCommandProcessor))]
-            public async Task bulkDelete(SlashCommandContext ctx)
-            {
-                bool permissions = await permissionCheck(ctx);
-                await ctx.DeferResponseAsync(true);
-
-                if (!permissions) { return; }
-
-                var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "bulkdelete", "Confirm Bulk Delete", emoji: new DiscordComponentEmoji("⚠️"));
-                var embed = new DiscordEmbedBuilder
-                {
-                    Title = "Bulk Delete Closed Tickets",
-                    Description = "This will delete **ALL** tickets in the closed-ticket category.\n# This action cannot be undone.",
+                    Title = "Please use this inside of an open ticket.",
                     Color = DiscordColor.Red
                 };
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).AddActionRowComponent(button));
+
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
                 return;
             }
 
-            [SlashCommand("forcedelete", "Force delete a ticket channel.")]
-            [Command("forcedelete")]
-            [Description("Force delete the current ticket you are in.")]
-            public async Task forceDelete(SlashCommandContext ctx)
+            var successEmbed = new DiscordEmbedBuilder
             {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AsEphemeral());
+                Title = "Successfully claimed the ticket."
+            };
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+            successEmbed.Title = $"{ctx.Member!.Nickname} has claimed this ticket.";
+            successEmbed.Color = DiscordColor.Gold;
+            await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(successEmbed));
+            await ctx.Interaction.Channel.ModifyAsync(c => c.Name = $"{ctx.User.Username}-{matchedPrefix}-{ticketId}");
+            return;
+        }
 
-                bool isAdmin = await permissionCheck(ctx);
-                if(!isAdmin) 
-                { 
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("You do not have permission."));
-                    return; 
-                }
+        [SlashCommand("add", "Add a user to the current ticket.")]
+        [Command("add")]
+        [Description("Add a user to the current ticket")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task AddUser(SlashCommandContext ctx, [Parameter("user")][Description("The user to add to the ticket.")] DiscordUser user)
+        {
+            var check = await PermissionCheck(ctx);
 
-                Regex regex = new Regex("closed-[A-Za-z]+-(\\d+)");
-                DiscordChannel channel = ctx.Interaction.Channel;
-                var chName = channel.Name;
+            if (!check) { return; }
 
-                if(regex.IsMatch(chName))
+            var member = (DiscordMember)user;
+
+            var channelName = ctx.Interaction.Channel.Name;
+            string[] ticketTypes = ["support", "appeal", "speedtypist", "exploiter"];
+
+            string matchedPrefix = null ?? "";
+            int ticketId = 0;
+
+            bool regExChannelName = false;
+
+            foreach (var type in ticketTypes)
+            {
+                var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                var match = regex.Match(channelName);
+
+                if (match.Success)
                 {
-                    AutoTranscript autoTranscript = new();
-                    bool result = await autoTranscript.ProcessTranscript(ctx.Client, ctx.Interaction, channel, "delete");
-                    
-                    if (!result)
-                    {
-                        var errorEmbed = new DiscordEmbedBuilder
-                        {
-                            Title = "Error",
-                            Description = "An unknown error occured.",
-                            Color = DiscordColor.Red
-                        };
-                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
-                    }
-                }
-                else 
-                {
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("This is not a valid ticket channel."));
+                    matchedPrefix = type;
+                    regExChannelName = true;
+                    ticketId = int.Parse(match.Groups[1].Value);
+                    break;
                 }
             }
 
-            [Command("disabletickets")]
-            [Description("Temporarily disable tickets")]
-            public async Task disableTickets(SlashCommandContext ctx)
+            if (!regExChannelName)
             {
-                if (!await permissionCheck(ctx)) { return; }
-
-                var pins = await ctx.Interaction.Channel.GetPinnedMessagesAsync();
-                DiscordMessage discordMessage = pins[0];
-
-                var select = new DiscordSelectComponent(
-                customId: "ticketoptions",
-                placeholder: "Tickets are currently disabled.",
-                options: new List<DiscordSelectComponentOption>()
+                var noTicketEmbed = new DiscordEmbedBuilder
                 {
-                    new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
-                    new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
-                    new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
-                    new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
-                }, disabled: true);
-
-                var supportEmbed = new DiscordEmbedBuilder
-                {
-                    Title = "Stormy's Shelter Support",
-                    Description = "To create a ticket, make a selection below.",
-                    Color = DiscordColor.Gold
+                    Title = "Please use this inside of an open ticket.",
+                    Color = DiscordColor.Red
                 };
 
-                await discordMessage.ModifyAsync(new DiscordMessageBuilder()
-                    .AddEmbed(supportEmbed)
-                    .AddActionRowComponent(select));
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                return;
             }
+
+            bool overwrites = ctx.Interaction.Channel.PermissionOverwrites.Any(o => o.Id == member.Id);
+
+            if (overwrites)
+            {
+                var failEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "User is already added to the ticket.",
+                    Color = DiscordColor.Red
+                };
+
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
+                return;
+            }
+
+            DiscordPermissions allowPerms = new([DiscordPermission.ViewChannel, DiscordPermission.ReadMessageHistory, DiscordPermission.AttachFiles, DiscordPermission.AddReactions, DiscordPermission.EmbedLinks, DiscordPermission.SendMessages]);
+
+            await ctx.Interaction.Channel.AddOverwriteAsync(member, allowPerms, DiscordPermissions.None);
+
+            var successEmbed = new DiscordEmbedBuilder
+            {
+                Title = $"Successfully added {member.Username} to the ticket.",
+                Color = DiscordColor.Gold
+            };
+
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+
+            return;
+        }
+
+        [SlashCommand("remove", "Remove a user from the current ticket")]
+        [Command("remove")]
+        [Description("Remove a user from the current ticket.")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task RemoveUser(SlashCommandContext ctx, [Parameter("User")][Description("The user to remove")] DiscordUser user)
+        {
+            var check = await PermissionCheck(ctx);
+
+            if (!check) { return; }
+
+            var member = (DiscordMember)user;
+
+            var channelName = ctx.Interaction.Channel.Name;
+            string[] ticketTypes = ["support", "appeal", "speedtypist", "exploiter"];
+
+            string matchedPrefix = null ?? "";
+            int ticketId = 0;
+
+            bool regExChannelName = false;
+
+            foreach (var type in ticketTypes)
+            {
+                var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                var match = regex.Match(channelName);
+
+                if (match.Success)
+                {
+                    matchedPrefix = type;
+                    regExChannelName = true;
+                    ticketId = int.Parse(match.Groups[1].Value);
+                    break;
+                }
+            }
+
+            if (!regExChannelName)
+            {
+                var noTicketEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Please use this inside of an open ticket.",
+                    Color = DiscordColor.Red
+                };
+
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                return;
+            }
+
+            bool overwrites = ctx.Interaction.Channel.PermissionOverwrites.Any(o => o.Id == member.Id);
+
+            if (!overwrites)
+            {
+                var failEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "User is not added to the ticket.",
+                    Color = DiscordColor.Red
+                };
+
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(failEmbed).AsEphemeral());
+                return;
+            }
+
+            await ctx.Interaction.Channel.DeleteOverwriteAsync(member);
+
+            var successEmbed = new DiscordEmbedBuilder
+            {
+                Title = $"Successfully removed {member.Username} to the ticket.",
+                Color = DiscordColor.Gold
+            };
+
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(successEmbed).AsEphemeral());
+
+            return;
+        }
+
+        public async Task<bool> CheckChannelName(SlashCommandContext ctx, DiscordChannel channel)
+        {
+            var channelName = ctx.Interaction.Channel.Name;
+            string[] ticketTypes = ["support", "appeal", "speedtypist", "exploiter"];
+
+            string matchedPrefix = null ?? "";
+            int ticketId = 0;
+
+            bool regExChannelName = false;
+
+            foreach (var type in ticketTypes)
+            {
+                var regex = new Regex($@"^(?:.+-)?{type}-(\d+)$");
+                var match = regex.Match(channelName);
+
+                if (match.Success)
+                {
+                    matchedPrefix = type;
+                    regExChannelName = true;
+                    ticketId = int.Parse(match.Groups[1].Value);
+                    break;
+                }
+            }
+
+            if (!regExChannelName)
+            {
+                var noTicketEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Please use this inside of an open ticket.",
+                    Color = DiscordColor.Red
+                };
+
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(noTicketEmbed).AsEphemeral());
+                return false;
+            }
+            return true;
+        }
+
+        [SlashCommand("addrole", "Add a role to the current ticket.")]
+        [Command("addrole")]
+        [Description("Add a role and their members into the ticket")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task AddRole(SlashCommandContext ctx, [Parameter("role")][Description("The role to add to the current ticket.")] DiscordRole role)
+        {
+            bool permissions = await PermissionCheck(ctx);
+            if(!permissions) { return; }
+
+            await ctx.DeferResponseAsync(true);
+
+            bool isTicket = await CheckChannelName(ctx, ctx.Interaction.Channel);
+
+            if (!isTicket) { return; }
+
+            await ctx.Interaction.Channel.AddOverwriteAsync(role, allow: new([DiscordPermission.SendMessages, DiscordPermission.ViewChannel, DiscordPermission.AttachFiles, DiscordPermission.EmbedLinks]));
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = $"Added role {role.Name} to the channel",
+                Color = DiscordColor.Gold
+            };
+
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+            return;
+        }
+
+        [SlashCommand("removerole", "Remove a role from the current ticket")]
+        [Command("removerole")]
+        [Description("Remove a role and their members from the curent ticket.")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task RemoveRole(SlashCommandContext ctx, [Parameter("role")][Description("The role to remove from the current ticket.")] DiscordRole role)
+        {
+            bool permissions = await PermissionCheck(ctx);
+
+            if (!permissions) { return; }
+
+            await ctx.DeferResponseAsync(true);
+
+            bool isTicket = await CheckChannelName(ctx, ctx.Interaction.Channel);
+
+            if (!isTicket) return;
+
+            await ctx.Interaction.Channel.DeleteOverwriteAsync(role);
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = $"Removed role {role.Name} from the channel",
+                Color = DiscordColor.Gold
+            };
+
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+            return;
+        }
+
+        //[SlashCommand("bulkdelete", "Bulk delete closed tickets in the closed tickets category.")]
+        [Command("bulkdelete")]
+        [Description("Bulk delete tickets")]
+        [AllowedProcessors(typeof(SlashCommandProcessor))]
+        public async Task BulkDelete(SlashCommandContext ctx)
+        {
+            bool permissions = await PermissionCheck(ctx);
+            await ctx.DeferResponseAsync(true);
+
+            if (!permissions) { return; }
+
+            var button = new DiscordButtonComponent(DiscordButtonStyle.Danger, "bulkdelete", "Confirm Bulk Delete", emoji: new DiscordComponentEmoji("⚠️"));
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Bulk Delete Closed Tickets",
+                Description = "This will delete **ALL** tickets in the closed-ticket category.\n# This action cannot be undone.",
+                Color = DiscordColor.Red
+            };
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed).AddActionRowComponent(button));
+            return;
+        }
+
+        [SlashCommand("forcedelete", "Force delete a ticket channel.")]
+        [Command("forcedelete")]
+        [Description("Force delete the current ticket you are in.")]
+        public async Task ForceDelete(SlashCommandContext ctx)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AsEphemeral());
+
+            bool isAdmin = await PermissionCheck(ctx);
+            if(!isAdmin)
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("You do not have permission."));
+                return;
+            }
+
+            Regex regex = new(@"closed-[A-Za-z]+-(\\d+)");
+            DiscordChannel channel = ctx.Interaction.Channel;
+            var chName = channel.Name;
+
+            if(regex.IsMatch(chName))
+            {
+                AutoTranscript autoTranscript = new();
+                bool result = await autoTranscript.ProcessTranscript(ctx.Client, ctx.Interaction, channel, "delete");
+
+                if (!result)
+                {
+                    var errorEmbed = new DiscordEmbedBuilder
+                    {
+                        Title = "Error",
+                        Description = "An unknown error occured.",
+                        Color = DiscordColor.Red
+                    };
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
+                }
+            }
+            else
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("This is not a valid ticket channel."));
+            }
+        }
+
+        [Command("disabletickets")]
+        [Description("Temporarily disable tickets")]
+        public async Task DisableTickets(SlashCommandContext ctx)
+        {
+            if (!await PermissionCheck(ctx)) { return; }
+
+            var pins = await ctx.Interaction.Channel.GetPinnedMessagesAsync();
+            DiscordMessage discordMessage = pins[0];
+
+            var select = new DiscordSelectComponent(
+            customId: "ticketoptions",
+            placeholder: "Tickets are currently disabled.",
+            options:
+            [
+                new("Support", "support", "Create a ticket for server help! (ex. reporting members, general questions for staff)", emoji:new DiscordComponentEmoji("🔧")), // emoji:new DiscordComponentEmoji("🔧")
+                new("Speedtypist Application", "speedtypist", "Create a ticket to apply for the 'Speedtypist' role.", emoji:new DiscordComponentEmoji("⌨️")), // emoji:new DiscordComponentEmoji("⌨️")
+                new("Exploiter Report", "exploiter", "Create a ticket to report an in-game exploiter.", emoji:new DiscordComponentEmoji("🚨")), // emoji:new DiscordComponentEmoji("🚨")
+                new("Game Appeal", "appeal", "Create a ticket to appeal an in-game ban.", emoji:new DiscordComponentEmoji("🔎")),
+            ], disabled: true);
+
+            var supportEmbed = new DiscordEmbedBuilder
+            {
+                Title = "Stormy's Shelter Support",
+                Description = "To create a ticket, make a selection below.",
+                Color = DiscordColor.Gold
+            };
+
+            await discordMessage.ModifyAsync(new DiscordMessageBuilder()
+                .AddEmbed(supportEmbed)
+                .AddActionRowComponent(select));
         }
     }
 }

@@ -17,9 +17,9 @@ namespace Stormtility.events {
         public static DiscordClient Client = null!;
         private static Regex channelNameFix = new(@".+-(?:closed)?-");
         private static Regex checkArgId = new(@"(support|appeal|exploiter|speedtypist)-(\d+)");
-        private static HttpClient client = new();
+        private static readonly HttpClient client = new();
 
-        private static async Task<int> getTicketCountAsync(string ticketType)
+        private static async Task<int> GetTicketCountAsync(string ticketType)
         {
             string conn = "Data Source=tickets.db";
             string sql = "SELECT count FROM tickets WHERE type = @type";
@@ -43,12 +43,12 @@ namespace Stormtility.events {
                 return 0;
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return 0;
             }
         }
 
-        private static async Task<bool> updateTicketCountAsync(string ticketType)
+        private static async Task<bool> UpdateTicketCountAsync(string ticketType)
         {
             string conn = "Data Source=tickets.db";
             string sql = "UPDATE tickets SET count = count + 1 WHERE type = @type";
@@ -66,12 +66,12 @@ namespace Stormtility.events {
                 }
             } catch(Exception e)
             {
-                await logger.LOGGER(e);
+                await Logger.LOGGER(e);
                 return false;
             }
         }
 
-        public static async Task<bool> insertActiveTicket(DiscordUser user, DiscordChannel ticket)
+        public static async Task<bool> InsertActiveTicket(DiscordUser user, DiscordChannel ticket)
         {
             var connectionString = "Data Source=activetickets.db";
 
@@ -101,13 +101,13 @@ namespace Stormtility.events {
                 Console.WriteLine("--- STACK END ---");
                 Console.ResetColor();
 
-                _ = logger.LOGGER(e);
+                _ = Logger.LOGGER(e);
 
                 return false;
             }
         }
 
-        public static async Task<ulong> getActiveTicket(DiscordUser user)
+        public static async Task<ulong> GetActiveTicket(DiscordUser user)
         {
             string sqlConn = "Data Source=activetickets.db";
 
@@ -142,12 +142,12 @@ namespace Stormtility.events {
                 Console.WriteLine(e);
                 Console.WriteLine("--- STACK END ---");
                 Console.ResetColor();
-                _ = logger.LOGGER(e);
+                _ = Logger.LOGGER(e);
                 return 0;
             }
         }
 
-        public static async Task<(ulong? channelId, ulong? userId)> deleteActiveTicketEntry(ulong? id = 0)
+        public static async Task<(ulong? channelId, ulong? userId)> DeleteActiveTicketEntry(ulong? id = 0)
         {
             string connectionString = "Data Source=activetickets.db";
             string chid = id.ToString() ?? "0";
@@ -186,19 +186,19 @@ namespace Stormtility.events {
                 Console.WriteLine(e);
                 Console.WriteLine("---  STACK END  ---");
                 Console.ResetColor();
-                _ = logger.LOGGER(e);
+                _ = Logger.LOGGER(e);
                 return (null, null);
             }
         }
 
-        public static async Task createAppealChannel(ModalSubmittedEventArgs args, DiscordMessageBuilder appeal)
+        public static async Task CreateAppealChannel(ModalSubmittedEventArgs args, DiscordMessageBuilder appeal)
         {
-            int ticketId = await getTicketCountAsync("appeal") + 1;
+            int ticketId = await GetTicketCountAsync("appeal") + 1;
 
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Creating ban appeal channel..."));
 
             ulong catId = 1429871426386526310;
-            var cat = await args.Interaction.Guild.GetChannelAsync(catId);
+            var cat = await args.Interaction.Guild!.GetChannelAsync(catId);
             ulong staffRole = 1474165198947356793;
             var staff = await args.Interaction.Guild.GetRoleAsync(staffRole);
             ulong ticketRole = 1387529661323677827;
@@ -211,7 +211,7 @@ namespace Stormtility.events {
             var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel);
 
             var channel = await args.Interaction.Guild.CreateChannelAsync($"appeal-{ticketId}", DiscordChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-            _ = await insertActiveTicket(args.Interaction.User, channel);
+            _ = await InsertActiveTicket(args.Interaction.User, channel);
 
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
 
@@ -224,7 +224,7 @@ namespace Stormtility.events {
 
             var closeBtn = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
 
-            if (!vars.debugMode)
+            if (!Vars.DebugMode)
             {
                 await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddActionRowComponent(closeBtn));
                 await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{staff.Mention}").WithAllowedMentions(Mentions.All));
@@ -235,50 +235,50 @@ namespace Stormtility.events {
                 await channel.SendMessageAsync(appeal);
             }
 
-            bool increased = await updateTicketCountAsync("appeal");
+            bool increased = await UpdateTicketCountAsync("appeal");
             if(increased)
             {
                 return;
             }
 
-            await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+            await Logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
             return;
         }
 
-        public static async Task bulkDeleteTickets(DiscordClient sender, ComponentInteractionCreatedEventArgs args)
+        public static async Task BulkDeleteTickets(DiscordClient sender, ComponentInteractionCreatedEventArgs args)
         {
             await args.Interaction.DeferAsync(true);
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Deleting channels..."));
             var autoTranscript = new AutoTranscript();
-            DiscordChannel category = await args.Interaction.Guild.GetChannelAsync(1429871639658762281);
+            DiscordChannel category = await args.Interaction.Guild!.GetChannelAsync(1429871639658762281);
             DiscordMember mem = null!;
             bool result = true;
             foreach(DiscordChannel channel in category.Children) {
                 if(channel.Name.Contains("-closed-")) {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Deleting {channel.Mention}..."));
-                    await logger.debugLog("Trying to delete alrady closed ticket...");
-                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel.Id);
-                    await logger.debugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
+                    await Logger.DebugLog("Trying to delete alrady closed ticket...");
+                    var (channelId, userId) = await DeleteActiveTicketEntry(args.Interaction.Channel.Id);
+                    await Logger.DebugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
                     if(channelId == null || userId == null)
                     {
-                        await logger.debugLog("Setting values to default...");
+                        await Logger.DebugLog("Setting values to default...");
                         channelId = args.Interaction.Channel.Id;
                         userId = args.Interaction.User.Id;
-                        await logger.debugLog($"channelId is now {channelId}");
-                        await logger.debugLog($"userId is now {userId}");
+                        await Logger.DebugLog($"channelId is now {channelId}");
+                        await Logger.DebugLog($"userId is now {userId}");
                     }
-                    await logger.debugLog($"Grabbed {channel.Id}");
-                    await logger.debugLog($"Attempting to grab member");
+                    await Logger.DebugLog($"Grabbed {channel.Id}");
+                    await Logger.DebugLog($"Attempting to grab member");
                     mem = await args.Guild.GetMemberAsync(userId.Value);
-                    await logger.debugLog($"Grabbed {mem.Id}");
-                    await logger.debugLog($"Auto transcripting ticket...");
+                    await Logger.DebugLog($"Grabbed {mem.Id}");
+                    await Logger.DebugLog($"Auto transcripting ticket...");
                     result = await autoTranscript.ProcessTranscript(sender, args.Interaction, channel, "delete");
-                    await logger.debugLog($"Received as result: {result}");
+                    await Logger.DebugLog($"Received as result: {result}");
                 } else
                 {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("CANCELLED TRYING TO DELETE NON TICKET CHANNEL."));
                     return;
-                } 
+                }
                 if (!result)
                 {
                     continue;
@@ -289,14 +289,14 @@ namespace Stormtility.events {
             return;
         }
 
-        public static async Task handleSpeedTypistApplicationModalReceivedState(ModalSubmittedEventArgs args, DiscordMessageBuilder compiledMessage)
+        public static async Task HandleSpeedTypistApplicationModalReceivedState(ModalSubmittedEventArgs args, DiscordMessageBuilder compiledMessage)
         {
-            int ticketId = await getTicketCountAsync("speedtypist") + 1;
+            int ticketId = await GetTicketCountAsync("speedtypist") + 1;
 
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Creating speedtypist channel..."));
 
             ulong catId = 1429871426386526310;
-            var cat = await args.Interaction.Guild.GetChannelAsync(catId);
+            var cat = await args.Interaction.Guild!.GetChannelAsync(catId);
             ulong staffRole = 1370422448763437207;
             var staff = await args.Interaction.Guild.GetRoleAsync(staffRole);
             ulong ticketRole = 1387529661323677827;
@@ -309,7 +309,7 @@ namespace Stormtility.events {
             var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel);
 
             var channel = await args.Interaction.Guild.CreateChannelAsync($"speedtypist-{ticketId}", DiscordChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-            _ = await insertActiveTicket(args.Interaction.User, channel);
+            _ = await InsertActiveTicket(args.Interaction.User, channel);
 
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
 
@@ -322,7 +322,7 @@ namespace Stormtility.events {
 
             var closeBtn = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-            if (!vars.debugMode)
+            if (!Vars.DebugMode)
             {
                 await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddActionRowComponent(closeBtn));
                 await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
@@ -333,24 +333,24 @@ namespace Stormtility.events {
                 await channel.SendMessageAsync(compiledMessage);
             }
 
-            bool increased = await updateTicketCountAsync("speedtypist");
+            bool increased = await UpdateTicketCountAsync("speedtypist");
             if(increased)
             {
                 return;
             }
 
-            await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+            await Logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
             return;
         }
 
-        public static async Task handleSupportModalReceivedState(ModalSubmittedEventArgs args, DiscordMessageBuilder compiledMessage)
+        public static async Task HandleSupportModalReceivedState(ModalSubmittedEventArgs args, DiscordMessageBuilder compiledMessage)
         {
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Creating support channel..."));
 
-            int ticketId = await getTicketCountAsync("support") + 1;
+            int ticketId = await GetTicketCountAsync("support") + 1;
 
             ulong catId = 1429871426386526310;
-            var cat = await args.Interaction.Guild.GetChannelAsync(catId);
+            var cat = await args.Interaction.Guild!.GetChannelAsync(catId);
             ulong staffRole = 1370422448763437207;
             var staff = await args.Interaction.Guild.GetRoleAsync(staffRole);
             ulong ticketRole = 1387529661323677827;
@@ -363,7 +363,7 @@ namespace Stormtility.events {
             var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel);
 
             var channel = await args.Interaction.Guild.CreateChannelAsync($"support-{ticketId}", DiscordChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-            _ = await insertActiveTicket(args.Interaction.User, channel);
+            _ = await InsertActiveTicket(args.Interaction.User, channel);
 
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
 
@@ -376,7 +376,7 @@ namespace Stormtility.events {
 
             var closeBtn = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji: new DiscordComponentEmoji("⚠️"));
 
-            if (!vars.debugMode)
+            if (!Vars.DebugMode)
             {
                 await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(supportEmbed).AddActionRowComponent(closeBtn));
                 await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{tickets.Mention}").WithAllowedMentions(Mentions.All));
@@ -387,24 +387,24 @@ namespace Stormtility.events {
                 await channel.SendMessageAsync(compiledMessage);
             }
 
-            bool increased = await updateTicketCountAsync("support");
+            bool increased = await UpdateTicketCountAsync("support");
             if(increased)
             {
                 return;
             }
 
-            await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+            await Logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
             return;
         }
 
-        public static async Task handleExploiterReportModalReceivedStateSubmissionTicketCreationAction(ModalSubmittedEventArgs args, DiscordMessageBuilder compiledMessage)
+        public static async Task HandleExploiterReportModalReceivedStateSubmissionTicketCreationAction(ModalSubmittedEventArgs args, DiscordMessageBuilder compiledMessage)
         {
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Creating exploiter report channel..."));
 
-            int ticketId = await getTicketCountAsync("exploiter") + 1;
+            int ticketId = await GetTicketCountAsync("exploiter") + 1;
 
             ulong catId = 1429871426386526310;
-            var cat = await args.Interaction.Guild.GetChannelAsync(catId);
+            var cat = await args.Interaction.Guild!.GetChannelAsync(catId);
             ulong staffRole = 1474165198947356793;
             var staff = await args.Interaction.Guild.GetRoleAsync(staffRole);
             ulong ticketRole = 1387529661323677827;
@@ -417,7 +417,7 @@ namespace Stormtility.events {
             var defaultRoleOverwrites = new DiscordOverwriteBuilder(args.Interaction.Guild.EveryoneRole).Deny(DiscordPermission.ViewChannel);
 
             var channel = await args.Interaction.Guild.CreateChannelAsync($"exploiter-{ticketId}", DiscordChannelType.Text, cat, overwrites: [userOverwrites, staffOverwrites, defaultRoleOverwrites]);
-            _ = await insertActiveTicket(args.Interaction.User, channel);
+            _ = await InsertActiveTicket(args.Interaction.User, channel);
 
             await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Channel created at {channel.Mention}"));
 
@@ -430,7 +430,7 @@ namespace Stormtility.events {
 
             var closeBtn = new DiscordButtonComponent(DiscordButtonStyle.Danger, "closeticket", "Close Ticket", emoji:new DiscordComponentEmoji("⚠️"));
 
-            if (!vars.debugMode)
+            if (!Vars.DebugMode)
             {
                 await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(supportEmbed).WithContent($"{tickets.Mention}").AddActionRowComponent(closeBtn));
                 await channel.SendMessageAsync(new DiscordMessageBuilder().WithContent($"{staff.Mention}").WithAllowedMentions(Mentions.All));
@@ -441,13 +441,13 @@ namespace Stormtility.events {
                 await channel.SendMessageAsync(compiledMessage);
             }
 
-            bool increased = await updateTicketCountAsync("exploiter");
+            bool increased = await UpdateTicketCountAsync("exploiter");
             if(increased)
             {
                 return;
             }
 
-            await logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
+            await Logger.LOGGER(new Exception("Ticket type for support did not increase successfully."));
             return;
         }
 
@@ -467,7 +467,7 @@ namespace Stormtility.events {
                     string message = $"{nonce}.{timestamp}";
 
                     using var hmac = new HMACSHA256(
-                        Encoding.UTF8.GetBytes(Program.nonce)
+                        Encoding.UTF8.GetBytes(Program.nonce ?? "")
                     );
 
                     string signature = Convert.ToHexString(
@@ -495,7 +495,7 @@ namespace Stormtility.events {
                         return;
                     } catch(Exception e)
                     {
-                        await logger.LOGGER(e);
+                        await Logger.LOGGER(e);
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("An unexpected error occured. Please report this to the bot developer."));
                         return;
                     }
@@ -506,7 +506,7 @@ namespace Stormtility.events {
 
                     if (selected == "support")
                     {
-                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await GetActiveTicket(args.Interaction.User);
 
                         if(isTicketOpenAlready != 0)
                         {
@@ -516,8 +516,8 @@ namespace Stormtility.events {
                                 return;
                             } catch(NotFoundException ex)
                             {
-                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
-                                await logger.LOGGER(ex);
+                                await DeleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await Logger.LOGGER(ex);
                             }
                         }
 
@@ -528,12 +528,12 @@ namespace Stormtility.events {
                                             .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 0, 4000), "Describe your problem in best detail.")
                                             .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Additional attachments", "Not needed if you don't have any, but is beneficial.")
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
-        
+
                         await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
                     }
                     else if (selected == "speedtypist")
                     {
-                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await GetActiveTicket(args.Interaction.User);
 
                         if(isTicketOpenAlready != 0)
                         {
@@ -543,8 +543,8 @@ namespace Stormtility.events {
                                 return;
                             } catch(NotFoundException ex)
                             {
-                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
-                                await logger.LOGGER(ex);
+                                await DeleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await Logger.LOGGER(ex);
                             }
                         }
 
@@ -554,11 +554,11 @@ namespace Stormtility.events {
                                             .AddTextInput(new DiscordTextInputComponent("monkeytypeprofile", "https://monkeytype.com/profile/peanutxvreal", "", required: true, style: DiscordTextInputStyle.Short), "Your MonkeyType profile", "You can find this under Username at the top → Public Profile → Copy link in the URL bar")
                                             .AddFileUpload(new DiscordFileUploadComponent("proof", 1, 1, true), "15 Second recording of your run", "Upload a 15s Monkeytype recording. Drag your Discord window into view at the end.")
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
-        
+
                         await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
                     } else if (selected == "exploiter")
                     {
-                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await GetActiveTicket(args.Interaction.User);
 
                         if(isTicketOpenAlready != 0)
                         {
@@ -568,8 +568,8 @@ namespace Stormtility.events {
                                 return;
                             } catch(NotFoundException ex)
                             {
-                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
-                                await logger.LOGGER(ex);
+                                await DeleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await Logger.LOGGER(ex);
                             }
                         }
 
@@ -581,7 +581,7 @@ namespace Stormtility.events {
                         return;
                     } else if (selected == "appeal")
                     {
-                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await GetActiveTicket(args.Interaction.User);
 
                         if(isTicketOpenAlready != 0)
                         {
@@ -591,8 +591,8 @@ namespace Stormtility.events {
                                 return;
                             } catch(NotFoundException ex)
                             {
-                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
-                                await logger.LOGGER(ex);
+                                await DeleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await Logger.LOGGER(ex);
                             }
                         }
 
@@ -615,13 +615,13 @@ namespace Stormtility.events {
                                                                                 new List<DiscordCheckboxGroupOption> {  new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules",
                                                                                 description: "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", selectedByDefault: false)},
                                                                             1, 1, true), "Ticket ToS");
-                    
+
                     await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
                     return;
                 }
                 if (args.Id == "support")
                 {
-                    ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                    ulong isTicketOpenAlready = await GetActiveTicket(args.Interaction.User);
 
                     if(isTicketOpenAlready != 0)
                     {
@@ -631,8 +631,8 @@ namespace Stormtility.events {
                             return;
                         } catch(NotFoundException ex)
                         {
-                            await deleteActiveTicketEntry(id: isTicketOpenAlready);
-                            await logger.LOGGER(ex);
+                            await DeleteActiveTicketEntry(id: isTicketOpenAlready);
+                            await Logger.LOGGER(ex);
                         }
                     }
 
@@ -643,17 +643,17 @@ namespace Stormtility.events {
                                             .AddTextInput(new DiscordTextInputComponent("problemdescription", "Describe the problem in full detail.", null, true, DiscordTextInputStyle.Paragraph, 0, 4000), "Describe your problem in best detail.")
                                             .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Additional attachments", "Not needed if you don't have any, but is beneficial.")
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
-        
+
                     await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
                 }
-                
+
                 if(args.Id == "spellingbeegame")
                 {
                     var selected = args.Values.FirstOrDefault();
 
                     if(selected == "ssb")
                     {
-                        ulong isTicketOpenAlready = await getActiveTicket(args.Interaction.User);
+                        ulong isTicketOpenAlready = await GetActiveTicket(args.Interaction.User);
 
                         if(isTicketOpenAlready != 0)
                         {
@@ -663,8 +663,8 @@ namespace Stormtility.events {
                                 return;
                             } catch(NotFoundException ex)
                             {
-                                await deleteActiveTicketEntry(id: isTicketOpenAlready);
-                                await logger.LOGGER(ex);
+                                await DeleteActiveTicketEntry(id: isTicketOpenAlready);
+                                await Logger.LOGGER(ex);
                             }
                         }
 
@@ -675,7 +675,7 @@ namespace Stormtility.events {
                                             .AddTextInput(new DiscordTextInputComponent("reporterusername", "Jane Doe", "", true, DiscordTextInputStyle.Short), "Your username", "Not your display name either.")
                                             .AddFileUpload(new DiscordFileUploadComponent("attachments", 0, 10, false), "Proof of the user exploiting", "If you do not have any, leave this field out.")
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", new List<DiscordCheckboxGroupOption> { new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)}, 1, 1, true), "Ticket ToS");
-            
+
                         await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
                     } else
                     {
@@ -706,26 +706,26 @@ namespace Stormtility.events {
                     bool result = true;
                     if(args.Interaction.Channel.Name.Contains("-closed-")) {
                         deletedWhileClosed = true;
-                        await logger.debugLog("Trying to delete alrady closed ticket...");
-                        var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel.Id);
-                        await logger.debugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
+                        await Logger.DebugLog("Trying to delete alrady closed ticket...");
+                        var (channelId, userId) = await DeleteActiveTicketEntry(args.Interaction.Channel.Id);
+                        await Logger.DebugLog($"Received {channelId} and {userId} from deleteActiveTicketEntry");
                         if(channelId == null || userId == null)
                         {
-                            await logger.debugLog("Setting values to default...");
+                            await Logger.DebugLog("Setting values to default...");
                             channelId = args.Interaction.Channel.Id;
                             userId = args.Interaction.User.Id;
-                            await logger.debugLog($"channelId is now {channelId}");
-                            await logger.debugLog($"userId is now {userId}");
+                            await Logger.DebugLog($"channelId is now {channelId}");
+                            await Logger.DebugLog($"userId is now {userId}");
                         }
-                        await logger.debugLog($"Attempting to grab channel");
+                        await Logger.DebugLog($"Attempting to grab channel");
                         channel = await args.Guild.GetChannelAsync(channelId.Value);
-                        await logger.debugLog($"Grabbed {channel.Id}");
-                        await logger.debugLog($"Attempting to grab member");
+                        await Logger.DebugLog($"Grabbed {channel.Id}");
+                        await Logger.DebugLog($"Attempting to grab member");
                         mem = await args.Guild.GetMemberAsync(userId.Value);
-                        await logger.debugLog($"Grabbed {mem.Id}");
-                        await logger.debugLog($"Auto transcripting ticket...");
+                        await Logger.DebugLog($"Grabbed {mem.Id}");
+                        await Logger.DebugLog($"Auto transcripting ticket...");
                         result = await autoTranscript.ProcessTranscript(sender, args.Interaction, args.Interaction.Channel, "delete");
-                        await logger.debugLog($"Received as result: {result}");
+                        await Logger.DebugLog($"Received as result: {result}");
                     }
                     if (!result)
                     {
@@ -739,7 +739,7 @@ namespace Stormtility.events {
                         System.Console.WriteLine($"ERROR: {result}");
                     } else
                     {
-                        try {                            
+                        try {
                             var embed = new DiscordEmbedBuilder
                             {
                                 Title = "Ticket Closed",
@@ -758,14 +758,14 @@ namespace Stormtility.events {
                             return;
                         } catch (Exception e)
                         {
-                            await logger.LOGGER(e);
+                            await Logger.LOGGER(e);
                         }
                     }
                 }
 
                 if (args.Id == "bulkdelete")
                 {
-                    await bulkDeleteTickets(sender, args);
+                    await BulkDeleteTickets(sender, args);
                     return;
                 }
 
@@ -781,7 +781,7 @@ namespace Stormtility.events {
                     }
 
                     var autoTranscript = new AutoTranscript();
-                    var (channelId, userId) = await deleteActiveTicketEntry(args.Interaction.Channel.Id);
+                    var (channelId, userId) = await DeleteActiveTicketEntry(args.Interaction.Channel.Id);
                     if(channelId == null || userId == null)
                     {
                         doNotDm = true;
@@ -800,9 +800,9 @@ namespace Stormtility.events {
                     } else
                     { try {
                         if(!doNotDm) {
-                            DiscordMember mem = await args.Guild.GetMemberAsync(userId.Value);
-                            DiscordChannel channel = await args.Guild.GetChannelAsync(channelId.Value);
-                            
+                            DiscordMember? mem = await args.Guild.GetMemberAsync(userId!.Value);
+                            DiscordChannel? channel = await args.Guild.GetChannelAsync(channelId!.Value);
+
                             var embed = new DiscordEmbedBuilder
                             {
                                 Title = "Ticket Closed",
@@ -819,11 +819,11 @@ namespace Stormtility.events {
                                 await mem.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(closedTicketButtonCreateUserTranscript));
                             } catch(UnauthorizedException e)
                             {
-                                await logger.LOGGER(e);
+                                await Logger.LOGGER(e);
                                 return;
                             } catch(NotFoundException e)
                             {
-                                await logger.LOGGER(e);
+                                await Logger.LOGGER(e);
                                 return;
                             }
                         }
@@ -832,7 +832,7 @@ namespace Stormtility.events {
                             return;
                         } catch(Exception e)
                         {
-                            await logger.LOGGER(e);
+                            await Logger.LOGGER(e);
                         }
                     }
                 }

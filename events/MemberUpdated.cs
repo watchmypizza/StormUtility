@@ -22,30 +22,31 @@ namespace Stormtility.events
         {
             Regex regex = new Regex("[^A-Za-z0-9()!?,.\"$':#+:;_\\s]+");
             DiscordMember discordMember = (DiscordMember)user;
-            
+
             var nickname = discordMember.DisplayName;
-            
+
             if (regex.IsMatch(nickname))
             {
                 string replacedNick = regex.Replace(nickname, "");
 
                 if (string.IsNullOrWhiteSpace(replacedNick))
                 {
-                    replacedNick = "Restricted Name"; 
+                    replacedNick = "Restricted Name";
                 }
 
-                try 
+                try
                 {
                     await discordMember.ModifyAsync(a => a.Nickname = replacedNick);
-                } 
+                }
                 catch (UnauthorizedException e)
                 {
                     Console.WriteLine($"Not authorized to perform action on {discordMember.Mention} ({discordMember.Username})");
-                    await logger.LOGGER(e);
+                    await Logger.LOGGER(e);
                     return false;
-                } 
+                }
                 catch (Exception e)
                 {
+                    await Logger.LOGGER(e);
                     return false;
                 }
             }
@@ -55,7 +56,7 @@ namespace Stormtility.events
 
         public static async Task<Task> Client_GuildMemberUpdated(DiscordClient sender, GuildMemberUpdatedEventArgs args)
         {
-            if(vars.commandTriggered)
+            if(Vars.CommandTriggered)
             {
                 return Task.CompletedTask;
             }
@@ -67,20 +68,20 @@ namespace Stormtility.events
             bool hadBefore = args.RolesBefore.Any(r => r.Id == blacklist.Id);
             bool hasAfter = args.RolesAfter.Any(r => r.Id == blacklist.Id);
 
-            slashcommands blacklists = new slashcommands();
+            Slashcommands blacklists = new();
 
             if (hadBefore && !hasAfter)
             {
-                string isBlacklisted = await blacklists.getBlacklist(args.Member);
+                string isBlacklisted = await blacklists.GetBlacklist(args.Member);
                 if(isBlacklisted == string.Empty) { return Task.CompletedTask; }
-                bool removed = await blacklists.removeBlacklist(args.Member);
+                bool removed = await blacklists.RemoveBlacklist(args.Member);
             }
 
             if (!hadBefore && hasAfter)
             {
-                string isBlacklisted = await blacklists.getBlacklist(args.Member);
+                string isBlacklisted = await blacklists.GetBlacklist(args.Member);
                 if(isBlacklisted != string.Empty) { return Task.CompletedTask; }
-                bool added = await blacklists.insertBlacklist(args.Member, "Role has been given manually.");
+                bool added = await blacklists.InsertBlacklist(args.Member, "Role has been given manually.");
 
                 return Task.CompletedTask;
             }

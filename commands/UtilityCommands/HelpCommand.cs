@@ -14,7 +14,7 @@ namespace Stormtility.commands.UtilityCommands
         [SlashCommand("help", "Receive a list of commands that are available")]
         [Command("help")]
         [Description("Receive a list of commands that are available.")]
-        public async Task help(SlashCommandContext ctx, [Parameter("command")][Description("More information about a certain command")] string? command = null)
+        public async Task Help(SlashCommandContext ctx, [Parameter("command")][Description("More information about a certain command")] string? command = null)
         {
             if (command == null)
             {

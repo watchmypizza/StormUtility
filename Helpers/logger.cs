@@ -6,13 +6,14 @@ using Stormtility.config;
 
 namespace Stormtility.Helpers
 {
-    public class logger
+    public class Logger
     {
+        private static readonly HttpClient httpClient = new();
+
         public static async Task<bool> LOGGER(Exception e)
         {
-            try 
+            try
             {
-                using HttpClient httpClient = new();
                 var url = Program.webhookURL;
 
                 var payload = new
@@ -39,18 +40,18 @@ namespace Stormtility.Helpers
             }
         }
 
-        public static async Task debugLog(string message)
+        public static async Task DebugLog(string message)
         {
-            if(!vars.debugMode)
+            if(!Vars.DebugMode)
             {
                 return;
-            } 
+            }
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"/// DEBUG: {message} ///");
             Console.ResetColor();
         }
 
-        public static async Task consoleLog(string message)
+        public static async Task ConsoleLog(string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"/// CONLOG: {message} ///");

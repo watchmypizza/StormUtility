@@ -10,7 +10,7 @@ namespace Stormtility.Helpers
     public class verificationCode
     {
         private static string charSet { get; } = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz123456789";
-        private static Dictionary<ulong, (string Code, DateTime Expiry)> codeCache { get; set; }
+        private static Dictionary<ulong, (string Code, DateTime Expiry)>? CodeCache { get; set; }
 
         private static List<char> separateChars()
         {
@@ -19,9 +19,9 @@ namespace Stormtility.Helpers
 
         private static bool tryGetCache(DiscordUser user, out (string Code, DateTime Expiry) entry)
         {
-            if (codeCache == null) codeCache = new Dictionary<ulong, (string Code, DateTime Expiry)>();
+            if (CodeCache == null) CodeCache = new Dictionary<ulong, (string Code, DateTime Expiry)>();
 
-            if (codeCache.TryGetValue(user.Id, out entry))
+            if (CodeCache.TryGetValue(user.Id, out entry))
             {
                 if (entry.Expiry > DateTime.UtcNow)
                     return true;
@@ -31,13 +31,13 @@ namespace Stormtility.Helpers
             return false;
         }
 
-        private static bool addCache(DiscordUser user, string code)
+        private static bool AddCache(DiscordUser user, string code)
         {
             DateTime now = DateTime.UtcNow;
             DateTime expiry = now.AddMinutes(1);
 
             try {
-                codeCache[user.Id] = (code, expiry); 
+                CodeCache![user.Id] = (code, expiry);
             } catch(Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -46,26 +46,9 @@ namespace Stormtility.Helpers
                 Console.WriteLine("---  STACK END  ---");
                 Console.ResetColor();
 
-                try 
+                try
                 {
-                    using HttpClient httpClient = new();
-                    var url = Program.webhookURL;
-
-                    var payload = new
-                    {
-                        content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
-                    };
-
-                    string json = JsonSerializer.Serialize(payload);
-
-                    using StringContent stringContent = new(json, System.Text.Encoding.UTF8, "application/json");
-
-                    var response = httpClient.PostAsync(url, stringContent).GetAwaiter().GetResult();
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine($"[Webhook Error] Discord returned: {response.StatusCode}");
-                    }
+                    _ = Logger.LOGGER(e);
                 }
                 catch (Exception logEx)
                 {
@@ -99,7 +82,7 @@ namespace Stormtility.Helpers
             }
 
             string code = GenerateCode();
-            addCache(user, code);
+            AddCache(user, code);
             return code;
         }
     }

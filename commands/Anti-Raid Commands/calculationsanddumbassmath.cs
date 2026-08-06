@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath
 {
-    public static class calculationsanddumbassmath
+    public static class Calculationsanddumbassmath
     {
         public static double LevenshteinRatio(string a, string b)
         {

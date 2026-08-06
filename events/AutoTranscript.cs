@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using Stormtility.commands.TicketCommands.autocompletehelper;
+using Stormtility.commands.TicketCommands;
 using TskLib;
 
 namespace Stormtility.events
@@ -131,7 +131,7 @@ namespace Stormtility.events
                 await channel.SendMessageAsync(closeEmbed);
 
                 var staffRole =
-                    await interaction.Guild.GetRoleAsync(StaffRoleId);
+                    await interaction.Guild!.GetRoleAsync(StaffRoleId);
 
                 var overwrites = new List<DiscordOverwriteBuilder>
                 {
@@ -196,7 +196,7 @@ namespace Stormtility.events
             var rawMessages = channel.GetMessagesAsync(limit);
 
             var sortedMessages = rawMessages
-                .Where(message => !message.Author.IsBot)
+                .Where(message => !message.Author!.IsBot)
                 .OrderBy(message => message.CreationTimestamp);
 
             await foreach (var message in sortedMessages)
@@ -217,7 +217,7 @@ namespace Stormtility.events
                     path,
                     new TskMessage
                     {
-                        UserId = message.Author.Id,
+                        UserId = message.Author!.Id,
                         Username = message.Author.Username,
                         Content = content,
                         Timestamp = message.CreationTimestamp.UtcDateTime.ToString("O")
@@ -239,9 +239,9 @@ namespace Stormtility.events
                 );
             }
 
-            autocompletehandler.LoadTranscriptFiles();
+            AutoCompleteHandler.LoadTranscriptFiles();
         }
-        
+
         private static string SanitizeForTsk(string text)
         {
             return text

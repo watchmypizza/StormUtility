@@ -6,7 +6,7 @@ using DSharpPlus.Entities;
 
 namespace Stormtility.commands.Anti_Raid_Commands.AntiRaidAutoCompleteHandler
 {
-    public class autocomplete : IAutoCompleteProvider
+    public class AutoComplete : IAutoCompleteProvider
     {
         public ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext ctx)
         {

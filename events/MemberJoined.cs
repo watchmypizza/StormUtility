@@ -12,12 +12,12 @@ namespace Stormtility.events
     {
         public static async Task Client_GuildMemberAdded(DiscordClient sender, GuildMemberAddedEventArgs args)
         {
-            slashcommands blacklist = new slashcommands();
+            Slashcommands blacklist = new();
 
-            string isBlacklisted = await blacklist.getBlacklist(args.Member);
+            string isBlacklisted = await blacklist.GetBlacklist(args.Member);
             if(isBlacklisted != string.Empty)
             {
-                DiscordRole blacklistRole = await args.Guild.GetRoleAsync(vars.blacklistRole);
+                DiscordRole blacklistRole = await args.Guild.GetRoleAsync(Vars.BlacklistRole);
                 await args.Member.GrantRoleAsync(blacklistRole);
             }
 
