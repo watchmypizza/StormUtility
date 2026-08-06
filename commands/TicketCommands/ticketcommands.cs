@@ -159,12 +159,12 @@ namespace Stormtility.commands.TicketCommands
                 hmac.ComputeHash(Encoding.UTF8.GetBytes(message))
             ).ToLowerInvariant();
 
-            var payload = (
-                ticketId: $"{ticketId}",
-                nonce: nonce,
-                timestamp: timestamp,
-                signature: signature
-            );
+            var payload = new {
+                ticketId=$"{ticketId}",
+                nonce=nonce,
+                timestamp=timestamp,
+                signature=signature
+            };
 
             var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
             var response = await request.Content.ReadAsStringAsync();
@@ -207,25 +207,25 @@ namespace Stormtility.commands.TicketCommands
 
             var allMsg = new List<(string userId, string username, string content, DateTime timestamp)>();
 
-            foreach(var userProp in ticket.Tickets[0].Messages)
+            foreach(var userProp in ticket.Messages)
             {
-                string userId = userProp.UserId.ToString();
+                string userId = userProp.GetValueOrDefault("UserId")?.ToString() ?? "0";
+                string username = userProp.GetValueOrDefault("Username")?.ToString() ?? "Unknown";
+                string content = userProp.GetValueOrDefault("Content")?.ToString() ?? "";
+                string timestampStr = userProp.GetValueOrDefault("Timestamp")?.ToString() ?? "";
 
-                string content = userProp.Content ?? "";
-                string timestampStr = userProp.Timestamp.ToString() ?? "";
-                string username = userProp.Username.ToString() ?? "";
-                if (DateTime.TryParse(timestampStr, out var timestamp))
+                if (DateTime.TryParse(timestampStr, out var ts))
                 {
-                    allMsg.Add((userId, username, content, timestamp));
+                    allMsg.Add((userId, username, content, ts));
                 }
             }
 
             var orderedMsgs = allMsg.OrderBy(m => m.timestamp).ToList();
 
             var sb = new StringBuilder();
-            foreach(var (userId, username, content, timestamp) in orderedMsgs)
+            foreach(var (userId, username, content, ts) in orderedMsgs)
             {
-                sb.AppendLine($"[{timestamp:yyyy-MM-dd HH:mm:ss}] <@{userId}> {username}: {content}");
+                sb.AppendLine($"[{ts:yyyy-MM-dd HH:mm:ss}] <@{userId}> {username}: {content}");
             }
 
             var transcriptText = sb.ToString();

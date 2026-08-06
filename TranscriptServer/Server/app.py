@@ -33,62 +33,55 @@ IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"TSK file not found: {file_path}")
-
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.read().splitlines()
-
     if not lines or lines[0].strip() != "BEGIN":
         raise ValueError("Expected BEGIN")
-
     if lines[-1].strip() != "END":
         raise ValueError("Expected END")
-
     messages = []
     i = 1
-
     while i < len(lines) - 1:
         if not lines[i].strip():
             i += 1
             continue
-
         if not lines[i].startswith("UserId:"):
             raise ValueError(f"Expected UserId at line {i + 1}")
-
         raw_user_id = lines[i][7:]
         i += 1
-
         try:
             user_id = int(raw_user_id)
         except ValueError:
             raise ValueError(
                 f"Invalid UserId at line {i}: {raw_user_id!r}"
             )
-
         if i >= len(lines) - 1 or not lines[i].startswith("Username:"):
             raise ValueError(f"Expected Username at line {i + 1}")
-
         username = lines[i][9:]
         i += 1
-
         if i >= len(lines) - 1 or not lines[i].startswith("Content:"):
             raise ValueError(f"Expected Content at line {i + 1}")
-
-        content = lines[i][8:]
+        content_lines = [lines[i][8:]]
         i += 1
-
+        while i < len(lines) - 1 and not lines[i].startswith("Timestamp:"):
+            content_lines.append(lines[i])
+            i += 1
+        content = "\n".join(content_lines)
         if i >= len(lines) - 1 or not lines[i].startswith("Timestamp:"):
             raise ValueError(f"Expected Timestamp at line {i + 1}")
-
         timestamp = lines[i][10:]
         i += 1
-
+        message_id = None
+        if i < len(lines) - 1 and lines[i].startswith("MessageId:"):
+            message_id = lines[i][10:]
+            i += 1
         messages.append({
             "userId": user_id,
             "username": username,
             "content": content,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "messageId": message_id
         })
-
     return messages
 
 def extractUserProfilePicture(userId):

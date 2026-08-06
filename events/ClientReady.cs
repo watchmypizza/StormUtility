@@ -37,6 +37,7 @@ namespace Stormtility.events
             {
                 FileName = "python",
                 Arguments = "TranscriptServer/Server/app.py",
+                WorkingDirectory = $"{Environment.CurrentDirectory}",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

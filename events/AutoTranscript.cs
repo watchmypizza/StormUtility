@@ -191,7 +191,9 @@ namespace Stormtility.events
                 await Tsk.CreateAsync(path);
             }
 
-            int limit = action == "auto" ? 100 : 1000;
+            TskDocument transcript = await Tsk.ReadAsync(path);
+
+            int limit = action == "auto" ? 1000 : 100;
 
             var rawMessages = channel.GetMessagesAsync(limit);
 
@@ -201,6 +203,12 @@ namespace Stormtility.events
 
             await foreach (var message in sortedMessages)
             {
+                bool idAlreadyExists = transcript.Messages.Any(msg =>
+                    msg.TryGetValue("MessageId", out object? rawId) &&
+                    rawId?.ToString() == message.Id.ToString()
+                );
+
+                if(idAlreadyExists) continue;
                 string content = SanitizeForTsk(message.Content ?? string.Empty);
 
                 string attachments = string.Join(
@@ -215,12 +223,12 @@ namespace Stormtility.events
 
                 await Tsk.InsertAsync(
                     path,
-                    new TskMessage
-                    {
-                        UserId = message.Author!.Id,
-                        Username = message.Author.Username,
-                        Content = content,
-                        Timestamp = message.CreationTimestamp.UtcDateTime.ToString("O")
+                    new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) {
+                            { "UserId", message.Author!.Id },
+                            { "Username", message.Author!.Username },
+                            { "Content", message.Content ?? "" },
+                            { "Timestamp", message.Timestamp.UtcDateTime.ToString("O") },
+                            { "MessageId", message.Id }
                     }
                 );
             }
@@ -229,12 +237,12 @@ namespace Stormtility.events
             {
                 await Tsk.InsertAsync(
                     path,
-                    new TskMessage
+                    new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                     {
-                        UserId = 1,
-                        Username = "System",
-                        Content = $"{interaction.User.Username} performed action: {action.ToUpper()}",
-                        Timestamp = DateTime.UtcNow.ToString("O")
+                        { "UserId", 1 },
+                        { "Username", "System" },
+                        { "Content", $"{interaction.User.Username} performed action: {action.ToUpper()}" },
+                        { "Timestamp", DateTime.UtcNow.ToString("O") }
                     }
                 );
             }
