@@ -22,8 +22,7 @@ namespace Stormtility.events
         {
             await sender.UpdateStatusAsync(new DiscordActivity("Chasing 2026 EF5", DiscordActivityType.Playing), DiscordUserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
             Console.WriteLine($"Logged in as {sender.CurrentUser.Username}#{sender.CurrentUser.Discriminator}");
-            autocompletehandler.LoadTranscriptCache("transcripts.json");
-            autocompletehandler.FileSysWatcher("./transcripts.json");
+            autocompletehandler.LoadTranscriptFiles();
 
             _ = Task.Run(async () => await SyncAllOpenTickets(sender));
             _ = Task.Run(async () => await cycleBanners(sender));

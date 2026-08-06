@@ -239,7 +239,7 @@ namespace Stormtility.events
                 );
             }
 
-            autocompletehandler.LoadTranscriptCache(path);
+            autocompletehandler.LoadTranscriptFiles();
         }
         
         private static string SanitizeForTsk(string text)
