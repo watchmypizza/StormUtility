@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using DiscordRPC.Logging;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using Stormtility.commands.TicketCommands;
@@ -220,6 +222,19 @@ namespace Stormtility.events
                     content = $"{content} {attachments}".Trim();
                 }
 
+                var embed = message.Embeds.FirstOrDefault() ?? null;
+                string serializedEmbed = "";
+
+                if (message.Author.IsBot)
+                {
+                    if(embed != null) {
+                        serializedEmbed = JsonSerializer.Serialize(embed, new JsonSerializerOptions
+                        {
+                            WriteIndented = false
+                        });
+                    }
+                }
+
                 await Tsk.InsertAsync(
                     path,
                     new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) {
@@ -228,7 +243,7 @@ namespace Stormtility.events
                             { "Content", content },
                             { "Timestamp", message.Timestamp.UtcDateTime.ToString("O") },
                             { "MessageId", message.Id },
-                            { "ChannelId", message.Channel!.Id },
+                            { "Embed", serializedEmbed.ToString() },
                             { "IsBot", isBot }
                     }
                 );
@@ -245,7 +260,7 @@ namespace Stormtility.events
                         { "Content", $"{interaction.User.Username} performed action: {action.ToUpper()}" },
                         { "Timestamp", DateTime.UtcNow.ToString("O") },
                         { "MessageId", interaction.User.Id },
-                        { "ChannelId", interaction.Channel.Id },
+                        { "Embed", "" },
                         { "IsBot", true }
                     }
                 );

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<head>
+    <title>you stink</title>
+    <style>
+        :root {
+            --primary-bg: #0D1117;
+            --surface: #161B22;
+            --borders: #21262D;
+            --accents: #58A6FF;
+            --muted-secondary-text: #8B949E;
+            --primary-text: #C9D1D9;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+        }
+
+        .notfound {
+            display: grid;
+            align-content: center;
+            justify-items: center;
+            gap: 1rem;
+            min-height: 100vh;
+            margin: auto;
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .notfound-primary {
+            display: block;
+            font-size: 5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .notfound-secondary {
+            display: block;
+            font-size: 1rem;
+        }
+
+        .protip {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted-secondary-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="notfound">
+        <span class="notfound-primary">404</span>
+        <span class="notfound-secondary">Your shit has not been located.</span>
+        <span class="protip">TIP: You need authentication:3</span>
+    </div>
+</body>

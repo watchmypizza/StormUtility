@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using static System.Net.WebRequestMethods;
 
 namespace Stormtility.commands.TestingCommands
@@ -154,6 +155,31 @@ namespace Stormtility.commands.TestingCommands
                                             .AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", [new DiscordCheckboxGroupOption("agreed", "Agree to the ticket rules", "Abuse of the ticket system may lead to warnings or tickets being closed without notice.", false)], 1, 1, true), "Ticket ToS");
 
             await ctx.RespondWithModalAsync(modal);
+        }
+
+        [Command("embedTest")]
+        [Description("Get the embed structure")]
+        public async Task EmbedStructure(SlashCommandContext ctx) {
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Hi",
+                Description = "It's me",
+                Color = DiscordColor.Aquamarine
+            };
+
+            var msg = await ctx.Interaction.Channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+            var embedStructure = msg.Embeds.FirstOrDefault();
+            var serialized = System.Text.Json.JsonSerializer.Serialize(
+                embed,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                }
+            );
+            await msg.ModifyAsync(ms => {
+                ms.Content = serialized?.ToString() ?? "";
+            });
+            return;
         }
     }
 }

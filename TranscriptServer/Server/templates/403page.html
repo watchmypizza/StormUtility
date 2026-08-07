@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<head>
+    <title>Expired or Not Found</title>
+    <style>
+
+    :root {
+        --primary-bg: #0D1117;
+        --surface: #161B22;
+        --borders: #21262D;
+        --accents: #58A6FF;
+        --muted-secondary-text: #8B949E;
+        --primary-text: #C9D1D9;
+    }
+
+    body {
+        background-color: var(--primary-bg);
+    }
+
+    .notfound {
+        display: grid;
+        color: var(--primary-text);
+        gap: 1rem;
+        align-content: center;
+        justify-items: center;
+        min-height: 100vh;
+        margin: auto;
+        text-align: center;
+    }
+
+    .notfound-primary {
+        display: block;
+        font-size: 5rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+
+    .notfound-secondary {
+        display: block;
+        font-size: 1rem;
+        color: var(--muted-secondary-text);
+    }
+    </style>
+</head>
+<body>
+    <div class="notfound">
+        <span class="notfound-primary">403</span>
+        <span class="notfound-secondary">This transcript either already expired, or is not a valid transcript link.</span>
+    </div>
+</body>

@@ -10,9 +10,16 @@ import time
 import hmac
 import os
 import requests
+import json
 import dotenv
 
 app = Flask(__name__)
+
+print("--- FLASK PATH DIAGNOSTICS ---")
+print("Current Working Directory (CWD):", os.getcwd())
+print("Flask App Root Path:", app.root_path)
+print("Expected Static Folder Location:", app.static_folder)
+print("------------------------------")
 
 dotenv.load_dotenv(".config")
 token = os.getenv("DISCORD_TOKEN")
@@ -31,38 +38,6 @@ URL_RE = re.compile(r'(https?://[^\s<>"]+)')
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 QUERIED_USERIDS = {}
-
-# TODO: https://discord.com/api/v10/channels/{channelid}/messages/{messageid}
-#       Get discord embeds from messages by simply requesting this if the message is sent by a bot.
-
-def grab_embed(channelid, messageid):
-    url = f"https://discord.com/api/v10/channels/{channelid}/messages/{messageid}"
-
-    response = requests.get(url, headers={"Authorization": f"Bot {token}"}, timeout=10)
-
-    if not response.ok:
-        print(
-            f"Discord API error {response.status_code}: {response.text}"
-        )
-        return []
-
-    try:
-        data = response.json()
-
-        embeds = data.get("embeds", [])
-
-        for embed in embeds:
-            if "description" in embed and embed["description"]:
-                embed["description"] = embed["description"].strip()
-
-            if "title" in embed and embed["title"]:
-                embed["title"] = embed["title"].strip()
-
-        return embeds
-
-    except ValueError as e:
-        print(e)
-        return []
 
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
@@ -135,14 +110,10 @@ def read_tsk(file_path):
         if not message:
             continue
 
-        print(repr(message["Content"]))
-        if message.get("IsBot", "").lower() == "true":
-            embed = grab_embed(
-                message["ChannelId"],
-                message["MessageId"]
+        if "Embed" not in message:
+            raise ValueError(
+                "Missing Embed property."
             )
-            if embed:
-                message["Embed"] = embed
 
         if "UserId" not in message:
             raise ValueError(
@@ -171,6 +142,14 @@ def read_tsk(file_path):
                 f"Invalid UserId: {message['UserId']}"
             )
 
+        if message.get("Embed"):
+            embed = json.loads(message["Embed"])
+        else:
+            embed = None
+
+        is_bot_str = message.get("IsBot", "false").strip().lower()
+        is_bot_bool = is_bot_str == "true"
+
         messages.append(
             {
                 "userId": user_id,
@@ -178,7 +157,8 @@ def read_tsk(file_path):
                 "content": message["Content"],
                 "timestamp": message["Timestamp"],
                 "messageId": message.get("MessageId"),
-                "embed": message.get("Embed", [])
+                "embed": embed,
+                "isBot": is_bot_bool,
             }
         )
 
@@ -570,27 +550,37 @@ def ticket():
     token = request.args.get("id")
 
     if not token:
-        return "Invalid ticket link.", 400
+        return render_template(
+            "403page.html"
+        ), 403
 
     session = sessions.get(token)
 
     if not session:
-        return "Ticket link expired or invalid.", 404
+        return render_template(
+            "403page.html"
+        ), 403
 
     if time.time() > session["expires"]:
         del sessions[token]
 
-        return "Ticket link expired.", 410
+        return render_template(
+            "403page.html"
+        ), 403
 
     if session["ticket_id"] == "getout":
-        return render_content("you stink")
+        return render_template(
+            "404page.html"
+        ), 404
 
     messages = get_transcript(
         session["ticket_id"]
     )
 
     if messages is None:
-        return "Transcript no longer exists.", 404
+        return render_template(
+            "403page.html"
+        ), 403
 
     return render_template(
         "ticket.html",

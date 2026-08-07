@@ -17,11 +17,40 @@
     --danger: #da373c;
     --success: #248046;
     --divider: #3f4147;
+    --blurple: #5865F2;
   }
 
   * { box-sizing: border-box; }
 
   html, body { margin: 0; width: 100%; height: 100%; }
+
+  @font-face {
+      font-family: 'gg sans';
+      src: url('/static/fonts/gg-sans-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+  }
+
+  @font-face {
+      font-family: 'gg sans';
+      src: url('/static/fonts/gg-sans-Medium.ttf') format('truetype');
+      font-weight: 500;
+      font-style: normal;
+  }
+
+  @font-face {
+      font-family: 'gg sans';
+      src: url('/static/fonts/gg-sans-Semibold.ttf') format('truetype');
+      font-weight: 600;
+      font-style: normal;
+  }
+
+  @font-face {
+      font-family: 'gg sans';
+      src: url('/static/fonts/gg-sans-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+  }
 
   body {
     background-color: var(--bg-secondary);
@@ -67,7 +96,7 @@
   .messages {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 0 90px 0; 
+    padding: 16px 0 90px 0;
     scrollbar-width: none;
     overflow: scroll;
     scrollbar-color: #1e1f22 transparent;
@@ -135,6 +164,8 @@
   .msg-header .username { color: var(--text-header); font-weight: 500; font-size: 15px; }
 
   .msg-header .timestamp { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+
+  .msg-header .appTag { background-color: var(--blurple); font-size: 15px; border-radius: 10%; padding: 0 5px; font-family: 'gg sans'; font-weight: 500; }
 
   .msg-content {
     color: var(--text-normal);
@@ -210,8 +241,8 @@
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    
-    z-index: 9999; 
+
+    z-index: 9999;
 
     display: flex;
     align-items: center;
@@ -301,6 +332,9 @@
             {% if not compact %}
             <div class="msg-header">
               <span class="username">{{ message.username }}</span>
+              {% if message.isBot %}
+              <span class="appTag">APP</span>
+              {% endif %}
               {% if message.timestamp %}
               <span class="timestamp">{{ message.timestamp }}</span>
               {% endif %}
@@ -308,23 +342,17 @@
             {% endif %}
             <div class="msg-content">{{ message.content | render_content }}</div>
             {% if message.embed %}
-            {% for embed in message.embed %}
-              <div class="discord-embed">
+                <div class="discord-embed">
 
-                {% if embed.title %}
-                  <div class="embed-title">
-                    {{ embed.title }}
-                  </div>
+                {% if message.embed["Title"] %}
+                    <div class="embed-title">{{ message.embed["Title"] }}</div>
                 {% endif %}
 
-                {% if embed.description %}
-                  <div class="embed-description">
-                    {{ embed.description | render_content }}
-                  </div>
+                {% if message.embed["Description"] %}
+                    <div class="embed-description">{{ message.embed["Description"] | render_content }}</div>
                 {% endif %}
 
-              </div>
-            {% endfor %}
+                </div>
           {% endif %}
           </div>
         </div>
