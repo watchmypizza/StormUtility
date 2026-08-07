@@ -30,6 +30,8 @@ app.jinja_env.lstrip_blocks = True
 URL_RE = re.compile(r'(https?://[^\s<>"]+)')
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
+QUERIED_USERIDS = {}
+
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"TSK file not found: {file_path}")
@@ -87,6 +89,11 @@ def read_tsk(file_path):
 def extractUserProfilePicture(userId):
     headers = {"Authorization": f"Bot {token}"}
 
+    cached = QUERIED_USERIDS.get(userId)
+
+    if cached:
+        return cached
+
     try:
         response = requests.get(
             f"https://discord.com/api/v9/users/{userId}",
@@ -107,6 +114,8 @@ def extractUserProfilePicture(userId):
         if not avatar:
             return "https://cdn.discordapp.com/embed/avatars/1.png"
 
+        QUERIED_USERIDS[userId] = f"https://cdn.discordapp.com/avatars/{userId}/{avatar}.png"
+
         return (
             f"https://cdn.discordapp.com/avatars/"
             f"{userId}/{avatar}.png"
@@ -116,6 +125,8 @@ def extractUserProfilePicture(userId):
         print(
             f"Failed to get Discord avatar for {userId}: {e}"
         )
+
+        QUERIED_USERIDS[userId] = "https://cdn.discordapp.com/embed/avatars/1.png"
         return "https://cdn.discordapp.com/embed/avatars/1.png"
 
 def create_nonce():
