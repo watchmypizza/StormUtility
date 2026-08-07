@@ -226,7 +226,7 @@ namespace Stormtility.events
                     new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) {
                             { "UserId", message.Author!.Id },
                             { "Username", message.Author!.Username },
-                            { "Content", message.Content ?? "" },
+                            { "Content", content ?? "" },
                             { "Timestamp", message.Timestamp.UtcDateTime.ToString("O") },
                             { "MessageId", message.Id }
                     }
@@ -242,7 +242,8 @@ namespace Stormtility.events
                         { "UserId", 1 },
                         { "Username", "System" },
                         { "Content", $"{interaction.User.Username} performed action: {action.ToUpper()}" },
-                        { "Timestamp", DateTime.UtcNow.ToString("O") }
+                        { "Timestamp", DateTime.UtcNow.ToString("O") },
+                        { "MessageId", interaction.User.Id }
                     }
                 );
             }
