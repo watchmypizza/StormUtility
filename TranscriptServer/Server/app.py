@@ -50,7 +50,6 @@ def read_tsk(file_path):
     i = 1
 
     while i < len(lines) - 1:
-
         if not lines[i].strip():
             i += 1
             continue
@@ -58,7 +57,6 @@ def read_tsk(file_path):
         message = {}
 
         while i < len(lines) - 1:
-
             line = lines[i]
 
             if not line.strip():
@@ -75,8 +73,6 @@ def read_tsk(file_path):
             key = key.strip()
             value = value.strip()
 
-
-            # multiline string
             if value == '"""':
                 i += 1
 
@@ -101,14 +97,13 @@ def read_tsk(file_path):
                 i += 1
                 continue
 
-
             message[key] = value
             i += 1
-
 
         if not message:
             continue
 
+        print(repr(message["Content"]))
 
         if "UserId" not in message:
             raise ValueError(
@@ -130,14 +125,12 @@ def read_tsk(file_path):
                 "Missing Timestamp"
             )
 
-
         try:
             user_id = int(message["UserId"])
         except ValueError:
             raise ValueError(
                 f"Invalid UserId: {message['UserId']}"
             )
-
 
         messages.append(
             {
@@ -148,7 +141,6 @@ def read_tsk(file_path):
                 "messageId": message.get("MessageId")
             }
         )
-
 
     return messages
 
