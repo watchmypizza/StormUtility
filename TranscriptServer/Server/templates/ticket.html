@@ -242,6 +242,28 @@
   ::-webkit-scrollbar {
     display: none;
   }
+
+  .discord-embed {
+    background-color: #2b2d31;
+    border-left: 4px solid #5865f2;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    max-width: 520px;
+  }
+
+  .embed-title {
+      color: #f2f3f5;
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 8px;
+  }
+
+  .embed-description {
+      color: #dbdee1;
+      white-space: pre-wrap;
+      line-height: 1.4;
+  }
 </style>
 </head>
 <body>
@@ -255,7 +277,6 @@
   <div class="channelContent">
     <div class="messages">
       <div class="messages-inner">
-
         <div class="channel-intro">
           <div class="intro-icon"></div>
           <h1>Welcome to #{{ channel_name }}!</h1>
@@ -286,6 +307,25 @@
             </div>
             {% endif %}
             <div class="msg-content">{{ message.content | render_content }}</div>
+            {% if message.embed %}
+            {% for embed in message.embed %}
+              <div class="discord-embed">
+
+                {% if embed.title %}
+                  <div class="embed-title">
+                    {{ embed.title }}
+                  </div>
+                {% endif %}
+
+                {% if embed.description %}
+                  <div class="embed-description">
+                    {{ embed.description | render_content }}
+                  </div>
+                {% endif %}
+
+              </div>
+            {% endfor %}
+          {% endif %}
           </div>
         </div>
             {% set namespace.previous_user = message.username %}

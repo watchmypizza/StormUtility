@@ -1,0 +1,60 @@
+{
+  "type": 0,
+  "content": "",
+  "mentions": [],
+  "mention_roles": [],
+  "attachments": [],
+  "embeds": [
+    {
+      "type": "rich",
+      "title": "Support Ticket",
+      "description": "Hello <@!1116315001330880602>!\nStaff will assist you shortly, please give us a few minutes to respond.",
+      "color": 65471,
+      "content_scan_version": 0
+    }
+  ],
+  "timestamp": "2026-08-07T14:29:10.480000+00:00",
+  "edited_timestamp": null,
+  "flags": 0,
+  "components": [
+    {
+      "type": 1,
+      "id": 1,
+      "components": [
+        {
+          "type": 2,
+          "id": 2,
+          "custom_id": "closeticket",
+          "style": 4,
+          "label": "Close Ticket",
+          "emoji": {
+            "name": "⚠️"
+          }
+        }
+      ]
+    }
+  ],
+  "id": "1535293733648465952",
+  "channel_id": "1535293731216040016",
+  "author": {
+    "id": "1444379026981523526",
+    "username": "Storm Utility",
+    "avatar": "2ba745b7ee87f0a28782507121b3b0fa",
+    "discriminator": "4900",
+    "public_flags": 0,
+    "flags": 0,
+    "bot": true,
+    "banner": null,
+    "accent_color": null,
+    "global_name": null,
+    "avatar_decoration_data": null,
+    "collectibles": null,
+    "display_name_styles": null,
+    "banner_color": null,
+    "clan": null,
+    "primary_guild": null
+  },
+  "pinned": false,
+  "mention_everyone": false,
+  "tts": false
+}

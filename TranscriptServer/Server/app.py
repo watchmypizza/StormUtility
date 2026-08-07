@@ -32,6 +32,38 @@ IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 QUERIED_USERIDS = {}
 
+# TODO: https://discord.com/api/v10/channels/{channelid}/messages/{messageid}
+#       Get discord embeds from messages by simply requesting this if the message is sent by a bot.
+
+def grab_embed(channelid, messageid):
+    url = f"https://discord.com/api/v10/channels/{channelid}/messages/{messageid}"
+
+    response = requests.get(url, headers={"Authorization": f"Bot {token}"}, timeout=10)
+
+    if not response.ok:
+        print(
+            f"Discord API error {response.status_code}: {response.text}"
+        )
+        return []
+
+    try:
+        data = response.json()
+
+        embeds = data.get("embeds", [])
+
+        for embed in embeds:
+            if "description" in embed and embed["description"]:
+                embed["description"] = embed["description"].strip()
+
+            if "title" in embed and embed["title"]:
+                embed["title"] = embed["title"].strip()
+
+        return embeds
+
+    except ValueError as e:
+        print(e)
+        return []
+
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"TSK file not found: {file_path}")
@@ -104,6 +136,13 @@ def read_tsk(file_path):
             continue
 
         print(repr(message["Content"]))
+        if message.get("IsBot", "").lower() == "true":
+            embed = grab_embed(
+                message["ChannelId"],
+                message["MessageId"]
+            )
+            if embed:
+                message["Embed"] = embed
 
         if "UserId" not in message:
             raise ValueError(
@@ -138,7 +177,8 @@ def read_tsk(file_path):
                 "username": message["Username"],
                 "content": message["Content"],
                 "timestamp": message["Timestamp"],
-                "messageId": message.get("MessageId")
+                "messageId": message.get("MessageId"),
+                "embed": message.get("Embed", [])
             }
         )
 
