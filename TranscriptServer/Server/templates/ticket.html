@@ -173,6 +173,7 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
+    align-content: center;
   }
 
   .message.compact .msg-content { margin-left: 0; }
@@ -295,6 +296,54 @@
       white-space: pre-wrap;
       line-height: 1.4;
   }
+
+  .msg-content pre {
+      display: block;
+
+      margin: 6px 0;
+      padding: 10px 12px;
+
+      background: #1e1f22;
+      border: 1px solid #2b2d31;
+      border-radius: 6px;
+
+      width: fit-content;
+      max-width: 100%;
+      box-sizing: border-box;
+
+      overflow-x: auto;
+
+      white-space: pre;
+      word-break: normal;
+      overflow-wrap: normal;
+
+      font-family: "gg sans", monospace;
+      font-size: 14px;
+      line-height: 1;
+  }
+
+  .msg-content pre code {
+      display: block;
+      padding: 0;
+      background: transparent;
+      border: none;
+
+      font: inherit;
+      color: #dbdee1;
+      white-space: inherit;
+  }
+
+  .msg-content code {
+      display: inline-block;
+      background: #1e1f22;
+      border: 1px solid #2b2d31;
+      color: #dbdee1;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: "gg sans", monospace;
+      font-size: 14px;
+  }
+
 </style>
 </head>
 <body>
@@ -340,7 +389,7 @@
               {% endif %}
             </div>
             {% endif %}
-            <div class="msg-content">{{ message.content | render_content }}</div>
+            <div class="msg-content">{{ message.content | safe }}</div>
             {% if message.embed %}
                 <div class="discord-embed">
 
@@ -349,7 +398,7 @@
                 {% endif %}
 
                 {% if message.embed["Description"] %}
-                    <div class="embed-description">{{ message.embed["Description"] | render_content }}</div>
+                    <div class="embed-description">{{ message.embed["Description"] | safe }}</div>
                 {% endif %}
 
                 </div>
@@ -373,4 +422,6 @@
   </div>
 
 </body>
+<script src="/static/js/node_modules/dompurify/dist/purify.min.js"></script>
+<script type="module" src="/static/js/app.js"></script>
 </html>

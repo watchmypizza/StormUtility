@@ -1,0 +1,17 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "dependencies": {
+    "autoloader": "^2.1.0",
+    "dompurify": "^3.4.13",
+    "prismjs": "^1.30.0",
+    "shiki": "^4.4.2"
+  }
+}
