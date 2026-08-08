@@ -56,7 +56,6 @@ def replace_unicode(str: str) -> str:
 
     return "\n".join(cleaned_lines)
 
-
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"TSK file not found: {file_path}")
