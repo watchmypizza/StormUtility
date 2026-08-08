@@ -1,3 +1,5 @@
+import unicodedata
+
 from flask import Flask, request, jsonify, render_template
 from datetime import datetime, timezone
 from html import escape
@@ -38,6 +40,22 @@ URL_RE = re.compile(r'(https?://[^\s<>"]+)')
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 QUERIED_USERIDS = {}
+
+def replace_unicode(str: str) -> str:
+    cleaned_lines = []
+
+    for line in str.splitlines():
+        line = line.strip()
+
+        line = unicodedata.normalize("NFKD", line)
+        line = "".join(c for c in line if not unicodedata.combining(c))
+
+        line = "".join(c for c in line if c.isprintable())
+
+        cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
+
 
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
@@ -149,6 +167,8 @@ def read_tsk(file_path):
 
         is_bot_str = message.get("IsBot", "false").strip().lower()
         is_bot_bool = is_bot_str == "true"
+
+        cleaned_content = replace_unicode(message["Content"])
 
         messages.append(
             {

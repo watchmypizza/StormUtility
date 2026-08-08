@@ -1,5 +1,7 @@
 from doctest import debug
+from email.policy import strict
 from operator import truediv
+import string
 
 from flask import Flask, request, jsonify, render_template
 from datetime import datetime, timezone
@@ -15,6 +17,7 @@ import os
 import requests
 import json
 import dotenv
+import unicodedata
 
 app = Flask(__name__)
 
@@ -41,6 +44,21 @@ URL_RE = re.compile(r'(https?://[^\s<>"]+)')
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 QUERIED_USERIDS = {}
+
+def replace_unicode(str: str) -> str:
+    cleaned_lines = []
+
+    for line in str.splitlines():
+        line = line.strip()
+
+        line = unicodedata.normalize("NFKD", line)
+        line = "".join(c for c in line if not unicodedata.combining(c))
+
+        line = "".join(c for c in line if c.isprintable())
+
+        cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
 
 def read_tsk(file_path):
     if not os.path.isfile(file_path):
@@ -153,11 +171,13 @@ def read_tsk(file_path):
         is_bot_str = message.get("IsBot", "false").strip().lower()
         is_bot_bool = is_bot_str == "true"
 
+        cleaned_content = replace_unicode(message["Content"])
+
         messages.append(
             {
                 "userId": user_id,
                 "username": message["Username"],
-                "content": message["Content"],
+                "content": cleaned_content,
                 "timestamp": message["Timestamp"],
                 "messageId": message.get("MessageId"),
                 "embed": embed,
