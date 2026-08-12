@@ -348,6 +348,7 @@ namespace Stormtility.events
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
             await RouteMessages(args.Message, msgBefore: args.MessageBefore!.Content, edited: true);
+            await CheckSuggestion.IsValidSuggestion(sender, args.Message);
 
             if(result)
             {
@@ -539,6 +540,7 @@ namespace Stormtility.events
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
             bool isConsideredSpamPing = await CheckPingSpam(args.Message);
+            await CheckSuggestion.IsValidSuggestion(sender, args.Message);
             if(args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
 
             if(args.Channel.Id == 1533206494181462137)
