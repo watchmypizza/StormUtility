@@ -18,9 +18,9 @@ namespace Stormtility.events
 {
     public class MemberUpdated
     {
-        private static async Task<bool> verifyDisplayName(DiscordUser user)
+        private static Regex regex = new Regex("[^A-Za-z0-9()!?,.\"$':#+:;_~\\-\\s]+");
+        private static async Task<bool> VerifyDisplayName(DiscordUser user)
         {
-            Regex regex = new Regex("[^A-Za-z0-9()!?,.\"$':#+:;_\\s]+");
             DiscordMember discordMember = (DiscordMember)user;
 
             var nickname = discordMember.DisplayName;
@@ -61,7 +61,7 @@ namespace Stormtility.events
                 return Task.CompletedTask;
             }
 
-            _ = await verifyDisplayName(args.Member);
+            _ = await VerifyDisplayName(args.Member);
 
             var blacklist = await args.Guild.GetRoleAsync(1397404869702320260);
 
