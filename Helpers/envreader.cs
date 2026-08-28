@@ -1,4 +1,4 @@
-namespace Stormtility
+namespace Stormtility.Helpers
 {
     public class EnvReader
     {

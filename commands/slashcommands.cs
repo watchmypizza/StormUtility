@@ -1,28 +1,14 @@
-﻿using DiscordRPC;
-using DSharpPlus;
+﻿using System.ComponentModel;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
 using Microsoft.Data.Sqlite;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Stormtility.config;
 using Stormtility.Helpers;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 // convert into sqlite3 tomorrow thanks peanut
+// update, i forgot to update to say DONE.
 
 namespace Stormtility.commands
 {

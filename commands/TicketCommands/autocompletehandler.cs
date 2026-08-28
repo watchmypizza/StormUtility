@@ -1,14 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Text.Json;
 using DSharpPlus.Commands.Processors.SlashCommands;
-using DSharpPlus.Entities;
 using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
-using DSharpPlus.SlashCommands;
+using DSharpPlus.Entities;
 using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
 
 namespace Stormtility.commands.TicketCommands

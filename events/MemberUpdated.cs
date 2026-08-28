@@ -1,17 +1,10 @@
-using Stormtility.config;
+using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
 using DSharpPlus.Exceptions;
-using System.Text.Json;
 using Stormtility.commands;
+using Stormtility.config;
 using Stormtility.Helpers;
 
 namespace Stormtility.events

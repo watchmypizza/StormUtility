@@ -1,16 +1,10 @@
-using DSharpPlus;
+using System.ComponentModel;
 using DSharpPlus.Commands;
-using DSharpPlus.Commands.ContextChecks;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using Microsoft.Extensions.DependencyInjection;
 using Stormtility.config;
-using System.ComponentModel;
-using System.ComponentModel.Design;
-using System.Drawing;
-using System.Security.Cryptography.X509Certificates;
 using TskLib;
 
 namespace Stormtility.commands.UtilityCommands

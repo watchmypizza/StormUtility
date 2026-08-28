@@ -1,18 +1,9 @@
-using Stormtility.config;
+using System.Diagnostics;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json;
-using Stormtility.Helpers;
-using System.Security.Cryptography;
-using DiscordRPC;
-using System.Diagnostics;
 using Stormtility.commands.TicketCommands;
+using Stormtility.Helpers;
 
 namespace Stormtility.events
 {

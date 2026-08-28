@@ -1,33 +1,18 @@
-using DSharpPlus;
-using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.Marshalling;
+using System.ComponentModel;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.ComponentModel;
-using Stormtility.config;
-using System.Linq.Expressions;
-using Stormtility.events;
-using System.Text.Json.Nodes;
-using DSharpPlus.Net.Models;
-using System.Net.Http.Json;
-using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands;
-using DSharpPlus.Commands.Trees.Metadata;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
-using System.Security.Cryptography;
-using TskLib;
+using DSharpPlus.Commands.Trees.Metadata;
+using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
+using Stormtility.events;
 using Stormtility.Helpers;
+using TskLib;
 
 namespace Stormtility.commands.TicketCommands
 {
@@ -166,14 +151,34 @@ namespace Stormtility.commands.TicketCommands
                 signature=signature
             };
 
-            var request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
+            HttpResponseMessage request = new();
+
+            try
+            {
+                request = await client.PostAsJsonAsync("http://127.0.0.1:3000/transcript/createInterface", payload);
+            }
+            catch (HttpRequestException)
+            {
+                request = await client.PostAsJsonAsync("http://ilikepeanutbutter.duckdns.org/transcript/createInterface", payload);
+            }
+            catch (Exception e)
+            {
+                await Logger.LOGGER(e);
+            }
             var response = await request.Content.ReadAsStringAsync();
 
             using var doc = JsonDocument.Parse(response);
 
             if (!request.IsSuccessStatusCode)
             {
-                Console.WriteLine($"createInterface failed: {response}");
+                await Logger.LOGGER(new Exception($"CreateInterface failed with {response}"));
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("There was an error processing your request."));
+                return;
+            }
+
+            if(response == null) {
+                await Logger.LOGGER(new Exception("EMPTY TICKET RESPONSE."));
+                await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("There was an error processing your request."));
                 return;
             }
 

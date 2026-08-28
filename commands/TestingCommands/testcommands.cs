@@ -1,19 +1,9 @@
-﻿using CommunityToolkit.HighPerformance.Helpers;
-using DSharpPlus;
+﻿using System.ComponentModel;
+using System.Text.Json;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
-using DSharpPlus.EventArgs;
-using DSharpPlus.ModalCommands;
 using DSharpPlus.SlashCommands;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using static System.Net.WebRequestMethods;
 
 namespace Stormtility.commands.TestingCommands
 {

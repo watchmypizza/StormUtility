@@ -6,7 +6,6 @@ using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Microsoft.Data.Sqlite;
-using Newtonsoft.Json.Linq;
 using Stormtility.Helpers;
 
 namespace Stormtility.commands

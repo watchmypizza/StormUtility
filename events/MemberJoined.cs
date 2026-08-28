@@ -1,8 +1,6 @@
-using System.Globalization;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using Newtonsoft.Json.Linq;
 using Stormtility.commands;
 using Stormtility.config;
 

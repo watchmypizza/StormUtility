@@ -7,17 +7,17 @@ using DSharpPlus.Entities;
 
 namespace Stormtility.Helpers
 {
-    public class verificationCode
+    public class VerificationCode
     {
-        private static string charSet { get; } = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz123456789";
+        private static string CharSet { get; } = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz123456789";
         private static Dictionary<ulong, (string Code, DateTime Expiry)>? CodeCache { get; set; }
 
-        private static List<char> separateChars()
+        private static List<char> SeparateChars()
         {
-            return charSet.ToList();
+            return [.. CharSet];
         }
 
-        private static bool tryGetCache(DiscordUser user, out (string Code, DateTime Expiry) entry)
+        private static bool TryGetCache(DiscordUser user, out (string Code, DateTime Expiry) entry)
         {
             if (CodeCache == null) CodeCache = new Dictionary<ulong, (string Code, DateTime Expiry)>();
 
@@ -61,7 +61,7 @@ namespace Stormtility.Helpers
 
         public static string GenerateCode()
         {
-            var characters = separateChars();
+            var characters = SeparateChars();
             var sb = new StringBuilder();
             byte[] buffer = new byte[6];
             RandomNumberGenerator.Fill(buffer);
@@ -74,9 +74,9 @@ namespace Stormtility.Helpers
             return sb.ToString();
         }
 
-        public static string getCodeIfExists(DiscordUser user)
+        public static string GetCodeIfExists(DiscordUser user)
         {
-            if (tryGetCache(user, out var entry))
+            if (TryGetCache(user, out var entry))
             {
                 return entry.Code;
             }

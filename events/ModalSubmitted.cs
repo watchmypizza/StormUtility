@@ -1,9 +1,7 @@
 using System.Text.RegularExpressions;
-using DiscordRPC;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using DSharpPlus.Interactivity.Extensions;
 
 namespace Stormtility.events
 {
