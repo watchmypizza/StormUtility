@@ -29,7 +29,7 @@ namespace Stormtility.events
         private static async Task<bool> CheckMessage(DiscordMessage message)
         {
             bool debug = RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.X86;
-            TranslateMorsecode translator = new TranslateMorsecode();
+            TranslateMorsecode translator = new();
             await translator.translateMorse(message);
 
             string content = message.Content;
@@ -71,6 +71,15 @@ namespace Stormtility.events
                 }
                 if (guildName == null)
                     continue;
+
+                var member = message!.Author as DiscordMember;
+
+                try
+                {
+                    await member!.TimeoutAsync(DateTimeOffset.Now.AddHours(1), $"Advertising other servers: {inviteCode}");
+                } catch(Exception e) {
+                    await Logger.LOGGER(e);
+                }
 
                 bool isBad = blacklistedWords.Any(word => guildName.Contains(word, StringComparison.OrdinalIgnoreCase));
 
