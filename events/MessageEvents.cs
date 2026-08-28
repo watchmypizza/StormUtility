@@ -97,12 +97,12 @@ namespace Stormtility.events
             return false;
         }
 
-        public struct spamPingData
+        public struct SpamPingData
         {
             public int Count { get; set; }
-            public DateTime lastSeen { get; set; }
+            public DateTime LastSeen { get; set; }
         }
-        private static Dictionary<ulong, spamPingData> pingSpamCounter = [];
+        private static readonly Dictionary<ulong, SpamPingData> pingSpamCounter = [];
         private static Regex rex = new Regex(@"<@[0-9]+>");
         private static Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
         private static Regex checkMessageForBio = new Regex(@"([ '""\/\\!?:*A-Za-z0-9]+)");
@@ -117,11 +117,11 @@ namespace Stormtility.events
                 i++;
                 if(i >= 3)
                 {
-                    pingSpamCounter.TryGetValue(message.Author!.Id, out spamPingData data);
+                    pingSpamCounter.TryGetValue(message.Author!.Id, out SpamPingData data);
 
-                    if(data.Count > 0 && DateTime.UtcNow - data.lastSeen > TimeSpan.FromMinutes(2))
+                    if(data.Count > 0 && DateTime.UtcNow - data.LastSeen > TimeSpan.FromMinutes(2))
                     {
-                        data = new spamPingData { Count = 0, lastSeen = DateTime.UtcNow };
+                        data = new SpamPingData { Count = 0, LastSeen = DateTime.UtcNow };
                     }
 
                     if(data.Count >= 5)
@@ -135,10 +135,10 @@ namespace Stormtility.events
                         }
                         pingSpamCounter.Remove(message.Author.Id);
                     } else {
-                        pingSpamCounter[message.Author.Id] = new spamPingData
+                        pingSpamCounter[message.Author.Id] = new SpamPingData
                         {
                             Count = data.Count + 1,
-                            lastSeen = DateTime.UtcNow
+                            LastSeen = DateTime.UtcNow
                         };
                     }
                     return true;
