@@ -20,11 +20,11 @@ namespace Stormtility.events
     public class MessageEvents
     {
         private static HttpClient client = new();
-        private static readonly List<string> blacklistedWords = new()
-        {
+        private static readonly List<string> blacklistedWords =
+        [
             "18", "e-girl", "condo", "csam", "dropbox", "porn", "rape",
             "erp", "erotic", "hanime", "hentai", "uttp", "cp", "private", "cam"
-        };
+        ];
 
         private static async Task<bool> CheckMessage(DiscordMessage message)
         {
@@ -368,23 +368,19 @@ namespace Stormtility.events
 
             try
             {
-                using(var connection = new SqliteConnection(conn))
+                using var connection = new SqliteConnection(conn);
+                await connection.OpenAsync();
+
+                using var cmd = new SqliteCommand(sql, connection);
+                cmd.Parameters.AddWithValue("@id", userId);
+                var result = await cmd.ExecuteScalarAsync();
+
+                if (result == null || result == DBNull.Value)
                 {
-                    await connection.OpenAsync();
-
-                    using(var cmd = new SqliteCommand(sql, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@id", userId);
-                        var result = await cmd.ExecuteScalarAsync();
-
-                        if(result == null || result == DBNull.Value)
-                        {
-                            return 0;
-                        }
-
-                        return Convert.ToInt32(result);
-                    }
+                    return 0;
                 }
+
+                return Convert.ToInt32(result);
             } catch(Exception e)
             {
                 await Logger.LOGGER(e);
@@ -398,16 +394,12 @@ namespace Stormtility.events
                 string connection = "Data Source=mutecounter.db";
                 string sql = "INSERT INTO mutecounter (user, count) VALUES (@id, 1) ON CONFLICT(user) DO UPDATE SET count = count + 1";
 
-                using(var conn = new SqliteConnection(connection))
-                {
-                    await conn.OpenAsync();
+                using var conn = new SqliteConnection(connection);
+                await conn.OpenAsync();
 
-                    using(var cmd = new SqliteCommand(sql, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", userId);
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-                }
+                using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@id", userId);
+                await cmd.ExecuteNonQueryAsync();
             } catch(Exception e)
             {
                 await Logger.LOGGER(e);
@@ -554,7 +546,7 @@ namespace Stormtility.events
                 DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
-                await channelLog.SendMessageAsync($"{args.Message.Content.ToString()} sent by {args.Message.Author!.Mention}");
+                await channelLog.SendMessageAsync($"{args.Message.Content   } sent by {args.Message.Author!.Mention}");
                 await args.Message.DeleteAsync();
                 ulong stickerId = 1533600293630251008;
                 var sticker = await args.Guild.GetStickerAsync(stickerId);
