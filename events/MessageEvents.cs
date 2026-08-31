@@ -525,7 +525,7 @@ namespace Stormtility.events
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreatedEventArgs args)
         {
             bool result = await DeleteAnyInvite(message: args.Message);
-            var user = (DiscordUser)args.Author;
+            var user = args.Author;
             if (args.Author.IsBot) return;
             var member = (DiscordMember)user;
             bool isConsideredSpamPing = await CheckPingSpam(args.Message);

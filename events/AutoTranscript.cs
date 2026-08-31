@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using DiscordRPC.Logging;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using Stormtility.commands.TicketCommands;

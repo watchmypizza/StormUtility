@@ -11,6 +11,7 @@ using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.TextCommands;
 using CommunityToolkit.HighPerformance;
+using Stormtility.commands.EntertainmentCommands;
 
 namespace Stormtility
 {
@@ -58,13 +59,14 @@ namespace Stormtility
 
             builder.UseCommands(async (serviceProvider, extension) =>
             {
-                extension.AddCommands([
+            extension.AddCommands([
                     typeof(Slashcommands),
                     typeof(TicketCommands),
                     typeof(AntiRaidCommands),
                     typeof(Utilitycommands),
                     typeof(HelpCommand),
-                    typeof(MuteCounter)
+                    typeof(MuteCounter),
+                    typeof(FunCommands)
                 ]);
 
                 extension.AddCommands([typeof(TestCommands)], 1349792051134468156);
