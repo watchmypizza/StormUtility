@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using Stormtility.Helpers;
 
 namespace Stormtility.events
 {
@@ -9,7 +10,7 @@ namespace Stormtility.events
     {
         public static async Task Client_ModalSubmittedEvent(DiscordClient sender, ModalSubmittedEventArgs args)
         {
-            if(args.Id == "gameappealmodal")
+            if (args.Id == "gameappealmodal")
             {
                 await args.Interaction.DeferAsync(true);
 
@@ -49,7 +50,7 @@ namespace Stormtility.events
                 await events.InteractionCreated.CreateAppealChannel(args, sendToDagestan);
                 return;
             }
-            else if(args.Id == "speedtypistmodal")
+            else if (args.Id == "speedtypistmodal")
             {
                 await args.Interaction.DeferAsync(true);
 
@@ -75,7 +76,7 @@ namespace Stormtility.events
                                         .AddFile(name ?? "Uploaded", fStream);
 
                 Regex isValidURL = new(@"https?\:\/\/(?:www\.)?monkeytype\.com\/profile\/[A-Za-z0-9]+");
-                if(!isValidURL.IsMatch(profileLinkInput?.Value ?? "no url"))
+                if (!isValidURL.IsMatch(profileLinkInput?.Value ?? "no url"))
                 {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Please supply a valid URL!"));
                     return;
@@ -84,7 +85,7 @@ namespace Stormtility.events
                 await InteractionCreated.HandleSpeedTypistApplicationModalReceivedState(args, sendToDagestan);
                 return;
             }
-            else if(args.Id == "supportmodal")
+            else if (args.Id == "supportmodal")
             {
                 await args.Interaction.DeferAsync(true);
 
@@ -106,9 +107,9 @@ namespace Stormtility.events
 
                 using HttpClient receiveDagestan = new();
 
-                if(attachments?.UploadedFiles.Count != 0)
+                if (attachments?.UploadedFiles.Count != 0)
                 {
-                    foreach(DiscordAttachment attachment in attachments!.UploadedFiles)
+                    foreach (DiscordAttachment attachment in attachments!.UploadedFiles)
                     {
                         Stream fStream = await receiveDagestan.GetStreamAsync(attachment.Url);
 
@@ -119,7 +120,7 @@ namespace Stormtility.events
                 await InteractionCreated.HandleSupportModalReceivedState(args, sendToDagestan);
                 return;
             }
-            else if(args.Id == "exploitermodal")
+            else if (args.Id == "exploitermodal")
             {
                 await args.Interaction.DeferAsync(true);
 
@@ -141,9 +142,9 @@ namespace Stormtility.events
 
                 using HttpClient receiveDagestan = new();
 
-                if(attachments?.UploadedFiles.Count != 0)
+                if (attachments?.UploadedFiles.Count != 0)
                 {
-                    foreach(DiscordAttachment attachment in attachments!.UploadedFiles)
+                    foreach (DiscordAttachment attachment in attachments!.UploadedFiles)
                     {
                         Stream fStream = await receiveDagestan.GetStreamAsync(attachment.Url);
 
@@ -153,6 +154,66 @@ namespace Stormtility.events
 
                 await InteractionCreated.HandleExploiterReportModalReceivedStateSubmissionTicketCreationAction(args, sendToDagestan);
                 return;
+            }
+            else if (args.Id == "sendmessagemodal")
+            {
+                await args.Interaction.DeferAsync(true);
+
+                var recipientIds = args.Values["recipient"] as UserSelectMenuModalSubmission;
+                var message = args.Values["message"] as TextInputModalSubmission;
+                var files = args.Values["fileuploads"] as FileUploadModalSubmission;
+
+                var recipient = await sender.GetUserAsync(recipientIds!.Ids.FirstOrDefault());
+
+                if (recipient.Id == args.Interaction.User.Id)
+                {
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot message yourself."));
+                    CommandCooldown.RemoveCooldown(recipient.Id);
+                    return;
+                }
+
+                if (recipient.IsBot)
+                {
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Bots cannot DM eachother."));
+                    CommandCooldown.RemoveCooldown(recipient.Id);
+                    return;
+                }
+
+                DiscordChannel logChannel = await sender.GetChannelAsync(1533206494181462137);
+
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = "You have received a new message!",
+                    Color = DiscordColor.Red
+                };
+
+                embed.AddField("Content:", message?.Value.ToString() ?? "Empty Message", false);
+                embed.WithFooter("Anonymous to you • May be subject to moderation");
+
+                DiscordMessageBuilder sendToDagestan = new DiscordMessageBuilder()
+                                                            .AddEmbed(embed);
+
+                using HttpClient receiveDagestan = new();
+
+                try
+                {
+                    await logChannel.SendMessageAsync($"User: {args.Interaction.User.Mention} sent ```{message?.Value ?? "No message"}``` to {recipient!.Mention}");
+                    foreach (DiscordAttachment attachment in files!.UploadedFiles)
+                    {
+                        Stream fStream = await receiveDagestan.GetStreamAsync(attachment.Url);
+
+                        sendToDagestan.AddFile(attachment.FileName ?? "NOFILENAME", fStream);
+                    }
+                    await logChannel.SendMessageAsync(sendToDagestan);
+                    await recipient.SendMessageAsync(sendToDagestan);
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Message sent!"));
+                    return;
+                } catch (Exception e) {
+                    await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Something went wrong processing your request."));
+                    await Logger.LOGGER(e);
+                    CommandCooldown.AddCooldown(args.Interaction.User.Id);
+                    return;
+                }
             }
         }
     }

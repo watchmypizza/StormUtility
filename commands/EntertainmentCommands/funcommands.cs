@@ -5,6 +5,7 @@ using DSharpPlus.Commands.ContextChecks;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
+using DSharpPlus.ModalCommands;
 using Microsoft.Win32.SafeHandles;
 using Stormtility.Helpers;
 
@@ -20,23 +21,6 @@ namespace Stormtility.commands.EntertainmentCommands
         private static Random RNG = new();
         private static Dictionary<(ulong, ulong), int> ShipCache = [];
         private static Dictionary<string, string> EightBallResponses = [];
-        private static Dictionary<ulong, DateTimeOffset> cooldownDict = [];
-
-        private bool CheckCooldown(ulong userId) {
-            if (cooldownDict.TryGetValue(userId, out DateTimeOffset timeToExpiry))
-            {
-                if (timeToExpiry <= DateTime.UtcNow)
-                {
-                    cooldownDict[userId] = DateTimeOffset.UtcNow.AddHours(12);
-                    return false;
-                }
-
-                return true;
-            }
-
-            cooldownDict[userId] = DateTimeOffset.UtcNow.AddHours(12);
-            return false;
-        }
 
         // headpats the user in an ephemeral by using FileStreams
         [Command("headpat")]
@@ -106,44 +90,49 @@ namespace Stormtility.commands.EntertainmentCommands
 
         [Command("sendmessage")]
         [Description("Send an semi-anonymous message to someone! The recipient will not be able to see who sent it.")]
-        public async Task SendMessage(SlashCommandContext ctx, DiscordUser recipient, string message)
+        public async Task SendMessage(SlashCommandContext ctx)
         {
-            bool isCooldown = CheckCooldown(ctx.Interaction.User.Id);
+            bool isCooldown = CommandCooldown.CheckCooldown(ctx.Interaction.User.Id);
             if (isCooldown)
             {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"You are currently on cooldown until {cooldownDict[ctx.Interaction.User.Id].ToString("f")}").AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"You are currently on cooldown for {CommandCooldown.GetRemainingTime(ctx.Interaction.User.Id)}").AsEphemeral());
                 return;
             }
 
-            if(recipient.Id == ctx.Interaction.User.Id) {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("You cannot message yourself.").AsEphemeral());
-                return;
-            }
+            var modal = new DiscordModalBuilder();
+            modal.WithTitle("Send a message to someone.");
+            modal.AddSelectMenu(new DiscordUserSelectComponent("recipient", "ilikepeanutbutter.", required: true), "Select a recipient");
+            modal.AddTextInput(new DiscordTextInputComponent("message", "I like peanut butter", null, true, DiscordTextInputStyle.Paragraph), "Contents of the message");
+            modal.AddFileUpload(new DiscordFileUploadComponent("fileuploads", maxValues: 10, isRequired: false), "Files to attach");
+            modal.AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", [new("tosagree", "Agree to messaging ToS", "By checking this, you agree that the following content may be subject to moderation.")], required: true), "Terms of Service");
+            modal.WithCustomId("sendmessagemodal");
 
-            DiscordChannel logChannel = await ctx.Client.GetChannelAsync(1533206494181462137);
+            await ctx.RespondWithModalAsync(modal);
 
-            var embed = new DiscordEmbedBuilder
-            {
-                Title = "You have received a new message!",
-                Color = DiscordColor.Red
-            };
+            // DiscordChannel logChannel = await ctx.Client.GetChannelAsync(1533206494181462137);
 
-            embed.AddField("Content:", message, false);
-            embed.WithFooter("Anonymous to you • May be subject to moderation");
+            // var embed = new DiscordEmbedBuilder
+            // {
+            //     Title = "You have received a new message!",
+            //     Color = DiscordColor.Red
+            // };
 
-            try
-            {
-                await logChannel.SendMessageAsync($"User: {ctx.Interaction.User.Mention} sent ```{message}``` to {recipient.Mention}");
-                await logChannel.SendMessageAsync(new DiscordMessageBuilder().WithContent("Message with embed:").AddEmbed(embed));
-                await recipient.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
-                await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Message sent!").AsEphemeral());
-                return;
-            } catch(Exception e) {
-                await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Something went wrong processing your request.").AsEphemeral());
-                await Logger.LOGGER(e);
-                cooldownDict[ctx.Interaction.User.Id] = DateTimeOffset.UtcNow;
-                return;
-            }
+            // embed.AddField("Content:", message, false);
+            // embed.WithFooter("Anonymous to you • May be subject to moderation");
+
+            // try
+            // {
+            //     await logChannel.SendMessageAsync($"User: {ctx.Interaction.User.Mention} sent ```{message}``` to {recipient.Mention}");
+            //     await logChannel.SendMessageAsync(new DiscordMessageBuilder().WithContent("Message with embed:").AddEmbed(embed));
+            //     await recipient.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+            //     await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Message sent!").AsEphemeral());
+            //     return;
+            // } catch(Exception e) {
+            //     await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Something went wrong processing your request.").AsEphemeral());
+            //     await Logger.LOGGER(e);
+            //     cooldownDict[ctx.Interaction.User.Id] = DateTimeOffset.UtcNow;
+            //     return;
+            // }
         }
     }
 }

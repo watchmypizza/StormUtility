@@ -15,7 +15,7 @@ namespace Stormtility.Helpers
 
                 var payload = new
                 {
-                    content = $"**[ERROR]** {DateTime.Now}\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
+                    content = $"**[ERROR]** <t:{DateTimeOffset.Now.ToUnixTimeSeconds()}:F>\n```\n{e.Message}\n{e.StackTrace?[..Math.Min(e.StackTrace.Length, 1500)]}\n```"
                 };
 
                 string json = JsonSerializer.Serialize(payload);
