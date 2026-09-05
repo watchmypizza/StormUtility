@@ -1,4 +1,4 @@
-.PHONY: all build backup sync git
+.PHONY: all build backup sync git restart
 
 all:
 	dotnet build
@@ -21,3 +21,6 @@ git:
 	git add -A
 	git commit
 	git push
+
+restart:
+	ssh penut "sudo systemctl restart stormtility"

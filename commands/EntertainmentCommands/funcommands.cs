@@ -1,12 +1,8 @@
 using System.ComponentModel;
-using System.Formats.Tar;
 using DSharpPlus.Commands;
-using DSharpPlus.Commands.ContextChecks;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
-using DSharpPlus.ModalCommands;
-using Microsoft.Win32.SafeHandles;
 using Stormtility.Helpers;
 
 namespace Stormtility.commands.EntertainmentCommands
@@ -92,10 +88,10 @@ namespace Stormtility.commands.EntertainmentCommands
         [Description("Send an semi-anonymous message to someone! The recipient will not be able to see who sent it.")]
         public async Task SendMessage(SlashCommandContext ctx)
         {
-            bool isCooldown = CommandCooldown.CheckCooldown(ctx.Interaction.User.Id);
+            bool isCooldown = CommandCooldown.CheckCooldown(ctx.Command.Name, ctx.Interaction.User.Id);
             if (isCooldown)
             {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"You are currently on cooldown for {CommandCooldown.GetRemainingTime(ctx.Interaction.User.Id)}").AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"You are currently on cooldown for {CommandCooldown.GetRemainingTime(ctx.Command.Name, ctx.Interaction.User.Id)}").AsEphemeral());
                 return;
             }
 
@@ -105,7 +101,7 @@ namespace Stormtility.commands.EntertainmentCommands
             modal.AddTextInput(new DiscordTextInputComponent("message", "I like peanut butter", null, true, DiscordTextInputStyle.Paragraph), "Contents of the message");
             modal.AddFileUpload(new DiscordFileUploadComponent("fileuploads", maxValues: 10, isRequired: false), "Files to attach");
             modal.AddCheckboxGroup(new DiscordCheckboxGroupComponent("tosagree", [new("tosagree", "Agree to messaging ToS", "By checking this, you agree that the following content may be subject to moderation.")], required: true), "Terms of Service");
-            modal.WithCustomId("sendmessagemodal");
+            modal.WithCustomId($"sendmessagemodal:{ctx.Command.Name}");
 
             await ctx.RespondWithModalAsync(modal);
 

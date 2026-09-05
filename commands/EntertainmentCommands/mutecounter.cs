@@ -8,7 +8,7 @@ using DSharpPlus.SlashCommands;
 using Microsoft.Data.Sqlite;
 using Stormtility.Helpers;
 
-namespace Stormtility.commands
+namespace Stormtility.commands.EntertainmentCommands
 {
     [Command("mutes")]
     [Description("Mute counter group")]

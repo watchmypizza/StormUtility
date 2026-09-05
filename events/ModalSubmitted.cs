@@ -155,10 +155,12 @@ namespace Stormtility.events
                 await InteractionCreated.HandleExploiterReportModalReceivedStateSubmissionTicketCreationAction(args, sendToDagestan);
                 return;
             }
-            else if (args.Id == "sendmessagemodal")
+            else if (args.Id.StartsWith("sendmessagemodal"))
             {
                 await args.Interaction.DeferAsync(true);
 
+                string[] modalIdParts = args.Id.Split(":", StringSplitOptions.TrimEntries);
+                string commandName = modalIdParts[1];
                 var recipientIds = args.Values["recipient"] as UserSelectMenuModalSubmission;
                 var message = args.Values["message"] as TextInputModalSubmission;
                 var files = args.Values["fileuploads"] as FileUploadModalSubmission;
@@ -168,14 +170,12 @@ namespace Stormtility.events
                 if (recipient.Id == args.Interaction.User.Id)
                 {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot message yourself."));
-                    CommandCooldown.RemoveCooldown(recipient.Id);
                     return;
                 }
 
                 if (recipient.IsBot)
                 {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Bots cannot DM eachother."));
-                    CommandCooldown.RemoveCooldown(recipient.Id);
                     return;
                 }
 
@@ -207,11 +207,11 @@ namespace Stormtility.events
                     await logChannel.SendMessageAsync(sendToDagestan);
                     await recipient.SendMessageAsync(sendToDagestan);
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Message sent!"));
+                    CommandCooldown.AddCooldown(commandName, args.Interaction.User.Id, 12);
                     return;
                 } catch (Exception e) {
                     await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("Something went wrong processing your request."));
                     await Logger.LOGGER(e);
-                    CommandCooldown.AddCooldown(args.Interaction.User.Id);
                     return;
                 }
             }

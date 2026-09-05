@@ -8,6 +8,7 @@ using CommunityToolkit.HighPerformance;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Exceptions;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json.Linq;
 using Stormtility.commands.Anti_Raid_Commands;
@@ -102,6 +103,7 @@ namespace Stormtility.events
             public int Count { get; set; }
             public DateTime LastSeen { get; set; }
         }
+
         private static readonly Dictionary<ulong, SpamPingData> pingSpamCounter = [];
         private static Regex rex = new Regex(@"<@[0-9]+>");
         private static Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
@@ -169,8 +171,9 @@ namespace Stormtility.events
 
         private static async Task<bool> DeleteAnyInvite(DiscordMessage message)
         {
-            try {
-                if(message.Author!.IsBot)
+            try
+            {
+                if (message.Author!.IsBot)
                 {
                     return false;
                 }
@@ -178,7 +181,7 @@ namespace Stormtility.events
                 string[] msgContent = message.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 StringBuilder contentBuilder = new();
                 string builtCb;
-                foreach(string str in msgContent)
+                foreach (string str in msgContent)
                 {
                     contentBuilder.Append(str);
                 }
@@ -195,44 +198,47 @@ namespace Stormtility.events
                 bool linkViolationFound = false;
                 bool isZalgoText = Calculationsanddumbassmath.IsZalgoText(message.Content);
 
-                if(isZalgoText)
+                if (isZalgoText)
                 {
                     await message.DeleteAsync("Zalgo text detected");
                 }
 
-                foreach(Match match in matches) {
-                    if(match.Groups[3].Success)
+                foreach (Match match in matches)
+                {
+                    if (match.Groups[3].Success)
                     {
                         continue;
                     }
 
                     bool isWhitelisted = whitelistedLinks.Any(v => match.Groups[2].Value.Trim().Contains(v, StringComparison.OrdinalIgnoreCase));
 
-                    if(isWhitelisted && hasMediaPerms) { continue; }
+                    if (isWhitelisted && hasMediaPerms) { continue; }
 
-                    if(match.Groups[4].Success || match.Success)
+                    if (match.Groups[4].Success || match.Success)
                     {
                         linkViolationFound = true;
                         break;
                     }
 
-                    if(!match.Success) { continue; }
+                    if (!match.Success) { continue; }
                 }
 
-                if(linkViolationFound)
+                if (linkViolationFound)
                 {
                     await CheckMessage(message);
                     return true;
                 }
 
                 var biocheck = await BioCheck(message);
-                if(biocheck)
+                if (biocheck)
                 {
                     await CheckMessage(message);
                     return true;
                 }
 
                 return false;
+            } catch(NotFoundException) {
+                return true;
             } catch(Exception e)
             {
                 await Logger.LOGGER(e);

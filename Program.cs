@@ -1,17 +1,17 @@
 ﻿using DSharpPlus;
-
+using DSharpPlus.Commands;
 using Stormtility.commands;
 using Stormtility.commands.Anti_Raid_Commands;
+using Stormtility.commands.EntertainmentCommands;
+using Stormtility.commands.TestingCommands;
 using Stormtility.commands.TicketCommands;
 using Stormtility.commands.UtilityCommands;
-using Stormtility.commands.TestingCommands;
 using Stormtility.Helpers;
-using Stormtility.events;
-using DSharpPlus.Commands;
-using DSharpPlus.Commands.Processors.SlashCommands;
-using DSharpPlus.Commands.Processors.TextCommands;
-using CommunityToolkit.HighPerformance;
-using Stormtility.commands.EntertainmentCommands;
+
+
+// TODO:
+// - Implement reputation system
+
 
 namespace Stormtility
 {
@@ -24,9 +24,9 @@ namespace Stormtility
         public static string? botToken { get; set; }
         static async Task Main(string[] args)
         {
-            foreach(string arg in args)
+            foreach (string arg in args)
             {
-                if(arg == "-v" || arg == "--version")
+                if (arg == "-v" || arg == "--version")
                 {
                     await Logger.ConsoleLog("v1.2.1 regex fix!");
                     return;
@@ -52,22 +52,22 @@ namespace Stormtility
                 eventBuilder.HandleMessageDeleted(events.MessageEvents.Client_MessageDeleted);
                 eventBuilder.HandleModalSubmitted(events.ModalSubmitted.Client_ModalSubmittedEvent);
                 eventBuilder.HandleGuildMemberAdded(events.MemberJoined.Client_GuildMemberAdded);
-                eventBuilder.HandleComponentInteractionCreated( events.InteractionCreated.Client_ComponentInteractionCreated);
+                eventBuilder.HandleComponentInteractionCreated(events.InteractionCreated.Client_ComponentInteractionCreated);
                 eventBuilder.HandleMessageReactionAdded(events.ReactionEvents.Client_ReactionAddedEvent);
                 eventBuilder.HandleMessageReactionRemoved(events.ReactionEvents.Client_ReactionRemovedEvent);
             });
 
             builder.UseCommands(async (serviceProvider, extension) =>
             {
-            extension.AddCommands([
-                    typeof(Slashcommands),
+                extension.AddCommands([
+                        typeof(Slashcommands),
                     typeof(TicketCommands),
                     typeof(AntiRaidCommands),
                     typeof(Utilitycommands),
                     typeof(HelpCommand),
                     typeof(MuteCounter),
                     typeof(FunCommands)
-                ]);
+                    ]);
 
                 extension.AddCommands([typeof(TestCommands)], 1349792051134468156);
             });
