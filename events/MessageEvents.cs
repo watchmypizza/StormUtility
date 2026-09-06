@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -110,6 +111,7 @@ namespace Stormtility.events
         private static Regex checkMessageForBio = new Regex(@"([ '""\/\\!?:*A-Za-z0-9]+)");
         private static Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
         private static Regex regex = new(@"<#([0-9]+)>");
+        private static Regex ticketRegex = new(@"(?:support|appeal|exploiter|speedtypist)-(?:\d+)");
 
         private static async Task<bool> CheckPingSpam(DiscordMessage message)
         {
@@ -168,6 +170,18 @@ namespace Stormtility.events
         public static Regex CheckMessageForBio { get => checkMessageForBio; set => checkMessageForBio = value; }
         public static Regex InviteRegex { get => inviteRegex; set => inviteRegex = value; }
         public static Regex Regex { get => regex; set => regex = value; }
+        public static Regex TicketRegex { get => ticketRegex; set => ticketRegex = value; }
+
+        private static bool isInTicket(DiscordMessage message) {
+            //ex. ilikepeanutbutter-exploiter-id
+            // unclaimed: exploiter-id
+
+            if(TicketRegex.IsMatch(message.Channel?.Name ?? "")) {
+                return true;
+            }
+
+            return false;
+        }
 
         private static async Task<bool> DeleteAnyInvite(DiscordMessage message)
         {
@@ -177,6 +191,8 @@ namespace Stormtility.events
                 {
                     return false;
                 }
+
+                if(isInTicket(message)) { return false; }
 
                 string[] msgContent = message.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 StringBuilder contentBuilder = new();
@@ -225,6 +241,7 @@ namespace Stormtility.events
 
                 if (linkViolationFound)
                 {
+
                     await CheckMessage(message);
                     return true;
                 }
@@ -237,9 +254,12 @@ namespace Stormtility.events
                 }
 
                 return false;
-            } catch(NotFoundException) {
+            }
+            catch (NotFoundException)
+            {
                 return true;
-            } catch(Exception e)
+            }
+            catch (Exception e)
             {
                 await Logger.LOGGER(e);
                 return true;
