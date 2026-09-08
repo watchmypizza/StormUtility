@@ -241,7 +241,6 @@ namespace Stormtility.events
 
                 if (linkViolationFound)
                 {
-
                     await CheckMessage(message);
                     return true;
                 }

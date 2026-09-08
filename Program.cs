@@ -2,6 +2,7 @@
 using DSharpPlus.Commands;
 using Stormtility.commands;
 using Stormtility.commands.Anti_Raid_Commands;
+using Stormtility.commands.Booster_Commands;
 using Stormtility.commands.EntertainmentCommands;
 using Stormtility.commands.TestingCommands;
 using Stormtility.commands.TicketCommands;
@@ -66,7 +67,8 @@ namespace Stormtility
                     typeof(Utilitycommands),
                     typeof(HelpCommand),
                     typeof(MuteCounter),
-                    typeof(FunCommands)
+                    typeof(FunCommands),
+                    typeof(BoosterCommands)
                     ]);
 
                 extension.AddCommands([typeof(TestCommands)], 1349792051134468156);
