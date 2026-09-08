@@ -108,6 +108,25 @@ namespace Stormtility.commands.Booster_Commands {
             return;
         }
 
+        [Command("kiss")]
+        [Description("Kiss someone or make someone kiss someone forcefully:3")]
+        public async Task Kiss(
+            SlashCommandContext ctx,
+            [Parameter("user")][Description("The user to kiss:3")] DiscordUser user,
+            [Parameter("kisser")][Description("The person that kisses the user:3")] DiscordUser? kisser = null
+        )
+        {
+            if (!await CheckBoosterRole(ctx)) return;
+            if (ctx.Interaction.User == user || user == kisser)
+            {
+                await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You cannot kiss yourself.").AsEphemeral());
+                return;
+            }
+
+            await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"{kisser?.Mention ?? ctx.Interaction.User.Mention} kissed {user.Mention} :3"));
+            return;
+        }
+
         // TODO:
         // /bump <user>: u have a crush on someone and we store the value of that, 12 hour cooldown, automatic renewals(
         // /marry <user> <user(optional)>
