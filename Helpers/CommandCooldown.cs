@@ -8,20 +8,32 @@ namespace Stormtility.Helpers {
         {
             if (cooldownDict.TryGetValue((command, userId), out DateTimeOffset timeToExpiry))
             {
-                if (timeToExpiry <= DateTimeOffset.UtcNow)
+                if (timeToExpiry > DateTimeOffset.UtcNow)
                 {
-                    cooldownDict[(command, userId)] = DateTimeOffset.UtcNow.AddHours(12);
                     return false;
                 }
 
-                return true;
+                cooldownDict.TryRemove((command, userId), out _);
             }
-            return false;
+
+            return true;
         }
 
         public static void RemoveCooldown(string command, ulong userId)
         {
-            cooldownDict[(command, userId)] = DateTimeOffset.UtcNow;
+            cooldownDict.TryRemove((command, userId), out _);
+            return;
+        }
+
+        public static void RemoveCooldown(ulong userId)
+        {
+            foreach (var entry in cooldownDict)
+            {
+                if (entry.Key.Item2 == userId)
+                {
+                    cooldownDict.TryRemove(entry.Key, out _);
+                }
+            }
             return;
         }
 

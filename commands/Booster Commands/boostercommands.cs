@@ -40,6 +40,7 @@ namespace Stormtility.commands.Booster_Commands {
                 if (!CommandCooldown.CheckCooldown(ctx.Command.Name, ctx.Interaction.User.Id))
                 {
                     await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You are currently on cooldown.").AsEphemeral());
+                    return;
                 }
 
                 await member.TimeoutAsync(DateTimeOffset.UtcNow.AddMinutes(2), $"{ctx.Interaction.User.Username} ({ctx.Interaction.User.Id}) used /kill on {member.Username} ({member.Id})");

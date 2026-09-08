@@ -89,7 +89,7 @@ namespace Stormtility.commands.EntertainmentCommands
         public async Task SendMessage(SlashCommandContext ctx)
         {
             bool isCooldown = CommandCooldown.CheckCooldown(ctx.Command.Name, ctx.Interaction.User.Id);
-            if (isCooldown)
+            if (!isCooldown)
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"You are currently on cooldown for {CommandCooldown.GetRemainingTime(ctx.Command.Name, ctx.Interaction.User.Id)}").AsEphemeral());
                 return;

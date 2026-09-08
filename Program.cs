@@ -4,6 +4,7 @@ using Stormtility.commands;
 using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.Booster_Commands;
 using Stormtility.commands.EntertainmentCommands;
+using Stormtility.commands.Staff_Commands;
 using Stormtility.commands.TestingCommands;
 using Stormtility.commands.TicketCommands;
 using Stormtility.commands.UtilityCommands;
@@ -61,15 +62,16 @@ namespace Stormtility
             builder.UseCommands(async (serviceProvider, extension) =>
             {
                 extension.AddCommands([
-                        typeof(Slashcommands),
+                    typeof(Slashcommands),
                     typeof(TicketCommands),
                     typeof(AntiRaidCommands),
                     typeof(Utilitycommands),
                     typeof(HelpCommand),
                     typeof(MuteCounter),
                     typeof(FunCommands),
-                    typeof(BoosterCommands)
-                    ]);
+                    typeof(BoosterCommands),
+                    typeof(StaffCommands)
+                ]);
 
                 extension.AddCommands([typeof(TestCommands)], 1349792051134468156);
             });
