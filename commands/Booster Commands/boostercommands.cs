@@ -133,12 +133,12 @@ namespace Stormtility.commands.Booster_Commands {
         [Description("Marriage commands")]
         public class Marriages
         {
-            private record Marriage {
+            public record Marriage {
                 public required ulong HusbandId { get; set; }
                 public required ulong WifeId { get; set; }
             }
 
-            private async Task UpsertMarriageBase(DiscordUser husband, DiscordUser wife) // idk leave me alone
+            public static async Task UpsertMarriageBase(DiscordUser husband, DiscordUser? wife = null, ulong? wifeId = 0) // idk leave me alone
             {
                 string datasource = "Data Source=marriages.db";
                 using var conn = new SqliteConnection(datasource);
@@ -146,12 +146,19 @@ namespace Stormtility.commands.Booster_Commands {
                 string upsertcommand = @"INSERT INTO marriages (husband_id,wife_id) VALUES (@husband,@wife) ON CONFLICT (husband_id,wife_id) DO UPDATE SET husband_id=excluded.husband_id,wife_id=excluded.wife_id";
                 using var com = new SqliteCommand(upsertcommand, conn);
                 com.Parameters.AddWithValue("@husband", husband.Id);
-                com.Parameters.AddWithValue("@wife", wife.Id);
+                if (wife != null)
+                {
+                    com.Parameters.AddWithValue("@wife", wife.Id);
+                } else if(wifeId != 0) {
+                    com.Parameters.AddWithValue("@wife", wifeId);
+                } else {
+                    return;
+                }
                 await com.ExecuteNonQueryAsync();
                 return;
             }
 
-            private async Task<Marriage?> GetMarriageBase(DiscordUser user)
+            public static async Task<Marriage?> GetMarriageBase(DiscordUser user)
             {
                 string datasource = "Data Source=marriages.db";
                 using var conn = new SqliteConnection(datasource);
@@ -202,6 +209,11 @@ namespace Stormtility.commands.Booster_Commands {
             )
             {
                 if (!await CheckBoosterRole(ctx)) return;
+                if (!CommandCooldown.CheckCooldown(ctx.Command.Name, ctx.Interaction.User.Id))
+                {
+                    await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You are currently on cooldown.").AsEphemeral());
+                    return;
+                }
                 if (user.Id == ctx.User.Id)
                 {
                     await ctx.RespondAsync("You cannot marry yourself!", true);
@@ -236,8 +248,21 @@ namespace Stormtility.commands.Booster_Commands {
                     return;
                 }
 
-                await UpsertMarriageBase(ctx.User, user);
-                await ctx.RespondAsync($"Congratulations! {ctx.User.Mention} and {user.Mention} are now married! :3");
+                var embedBuilder = new DiscordEmbedBuilder
+                {
+                    Title = "Marriage Proposal",
+                    Color = DiscordColor.Red
+                };
+
+                await ctx.RespondAsync($"A message has been sent to {user.Mention} to consent!", true);
+
+                embedBuilder.AddField("From:", $"{ctx.Interaction.User.Mention}", true);
+                var button = new DiscordButtonComponent(DiscordButtonStyle.Success, $"marriage:{ctx.Interaction.User.Id}", "Accept", false, new DiscordComponentEmoji("🎉"));
+                var messageBuilder = new DiscordMessageBuilder().AddEmbed(embedBuilder).AddActionRowComponent(button);
+                await user.SendMessageAsync(messageBuilder);
+                CommandCooldown.AddCooldown(ctx.Command.Name, ctx.User.Id, 12);
+                // await UpsertMarriageBase(ctx.User, user);
+                // await ctx.RespondAsync($"Congratulations! {ctx.User.Mention} and {user.Mention} are now married! :3");
             }
 
             [Command("divorce")]

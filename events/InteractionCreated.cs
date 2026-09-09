@@ -8,6 +8,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Exceptions;
 using Microsoft.Data.Sqlite;
+using Stormtility.commands.Booster_Commands;
 using Stormtility.config;
 using Stormtility.Helpers;
 
@@ -774,7 +775,7 @@ namespace Stormtility.events {
                     bool doNotDm = false;
                     await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
-                    if(!member.PermissionsIn(args.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers))
+                    if (!member.PermissionsIn(args.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers))
                     {
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot close this ticket."));
                         return;
@@ -782,7 +783,7 @@ namespace Stormtility.events {
 
                     var autoTranscript = new AutoTranscript();
                     var (channelId, userId) = await DeleteActiveTicketEntry(args.Interaction.Channel.Id);
-                    if(channelId == null || userId == null)
+                    if (channelId == null || userId == null)
                     {
                         doNotDm = true;
                     }
@@ -797,44 +798,89 @@ namespace Stormtility.events {
                         };
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().AddEmbed(errorEmbed));
                         System.Console.WriteLine($"ERROR: {result}");
-                    } else
-                    { try {
-                        if(!doNotDm) {
-                            DiscordMember? mem = await args.Guild.GetMemberAsync(userId!.Value);
-                            DiscordChannel? channel = await args.Guild.GetChannelAsync(channelId!.Value);
-
-                            var embed = new DiscordEmbedBuilder
+                    }
+                    else
+                    {
+                        try
+                        {
+                            if (!doNotDm)
                             {
-                                Title = "Ticket Closed",
-                                Description = $"The ticket {channel.Name} has been closed.",
-                                Color = DiscordColor.Red
-                            };
+                                DiscordMember? mem = await args.Guild.GetMemberAsync(userId!.Value);
+                                DiscordChannel? channel = await args.Guild.GetChannelAsync(channelId!.Value);
 
-                            embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
+                                var embed = new DiscordEmbedBuilder
+                                {
+                                    Title = "Ticket Closed",
+                                    Description = $"The ticket {channel.Name} has been closed.",
+                                    Color = DiscordColor.Red
+                                };
 
-                            string strippedTicketName = channelNameFix.Replace(channel.Name, "");
-                            var closedTicketButtonCreateUserTranscript = new DiscordButtonComponent(DiscordButtonStyle.Primary, strippedTicketName, "Generate Transcript", false, new DiscordComponentEmoji("📜"));
+                                embed.AddField("Closed By:", $"{args.Interaction.User.Mention}");
 
-                            try {
-                                await mem.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(closedTicketButtonCreateUserTranscript));
-                            } catch(UnauthorizedException e)
-                            {
-                                await Logger.LOGGER(e);
-                                return;
-                            } catch(NotFoundException e)
-                            {
-                                await Logger.LOGGER(e);
-                                return;
+                                string strippedTicketName = channelNameFix.Replace(channel.Name, "");
+                                var closedTicketButtonCreateUserTranscript = new DiscordButtonComponent(DiscordButtonStyle.Primary, strippedTicketName, "Generate Transcript", false, new DiscordComponentEmoji("📜"));
+
+                                try
+                                {
+                                    await mem.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(closedTicketButtonCreateUserTranscript));
+                                }
+                                catch (UnauthorizedException e)
+                                {
+                                    await Logger.LOGGER(e);
+                                    return;
+                                }
+                                catch (NotFoundException e)
+                                {
+                                    await Logger.LOGGER(e);
+                                    return;
+                                }
                             }
                         }
-                        } catch(NullReferenceException)
+                        catch (NullReferenceException)
                         {
                             return;
-                        } catch(Exception e)
+                        }
+                        catch (Exception e)
                         {
                             await Logger.LOGGER(e);
                         }
                     }
+                }
+                if(args.Id.StartsWith("marriage:")) {
+                    string userIdStr = args.Id.Split(":")[1];
+                    ulong.TryParse(userIdStr, out ulong userId);
+                    if (userId == 0)
+                    {
+                        return;
+                    }
+
+                    DiscordUser user = await sender.GetUserAsync(userId);
+
+                    var targetMarriage = await BoosterCommands.Marriages.GetMarriageBase(user);
+
+                    if (targetMarriage != null)
+                    {
+                        ulong partnerId = (targetMarriage.HusbandId == user.Id)
+                            ? targetMarriage.WifeId
+                            : targetMarriage.HusbandId;
+
+                        await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"{user.Mention} is already married to <@{partnerId}>!").AsEphemeral());
+                        return;
+                    }
+
+                    var authorMarriage = await BoosterCommands.Marriages.GetMarriageBase(args.Interaction.User);
+                    if (authorMarriage != null)
+                    {
+                        ulong partnerId = (authorMarriage.HusbandId == args.Interaction.User.Id)
+                            ? authorMarriage.WifeId
+                            : authorMarriage.HusbandId;
+
+                        await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"You are already married to <@{partnerId}>!").AsEphemeral());
+                        return;
+                    }
+
+                    await BoosterCommands.Marriages.UpsertMarriageBase(args.Interaction.User, wifeId: userId);
+                    await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"You successfully got married to <@{userId}>"));
                 }
             } catch (Exception e)
             {
