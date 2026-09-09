@@ -41,6 +41,14 @@ namespace Stormtility.Helpers
                     vcminutes INTEGER DEFAULT 0,
                     lastactive TEXT)";
 
+            string marriageconn = "Data Source=marriages.db";
+            string marriagessql = @"
+                CREATE TABLE IF NOT EXISTS marriages (
+                    husband_id INTEGER DEFAULT 0,
+                    wife_id INTEGER DEFAULT 0,
+                    PRIMARY KEY (husband_id, wife_id)
+                )";
+
             try
             {
                 using (var connection = new SqliteConnection(staffactivityconn))
@@ -74,10 +82,17 @@ namespace Stormtility.Helpers
                     await command.ExecuteNonQueryAsync();
                 }
 
-                using(var connection = new SqliteConnection(mutesconn))
+                using (var connection = new SqliteConnection(mutesconn))
                 {
                     await connection.OpenAsync();
                     using var command = new SqliteCommand(mutesconnsql, connection);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                using (var connection = new SqliteConnection(marriageconn))
+                {
+                    await connection.OpenAsync();
+                    using var command = new SqliteCommand(marriagessql, connection);
                     await command.ExecuteNonQueryAsync();
                 }
             }
