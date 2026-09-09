@@ -566,8 +566,19 @@ namespace Stormtility.events
                 await ReceiveMessageAndForwardToChannel(sender, args.Message);
             }
 
-            if(Utilitycommands.afkList.Any(entry => args.Message.Content.Contains($"<@{entry}>", StringComparison.OrdinalIgnoreCase))) {
+            if (Utilitycommands.afkList.Any(entry => args.Message.Content.Contains($"<@{entry}>", StringComparison.OrdinalIgnoreCase)))
+            {
                 await args.Message.RespondAsync("Please do not ping someome that is on the AFK list.");
+            }
+
+            if(Utilitycommands.afkList.Any(entry => args.Message.Author?.Id == entry)) {
+                await args.Message.Channel!.SendMessageAsync($"Welcome back {args.Message.Author!.Mention}! I removed your AFK status.");
+                Utilitycommands.afkList.Remove(args.Message.Author.Id);
+                string nickname = member.Nickname;
+                string[] splits = nickname.Split(" ");
+                string removeAFK = splits[0].Replace("AFK", "");
+                string newNick = string.Join(" ", splits);
+                await member.ModifyAsync(st => st.Nickname = newNick ?? "");
             }
 
             if (result)
