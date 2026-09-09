@@ -32,8 +32,10 @@ namespace Stormtility.commands.Staff_Commands {
             if (command == null)
             {
                 CommandCooldown.RemoveCooldown(user.Id);
+                await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Removed cooldown from {user.Mention}.").AsEphemeral());
                 return;
             }
+            await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Removed cooldown from {user.Mention}.").AsEphemeral());
             CommandCooldown.RemoveCooldown(command, user.Id);
         }
     }
