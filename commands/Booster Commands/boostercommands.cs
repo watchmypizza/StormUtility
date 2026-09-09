@@ -4,6 +4,7 @@ using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
+using DSharpPlus.Exceptions;
 using Microsoft.Data.Sqlite;
 using Stormtility.Helpers;
 
@@ -47,6 +48,12 @@ namespace Stormtility.commands.Booster_Commands {
                 await member.TimeoutAsync(DateTimeOffset.UtcNow.AddMinutes(2), $"{ctx.Interaction.User.Username} ({ctx.Interaction.User.Id}) used /kill on {member.Username} ({member.Id})");
                 CommandCooldown.AddCooldown(ctx.Command.Name, ctx.User.Id, 24);
                 await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"{member.Mention} has been timed out successfully.").AsEphemeral());
+                return;
+            }
+            catch(UnauthorizedException)
+            {
+                CommandCooldown.RemoveCooldown(ctx.Command.Name, ctx.User.Id);
+                await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You cannot mute this user.").AsEphemeral());
                 return;
             }
             catch (Exception e)
