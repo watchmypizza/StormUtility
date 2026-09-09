@@ -44,8 +44,7 @@ namespace Stormtility.events
 
                 // TODO:
                 // Implement secondCheck regex
-                var matchedInvite = secondaryCheck.IsMatch(content);
-                if (!matchedInvite) return false;
+                if (match.Groups[1].Value.ToLower() != "discord") continue;
                 string inviteCode = match.Groups[2].Value;
 
                 if (Vars.inviteCache.TryGetValue(inviteCode, out var cacheEntry))
@@ -116,7 +115,6 @@ namespace Stormtility.events
         private static Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
         private static Regex regex = new(@"<#([0-9]+)>");
         private static Regex ticketRegex = new(@"(?:support|appeal|exploiter|speedtypist)-(?:\d+)");
-        private static Regex secondaryCheck = new(@"(?:http|https)?(?::\/\/)?(?:www\.)?discord\.(?:com|gg|net|org|de|ts|io|ns|jp)(?:\/)?(.+)?\/(.+)");
 
         private static async Task<bool> CheckPingSpam(DiscordMessage message)
         {
