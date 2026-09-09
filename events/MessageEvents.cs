@@ -573,12 +573,19 @@ namespace Stormtility.events
 
             if(Utilitycommands.afkList.Any(entry => args.Message.Author?.Id == entry)) {
                 await args.Message.Channel!.SendMessageAsync($"Welcome back {args.Message.Author!.Mention}! I removed your AFK status.");
-                Utilitycommands.afkList.Remove(args.Message.Author.Id);
-                string nickname = member.Nickname;
-                string[] splits = nickname.Split(" ");
-                string removeAFK = splits[0].Replace("AFK", "");
-                string newNick = string.Join(" ", splits);
-                await member.ModifyAsync(st => st.Nickname = newNick ?? "");
+                try
+                {
+                    Utilitycommands.afkList.Remove(args.Message.Author.Id);
+                    string nickname = member.Nickname;
+                    string[] splits = nickname.Split(" ");
+                    string removeAFK = splits[0].Replace("AFK", "");
+                    string newNick = string.Join(" ", splits);
+                    await member.ModifyAsync(st => st.Nickname = newNick ?? "");
+                } catch(UnauthorizedException) {
+
+                } catch(Exception ex) {
+                    await Logger.LOGGER(ex);
+                }
             }
 
             if (result)
