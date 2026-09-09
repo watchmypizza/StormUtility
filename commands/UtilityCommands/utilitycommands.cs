@@ -3,8 +3,10 @@ using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
+using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
 using Stormtility.config;
+using Stormtility.Helpers;
 using TskLib;
 
 namespace Stormtility.commands.UtilityCommands
@@ -221,6 +223,60 @@ namespace Stormtility.commands.UtilityCommands
             await ctx.Interaction.EditOriginalResponseAsync(
                 new DiscordWebhookBuilder().WithContent($"Repaired {repaired.Count} broken file(s):\n{summary}")
             );
+        }
+
+        public static readonly List<ulong> afkList = [];
+
+        [Command("afk")]
+        [Description("Set AFK status")]
+        public async Task SetAFK(SlashCommandContext ctx)
+        {
+            try
+            {
+                afkList.Add(ctx.User.Id);
+                DiscordMember user = (DiscordMember)ctx.Interaction.User;
+                string nickname = user.Nickname;
+                await user.ModifyAsync(m => m.Nickname = $"AFK {nickname}");
+                await ctx.RespondAsync("Successfully added you to the AFK list", true);
+                return;
+            }
+            catch(UnauthorizedException) {
+                await ctx.RespondAsync("Unable to modify user's nickname. Added to list anyways.", true);
+                return;
+            }
+            catch (Exception e)
+            {
+                await ctx.RespondAsync("An unknown exception occured.", true);
+                await Logger.LOGGER(e);
+                return;
+            }
+        }
+
+        [Command("unafk")]
+        [Description("Remove your AFK status")]
+        public async Task RemoveAFK(SlashCommandContext ctx) {
+            try
+            {
+                afkList.Remove(ctx.User.Id);
+                DiscordMember user = (DiscordMember)ctx.Interaction.User;
+                string nickname = user.Nickname;
+                string[] splits = nickname.Split(" ");
+                string removeAFK = splits[0].Replace("AFK", "");
+                string newNick = string.Join(" ", splits);
+                await user.ModifyAsync(st => st.Nickname = newNick ?? "");
+                await ctx.RespondAsync("Successfully removed you from the AFK list", true);
+                return;
+            }
+            catch(UnauthorizedException) {
+                await ctx.RespondAsync("Unable to modify user's nickname. Removed from list anyways.", true);
+                return;
+            }
+            catch (Exception e)
+            {
+                await ctx.RespondAsync("An unknown exception occured.", true);
+                await Logger.LOGGER(e);
+                return;
+            }
         }
     }
 }

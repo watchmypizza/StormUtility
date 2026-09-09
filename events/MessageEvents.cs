@@ -14,6 +14,7 @@ using Microsoft.Data.Sqlite;
 using Newtonsoft.Json.Linq;
 using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
+using Stormtility.commands.UtilityCommands;
 using Stormtility.config;
 using Stormtility.Helpers;
 
@@ -565,16 +566,20 @@ namespace Stormtility.events
                 await ReceiveMessageAndForwardToChannel(sender, args.Message);
             }
 
-            if(result)
+            if(Utilitycommands.afkList.Any(entry => args.Message.Content.Contains($"<@{entry}>", StringComparison.OrdinalIgnoreCase))) {
+                await args.Message.RespondAsync("Please do not ping someome that is on the AFK list.");
+            }
+
+            if (result)
             {
-                if(member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
+                if (member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
                 {
                     return;
                 }
                 DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
-                await channelLog.SendMessageAsync($"{args.Message.Content   } sent by {args.Message.Author!.Mention}");
+                await channelLog.SendMessageAsync($"{args.Message.Content} sent by {args.Message.Author!.Mention}");
                 await args.Message.DeleteAsync();
                 ulong stickerId = 1533600293630251008;
                 var sticker = await args.Guild.GetStickerAsync(stickerId);
