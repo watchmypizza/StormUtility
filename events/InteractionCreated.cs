@@ -775,7 +775,7 @@ namespace Stormtility.events {
                     bool doNotDm = false;
                     await args.Interaction.DeferAsync(true);
                     var member = (DiscordMember)args.Interaction.User;
-                    if (!member.PermissionsIn(args.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) || !member.Roles.Any(r => r.Id == 1474165198947356793))
+                    if (!member.PermissionsIn(args.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers) && !member.Roles.Any(r => r.Id == 1474165198947356793))
                     {
                         await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("You cannot close this ticket."));
                         return;

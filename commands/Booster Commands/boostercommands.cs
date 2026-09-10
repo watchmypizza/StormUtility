@@ -261,13 +261,20 @@ namespace Stormtility.commands.Booster_Commands {
                     Color = DiscordColor.Red
                 };
 
-                await ctx.RespondAsync($"A message has been sent to {user.Mention} to consent!", true);
-
                 embedBuilder.AddField("From:", $"{ctx.Interaction.User.Mention}", true);
                 var button = new DiscordButtonComponent(DiscordButtonStyle.Success, $"marriage:{ctx.Interaction.User.Id}", "Accept", false, new DiscordComponentEmoji("🎉"));
                 var messageBuilder = new DiscordMessageBuilder().AddEmbed(embedBuilder).AddActionRowComponent(button);
-                await user.SendMessageAsync(messageBuilder);
-                CommandCooldown.AddCooldown(ctx.Command.Name, ctx.User.Id, 12);
+                try
+                {
+                    await user.SendMessageAsync(messageBuilder);
+                    await ctx.RespondAsync($"A message has been sent to {user.Mention} to consent!", true);
+                    CommandCooldown.AddCooldown(ctx.Command.Name, ctx.User.Id, 12);
+                } catch(UnauthorizedException) {
+                    await ctx.RespondAsync("Something went wrong. Your cooldown has not been affected.", true);
+                } catch(Exception ex) {
+                    await ctx.RespondAsync("Something went wrong. Your cooldown has not been affected.", true);
+                    await Logger.LOGGER(ex);
+                }
                 // await UpsertMarriageBase(ctx.User, user);
                 // await ctx.RespondAsync($"Congratulations! {ctx.User.Mention} and {user.Mention} are now married! :3");
             }
