@@ -68,7 +68,7 @@ namespace gamebot
 
             var sc = client.UseSlashCommands();
             sc.RegisterCommands<helpcommand>();
-            sc.RegisterCommands<gamecommands>();
+            sc.RegisterCommands<Gamecommands>();
 
             client.Ready += Stormtility.events.Client_ReadyEvent.Client_Ready;
 
@@ -86,9 +86,9 @@ namespace gamebot
                 while (await timer.WaitForNextTickAsync(token))
                 {
                     Console.WriteLine("[System] 5-minute interval reached. Scanning ban file...");
-                    
+
                     bool success = await refBan.refreshBans();
-                    
+
                     if (success)
                     {
                         Console.WriteLine("[System] Ban file check completed successfully.");

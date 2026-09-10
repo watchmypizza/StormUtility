@@ -69,7 +69,7 @@ namespace Stormtility.commands
 
                         try
                         {
-                            await Stormtility.commands.gamecommands.sendRequest(
+                            await Stormtility.commands.Gamecommands.SendRequest(
                                 "ban",
                                 userId,
                                 "Exploits"

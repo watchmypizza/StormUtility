@@ -19,14 +19,14 @@ using System.Text.RegularExpressions;
 
 namespace Stormtility.commands
 {
-    public class gamecommands : ApplicationCommandModule
+    public class Gamecommands : ApplicationCommandModule
     {
-        public static async Task<bool> getAdmin(InteractionContext ctx)
+        public static async Task<bool> GetAdmin(InteractionContext ctx)
         {
             bool isStaff = ctx.Member.Roles.Any(r => r.Id == Program.staffId);
             bool isOwner = ctx.User.Id == 806333974795386923;
 
-            if (isStaff || isOwner) 
+            if (isStaff || isOwner)
             {
                 return true;
             }
@@ -49,9 +49,9 @@ namespace Stormtility.commands
         private static readonly HttpClientHandler handler = new HttpClientHandler { UseCookies = true };
         private static readonly HttpClient httpClient = new HttpClient(handler);
 
-        public static async Task<long> getUser(string username)
+        public static async Task<long> GetUser(string username)
         {
-            try 
+            try
             {
                 if (string.IsNullOrWhiteSpace(username) || username.Contains("\""))
                 {
@@ -62,18 +62,18 @@ namespace Stormtility.commands
                 {
                     usernames = new Collection<string>
                     {
-                      username  
+                      username
                     },
                     excludeBannedUsers = true
                 };
-                
+
                 var payload = JsonSerializer.Serialize(body);
                 var ctn = new StringContent(payload, Encoding.UTF8, "application/json");
                 var response = await httpClient.PostAsync(url, ctn);
 
                 var content = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(content);
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine($"API Error: {response.StatusCode}");
@@ -87,22 +87,22 @@ namespace Stormtility.commands
                 {
                     return dataArray[0].GetProperty("id").GetInt64();
                 }
-            } 
+            }
             catch (Exception e)
             {
                 Console.WriteLine($"Error: {e.Message}");
                 Console.WriteLine($"Error: {e}");
                 return 0;
-            } 
+            }
             return 0;
         }
 
-        public static async Task<bool> sendRequest(string requestType, string username, string? reason = "")
+        public static async Task<bool> SendRequest(string requestType, string username, string? reason = "")
         {
             CancellationToken cancellationToken = new();
             long.TryParse(username, out long userId);
             if(userId == 0) {
-                userId = await getUser(username).WaitAsync(cancellationToken);
+                userId = await GetUser(username).WaitAsync(cancellationToken);
             }
 
             if (requestType.ToLower() == "ban")
@@ -234,7 +234,7 @@ namespace Stormtility.commands
             CancellationToken cancellationToken = new CancellationToken();
             long.TryParse(username, out long userId);
             if(userId == 0) {
-                long userNew = await getUser($"{username}").WaitAsync(cancellationToken);
+                long userNew = await GetUser($"{username}").WaitAsync(cancellationToken);
                 username = $"{userNew}";
             }
 
@@ -306,7 +306,7 @@ namespace Stormtility.commands
 
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
-                
+
                 var body = new
                 {
                     topic = topicString,
@@ -335,7 +335,7 @@ namespace Stormtility.commands
             [SlashCommand("test", "Test")]
             public async Task test(InteractionContext ctx)
             {
-                bool hasAdmin = await getAdmin(ctx);
+                bool hasAdmin = await GetAdmin(ctx);
                 if (!hasAdmin)
                 {
                     return;
@@ -346,13 +346,13 @@ namespace Stormtility.commands
             [SlashCommand("ban", "Ban an user")]
             public async Task ban(InteractionContext ctx, [Option("Username", "User to ban")] string username, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
-                bool hasAdmin = await getAdmin(ctx);
+                bool hasAdmin = await GetAdmin(ctx);
                 if (!hasAdmin)
                 {
                     return;
                 }
 
-                bool requestAnswer = await sendRequest("ban", username, reason);
+                bool requestAnswer = await SendRequest("ban", username, reason);
                 if (requestAnswer)
                 {
                     bool messagingServiceAnswer = await sendMessagingServiceRequest("userBanned", $"{username}");
@@ -386,13 +386,13 @@ namespace Stormtility.commands
             [SlashCommand("unban", "Unban an user")]
             public async Task unban(InteractionContext ctx, [Option("username", "User to ban")] string user)
             {
-                bool hasAdmin = await getAdmin(ctx);
+                bool hasAdmin = await GetAdmin(ctx);
                 if (!hasAdmin)
                 {
                     return;
                 }
 
-                bool requestAnswer = await sendRequest("unban", user);
+                bool requestAnswer = await SendRequest("unban", user);
                 if (requestAnswer)
                 {
                     bool messagingServiceAnswer = await sendMessagingServiceRequest("userUnbanned", $"{user}");
@@ -402,7 +402,7 @@ namespace Stormtility.commands
                     }
                     var unbanEmbed = new DiscordEmbedBuilder()
                     {
-                        Title = "Ban",
+                        Title = "Unban",
                         Description = $"{user} has been unbanned.",
                         Color = DiscordColor.Green
                     };
@@ -426,7 +426,7 @@ namespace Stormtility.commands
             [SlashCommand("testcommand", "Testing command for the nut")]
             public async Task testcommand(InteractionContext ctx, [Option("username", "GETS USERID FOR USER")] string username = "0")
             {
-                long userId = await getUser(username);
+                long userId = await GetUser(username);
                 Console.WriteLine(userId);
             }
 
@@ -435,9 +435,9 @@ namespace Stormtility.commands
                 string url = $"https://users.roblox.com/v1/users/{userId}";
 
                 using HttpClient httpClient = new();
-                
+
                 var request = httpClient.GetAsync(url).Result;
-                
+
                 if(!request.IsSuccessStatusCode)
                 {
                     return $"ERR {request.StatusCode}";
@@ -455,7 +455,7 @@ namespace Stormtility.commands
                 try
                 {
                     await ctx.DeferAsync(true);
-                    bool hasAdmin = await getAdmin(ctx);
+                    bool hasAdmin = await GetAdmin(ctx);
                     if (!hasAdmin)
                     {
                         await ctx.CreateResponseAsync("You do not have permission to use this command.", ephemeral: true);
@@ -499,18 +499,18 @@ namespace Stormtility.commands
             public async Task getuser(InteractionContext ctx, [Option("username", "User to get information about")] string user)
             {
                 try {
-                    bool hasAdmin = await getAdmin(ctx);
+                    bool hasAdmin = await GetAdmin(ctx);
                     if (!hasAdmin)
                     {
                         return;
                     }
-                    
+
                     await ctx.DeferAsync(true);
 
                     long.TryParse(user, out long userId);
                     if(userId == 0)
                     {
-                        userId = await getUser(user);
+                        userId = await GetUser(user);
                     }
                     string detailedInfoLink = $"https://users.roblox.com/v1/users/{userId}";
                     string followers = $"https://friends.roblox.com/v1/users/{userId}/followers/count";
@@ -518,7 +518,7 @@ namespace Stormtility.commands
                     string getBanURL = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                     using var httpClient = new HttpClient();
                     httpClient.DefaultRequestHeaders.Add("x-api-key", Program.apiKey);
-                    
+
                     var isBannedResp = await httpClient.GetAsync(getBanURL);
                     var GBContent = await isBannedResp.Content.ReadAsStringAsync();
                     var GBSuccess = isBannedResp.IsSuccessStatusCode;
@@ -695,7 +695,7 @@ namespace Stormtility.commands
             [SlashCommand("tempban", "Temporarily ban someone")]
             public async Task tempban(InteractionContext ctx, [Option("Username", "The username for the user to ban.")] string username, [Option("Reason", "The reason for the ban")] string reason, [Option("Duration", "The duration of the ban")] string duration)
             {
-                bool isAdmin = await getAdmin(ctx);
+                bool isAdmin = await GetAdmin(ctx);
                 if(!isAdmin)
                 {
                     return;
@@ -742,7 +742,7 @@ namespace Stormtility.commands
                 CancellationToken cancellationToken = new();
                 long.TryParse(username, out long userId);
                 if(userId == 0) {
-                    userId = await getUser(username).WaitAsync(cancellationToken);
+                    userId = await GetUser(username).WaitAsync(cancellationToken);
                 }
                 var apiRequest = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
                 var httpClient = new HttpClient();
@@ -812,7 +812,7 @@ namespace Stormtility.commands
             InteractionContext ctx, [Option("Username", "User to kick")] string user, [Option("reason", "Reason for the kick")] string? reason = "No reason provided")
             {
                 try {
-                    bool hasAdmin = await getAdmin(ctx);
+                    bool hasAdmin = await GetAdmin(ctx);
                     if (!hasAdmin)
                         return;
 
@@ -822,7 +822,7 @@ namespace Stormtility.commands
                     CancellationToken cancellationToken = new();
                     long.TryParse(user, out long userId);
                     if(userId == 0) {
-                        userId = await getUser(user).WaitAsync(cancellationToken);
+                        userId = await GetUser(user).WaitAsync(cancellationToken);
                     }
 
                     var url = $"https://apis.roblox.com/cloud/v2/universes/{BanLogEntry.universeId}/user-restrictions/{userId}";
@@ -880,7 +880,7 @@ namespace Stormtility.commands
             [SlashCommand("announce", "Make a global announcement in all game servers. THE MESSAGE WILL BE FILTERED BY ROBLOX!")]
             public async Task announce(InteractionContext ctx, [Option("message", "The message to announce")] string message)
             {
-                bool hasAdmin = await getAdmin(ctx);
+                bool hasAdmin = await GetAdmin(ctx);
                 if (!hasAdmin)
                     return;
 

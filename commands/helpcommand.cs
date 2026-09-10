@@ -11,7 +11,7 @@ namespace Stormtility.commands
         [SlashCommand("help", "Display a list of available commands and query info to every single one if needed.")]
         public async Task help(InteractionContext ctx, [Option("command", "Command to query info on")] string? command = null)
         {
-            bool isAdmin = await gamecommands.getAdmin(ctx);
+            bool isAdmin = await Gamecommands.GetAdmin(ctx);
 
             if(!isAdmin)
             {
