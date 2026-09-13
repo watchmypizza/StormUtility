@@ -400,10 +400,5 @@ namespace Stormtility.commands.Booster_Commands {
             }
             return;
         }
-
-        // TODO:
-        // /bump <user>: u have a crush on someone and we store the value of that, 12 hour cooldown, automatic renewals(
-
-        // STRUCTURE SQLITE BUMP: User (ulong) | Bumps (long) | HasAutomaticRenewalsForUserId (ulong) | LastRenewal (DateTime)
     }
 }
