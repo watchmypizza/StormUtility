@@ -49,8 +49,23 @@ namespace Stormtility.Helpers
                     PRIMARY KEY (husband_id, wife_id)
                 )";
 
+            string bumpconn = "Data Source=bumps.db";
+            string bumpsql = @"
+                CREATE TABLE IF NOT EXISTS bumps (
+                    user_Id INTEGER DEFAULT 0 UNIQUE,
+                    bumps INTEGER,
+                    lastBumper INTEGER DEFAULT 0,
+                    PRIMARY KEY (user_Id)
+                )";
+
             try
             {
+                using(var connection = new SqliteConnection(bumpconn)) {
+                    await connection.OpenAsync();
+
+                    using var command = new SqliteCommand(bumpsql, connection);
+                    await command.ExecuteNonQueryAsync();
+                }
                 using (var connection = new SqliteConnection(staffactivityconn))
                 {
                     await connection.OpenAsync();

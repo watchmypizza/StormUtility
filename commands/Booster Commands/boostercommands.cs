@@ -6,6 +6,7 @@ using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 using Microsoft.Data.Sqlite;
+using Microsoft.Win32.SafeHandles;
 using Stormtility.Helpers;
 
 namespace Stormtility.commands.Booster_Commands {
@@ -140,7 +141,9 @@ namespace Stormtility.commands.Booster_Commands {
         [Description("Marriage commands")]
         public class Marriages
         {
-            public record Marriage {
+            public record Marriage
+
+            {
                 public required ulong HusbandId { get; set; }
                 public required ulong WifeId { get; set; }
             }
@@ -156,9 +159,17 @@ namespace Stormtility.commands.Booster_Commands {
                 if (wife != null)
                 {
                     com.Parameters.AddWithValue("@wife", wife.Id);
-                } else if(wifeId != 0) {
+                }
+
+                else if (wifeId != 0)
+
+                {
                     com.Parameters.AddWithValue("@wife", wifeId);
-                } else {
+                }
+
+                else
+
+                {
                     return;
                 }
                 await com.ExecuteNonQueryAsync();
@@ -191,7 +202,9 @@ namespace Stormtility.commands.Booster_Commands {
                 return null;
             }
 
-            private async Task<bool> DeleteMarriage(SlashCommandContext ctx, DiscordUser user) {
+            private async Task<bool> DeleteMarriage(SlashCommandContext ctx, DiscordUser user)
+
+            {
                 ulong PrimUserId = ctx.User.Id;
                 string datasource = "Data Source=marriages.db";
                 using var conn = new SqliteConnection(datasource);
@@ -218,7 +231,7 @@ namespace Stormtility.commands.Booster_Commands {
                 if (!await CheckBoosterRole(ctx)) return;
                 if (!CommandCooldown.CheckCooldown(ctx.Command.Name, ctx.Interaction.User.Id))
                 {
-                    await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("You are currently on cooldown.").AsEphemeral());
+                    await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"You are still on cooldown for {CommandCooldown.GetRemainingTime(ctx.Command.Name, ctx.User.Id)}.").AsEphemeral());
                     return;
                 }
                 if (user.Id == ctx.User.Id)
@@ -269,9 +282,17 @@ namespace Stormtility.commands.Booster_Commands {
                     await user.SendMessageAsync(messageBuilder);
                     await ctx.RespondAsync($"A message has been sent to {user.Mention} to consent!", true);
                     CommandCooldown.AddCooldown(ctx.Command.Name, ctx.User.Id, 12);
-                } catch(UnauthorizedException) {
+                }
+
+                catch (UnauthorizedException)
+
+                {
                     await ctx.RespondAsync("Something went wrong. Your cooldown has not been affected.", true);
-                } catch(Exception ex) {
+                }
+
+                catch (Exception ex)
+
+                {
                     await ctx.RespondAsync("Something went wrong. Your cooldown has not been affected.", true);
                     await Logger.LOGGER(ex);
                 }
@@ -298,9 +319,90 @@ namespace Stormtility.commands.Booster_Commands {
             }
         }
 
+        private record BumpRecord {
+            public required ulong UserId { get; set; }
+            public required int Bumps { get; set; }
+            public required ulong LastBumperId { get; set; }
+        }
+
+        private async Task<bool> WriteBumpAsync(ulong userId, ulong newBumperId)
+        {
+            string db = "Data Source=bumps.db";
+            using var connection = new SqliteConnection(db);
+            await connection.OpenAsync();
+            string command = @"
+                INSERT INTO bumps (user_Id,bumps,lastBumper) VALUES (@userId,1,@lastBumper) ON CONFLICT (user_Id) DO UPDATE SET bumps=bumps.bumps + 1, lastBumper=excluded.lastBumper;
+            ";
+            using var cmd = new SqliteCommand(command, connection);
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@lastBumper", newBumperId);
+
+            await cmd.ExecuteNonQueryAsync();
+
+            return true;
+        }
+
+        private async Task<BumpRecord?> ReadBumpAsync(ulong target) {
+            string db = "Data Source=bumps.db";
+            using var connection = new SqliteConnection(db);
+            await connection.OpenAsync();
+            string command = @"
+                SELECT user_Id,bumps,lastBumper FROM bumps WHERE user_Id=@userId;
+            ";
+            using var cmd = new SqliteCommand(command, connection);
+
+            cmd.Parameters.AddWithValue("@userId", target);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new BumpRecord
+                {
+                    UserId = (ulong)reader.GetInt64(0),
+                    Bumps = reader.GetInt32(1),
+                    LastBumperId = (ulong)reader.GetInt64(2)
+                };
+            }
+
+            return null;
+        }
+
+        [Command("bump")]
+        [Description("Bump someone ?")]
+        public async Task Bump(
+            SlashCommandContext ctx,
+            [Parameter("User")][Description("The user to bump")]DiscordUser user
+        )
+        {
+            if (!await CheckBoosterRole(ctx)) return;
+            if(!CommandCooldown.CheckCooldown(ctx.Command.Name, ctx.User.Id)) {
+                await ctx.RespondAsync($"You are still on cooldown for {CommandCooldown.GetRemainingTime(ctx.Command.Name, ctx.User.Id)}.", true);
+                return;
+            }
+            if (user.Id == ctx.User.Id)
+            {
+                await ctx.RespondAsync("You cannot bump yourself.", true);
+                return;
+            }
+
+            BumpRecord? bumps = await ReadBumpAsync(user.Id);
+            if (bumps?.LastBumperId == ctx.User.Id) { await ctx.RespondAsync("You cannot bump the same person twice in a row!", true); return; }
+            if (bumps?.UserId == ctx.User.Id) { await ctx.RespondAsync("You cannot bump yourself!", true); return; }
+
+            try
+            {
+                await WriteBumpAsync(user.Id, ctx.User.Id);
+                CommandCooldown.AddCooldown(ctx.Command.Name, ctx.User.Id, 24);
+                await ctx.RespondAsync($"Bumped {user.Mention} successfully!", true);
+            } catch(Exception e) {
+                await ctx.RespondAsync("Something went wrong processing your request.", true);
+                await Logger.LOGGER(e);
+            }
+            return;
+        }
+
         // TODO:
         // /bump <user>: u have a crush on someone and we store the value of that, 12 hour cooldown, automatic renewals(
-        // /marry <user> <user(optional)>
 
         // STRUCTURE SQLITE BUMP: User (ulong) | Bumps (long) | HasAutomaticRenewalsForUserId (ulong) | LastRenewal (DateTime)
     }
