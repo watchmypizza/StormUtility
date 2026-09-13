@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using DSharpPlus.Commands;
@@ -319,10 +320,17 @@ namespace Stormtility.commands.Booster_Commands {
             }
         }
 
-        private record BumpRecord {
+        public record BumpRecord
+        {
             public required ulong UserId { get; set; }
             public required int Bumps { get; set; }
             public required ulong LastBumperId { get; set; }
+        }
+
+        public record BumpListRecord
+        {
+            public required List<ulong> UserId { get; set; }
+            public required List<int> Bumps { get; set; }
         }
 
         private async Task<bool> WriteBumpAsync(ulong userId, ulong newBumperId)
@@ -342,7 +350,8 @@ namespace Stormtility.commands.Booster_Commands {
             return true;
         }
 
-        private async Task<BumpRecord?> ReadBumpAsync(ulong target) {
+        public static async Task<BumpRecord?> ReadBumpAsync(ulong target)
+        {
             string db = "Data Source=bumps.db";
             using var connection = new SqliteConnection(db);
             await connection.OpenAsync();
@@ -365,6 +374,28 @@ namespace Stormtility.commands.Booster_Commands {
             }
 
             return null;
+        }
+
+        public static async Task<ConcurrentDictionary<ulong, int>?> ReadAllBumpAsync() {
+            string db = "Data Source=bumps.db";
+            using var connection = new SqliteConnection(db);
+
+            ConcurrentDictionary<ulong, int> bumpDict = [];
+
+            await connection.OpenAsync();
+            string command = @"
+                SELECT user_Id,bumps FROM bumps;
+            ";
+            using var cmd = new SqliteCommand(command, connection);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                bumpDict.TryAdd((ulong)reader.GetInt64(0), reader.GetInt32(1));
+            }
+
+            return bumpDict;
         }
 
         [Command("bump")]

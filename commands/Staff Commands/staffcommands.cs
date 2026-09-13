@@ -1,8 +1,11 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Text;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Trees.Metadata;
 using DSharpPlus.Entities;
+using Stormtility.commands.Booster_Commands;
 using Stormtility.Helpers;
 
 namespace Stormtility.commands.Staff_Commands {
@@ -37,6 +40,39 @@ namespace Stormtility.commands.Staff_Commands {
             }
             await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Removed cooldown from {user.Mention}.").AsEphemeral());
             CommandCooldown.RemoveCooldown(command, user.Id);
+        }
+
+        [Command("bumps")]
+        [Description("List the top 10 bumps")]
+        public async Task ListBumps(SlashCommandContext ctx) {
+            if (!CheckStaff(ctx))
+            {
+                await ctx.RespondAsync("You do not have necessary permissions to use this command.", true);
+                return;
+            }
+
+            ConcurrentDictionary<ulong,int> bumps = await BoosterCommands.ReadAllBumpAsync() ?? [];
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Top 10 Bumpers",
+            };
+
+            bumps.OrderByDescending(pair => pair.Value);
+
+            int i = 1;
+            StringBuilder sb = new();
+
+            foreach (var entry in bumps)
+            {
+                sb.AppendLine($"{i}. <@{entry.Key}> - **{entry.Value}** bump{(entry.Value == 1 ? "" : "s")}");
+                i++;
+            }
+
+            embed.Description = sb.ToString();
+            embed.Color = DiscordColor.Yellow;
+
+            await ctx.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+            return;
         }
     }
 }
