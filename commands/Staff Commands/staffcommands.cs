@@ -57,12 +57,12 @@ namespace Stormtility.commands.Staff_Commands {
                 Title = "Top 10 Bumpers",
             };
 
-            bumps.OrderBy(pair => pair.Value);
+            var kvp = bumps.OrderByDescending(pair => pair.Value).ToList();
 
             int i = 1;
             StringBuilder sb = new();
 
-            foreach (var entry in bumps)
+            foreach (var entry in kvp)
             {
                 sb.AppendLine($"{i}. <@{entry.Key}> - **{entry.Value}** bump{(entry.Value == 1 ? "" : "s")}");
                 i++;
