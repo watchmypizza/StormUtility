@@ -57,7 +57,7 @@ namespace Stormtility.commands.Staff_Commands {
                 Title = "Top 10 Bumpers",
             };
 
-            bumps.OrderByDescending(pair => pair.Value);
+            bumps.OrderBy(pair => pair.Value);
 
             int i = 1;
             StringBuilder sb = new();
