@@ -22,7 +22,7 @@ namespace Stormtility.events
 {
     public class MessageEvents
     {
-        private static HttpClient client = new();
+        private static readonly HttpClient client = new();
         private static readonly List<string> blacklistedWords =
         [
             "18", "e-girl", "condo", "csam", "dropbox", "porn", "rape",
@@ -114,6 +114,10 @@ namespace Stormtility.events
         private static Regex nameRegex = new Regex(@"[^A-Za-z0-9 \/!?\']+");
         private static Regex checkMessageForBio = new Regex(@"([ '""\/\\!?:*A-Za-z0-9]+)");
         private static Regex inviteRegex = new Regex(@"(http|https)?(?:[\:\/]+)?(?:[a-zA-Z]+\.|)?([A-Za-z0-9]+)(?:app)?\.[a-zA-Z]+\/(?:invite)?(emoji|attachment|channels)?\/?([A-Za-z0-9]+)");
+        private static readonly Regex AttachmentUrlRegex = new(
+            @"https?://[^\s<>\[\]""']+\.(?:gif|png|jpe?g|webp|mp4|webm|mov)(?:\?[^\s<>\[\]""']*)?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase
+        );
         private static Regex regex = new(@"<#([0-9]+)>");
         private static Regex ticketRegex = new(@"(?:support|appeal|exploiter|speedtypist)-(?:\d+)");
 
