@@ -103,6 +103,17 @@ namespace Stormtility.events
             return false;
         }
 
+        private static bool CheckMessageForNewLines(DiscordMember member, string messageContent)
+        {
+            if(member.Roles.Any(r => r.Id == 1374444948228931661)) // level 5 role id
+            {
+                return false;
+            }
+            int newlineCount = messageContent.Count(c => c == '\n');
+
+            return newlineCount >= 5;
+        }
+
         public struct SpamPingData
         {
             public int Count { get; set; }
@@ -379,10 +390,11 @@ namespace Stormtility.events
             var member = (DiscordMember)user;
             await RouteMessages(args.Message, msgBefore: args.MessageBefore!.Content, edited: true);
             await CheckSuggestion.IsValidSuggestion(sender, args.Message);
+            bool isNonMultiLineMessage = CheckMessageForNewLines(member, args.Message.Content);
 
-            if(result)
+            if (result)
             {
-                if(member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
+                if (member.Roles.Any(r => r.Id == 1370422448763437207 || r.Id == 1474165198947356793))
                 {
                     return;
                 }
@@ -392,6 +404,8 @@ namespace Stormtility.events
                 await channelLog.SendMessageAsync($"`{args.Message.Content.ToString()}` sent by {args.Message.Author!.Mention}\nMessage before edited was `{args.MessageBefore.Content}`");
                 await args.Message.DeleteAsync();
             }
+
+            if(isNonMultiLineMessage) { await args.Message.DeleteAsync(); }
         }
 
         public static async Task<int> GetCurCount(ulong userId)
@@ -563,6 +577,7 @@ namespace Stormtility.events
             var member = (DiscordMember)user;
             bool isConsideredSpamPing = await CheckPingSpam(args.Message);
             await CheckSuggestion.IsValidSuggestion(sender, args.Message);
+            bool isMultiLineMessage = CheckMessageForNewLines(member, args.Message.Content);
             if(args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
 
             if(args.Channel.Id == 1533206494181462137)
@@ -574,6 +589,8 @@ namespace Stormtility.events
             {
                 await args.Message.RespondAsync("Please do not ping someome that is on the AFK list.");
             }
+
+            if(isMultiLineMessage) { await args.Message.DeleteAsync(); }
 
             if(Utilitycommands.afkList.Any(entry => args.Message.Author?.Id == entry)) {
                 await args.Message.Channel!.SendMessageAsync($"Welcome back {args.Message.Author!.Mention}! I removed your AFK status.");
