@@ -480,6 +480,9 @@ def get_transcript(ticket_id):
             format_timestamp(dt)
         )
 
+        MENTION_RE = re.compile(r"<@!?(\d+)>")
+        mentions = MENTION_RE.findall(message["content"]) # continue later im too lazy atm
+
     return messages
 
 @app.post("/transcript/createInterface")
@@ -495,11 +498,13 @@ def create_interface():
     timestamp = data.get("timestamp")
     signature = data.get("signature")
 
+    ticket_id = data.get("ticketId")
+
     if not nonce or not timestamp or not signature:
         token = secrets.token_urlsafe(32)
 
         sessions[token] = {
-            "ticket_id": "getout",
+            "ticket_id": ticket_id,
             "expires": (
                 time.time() + TRANSCRIPT_EXPIRY
             )
@@ -507,7 +512,7 @@ def create_interface():
 
         return jsonify({
             "url": (
-                "https://ilikepeanutbutter.duckdns.org/"
+                "https://127.0.0.1:3000/"
                 f"ticket?id={token}"
             ),
             "expires": TRANSCRIPT_EXPIRY
@@ -521,7 +526,7 @@ def create_interface():
         token = secrets.token_urlsafe(32)
 
         sessions[token] = {
-            "ticket_id": "getout",
+            "ticket_id": ticket_id,
             "expires": (
                 time.time() + TRANSCRIPT_EXPIRY
             )
@@ -529,13 +534,11 @@ def create_interface():
 
         return jsonify({
             "url": (
-                "https://ilikepeanutbutter.duckdns.org/"
+                "https://127.0.0.1:3000/"
                 f"ticket?id={token}"
             ),
             "expires": TRANSCRIPT_EXPIRY
         })
-
-    ticket_id = data.get("ticketId")
 
     if not ticket_id:
         return jsonify({

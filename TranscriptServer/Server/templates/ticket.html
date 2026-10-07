@@ -402,7 +402,10 @@
                 {% endif %}
 
                 </div>
-          {% endif %}
+            {% endif %}
+            {% if message.mention %}
+                <span class="discord-mention">{{ message.mention }}</span>
+            {% endif %}
           </div>
         </div>
             {% set namespace.previous_user = message.username %}

@@ -71,7 +71,7 @@ namespace Stormtility.events
                 var json = JObject.Parse(jsonText);
 
                 string? guildName = json["guild"]?["name"]?.ToString();
-                if(debug)
+                if (debug)
                 {
                     await Logger.DebugLog($"Name: {guildName}");
                 }
@@ -83,13 +83,15 @@ namespace Stormtility.events
                 try
                 {
                     await member!.TimeoutAsync(DateTimeOffset.Now.AddHours(1), $"Advertising other servers: {inviteCode}");
-                } catch(Exception e) {
+                }
+                catch (Exception e)
+                {
                     await Logger.LOGGER(e);
                 }
 
                 bool isBad = blacklistedWords.Any(word => guildName.Contains(word, StringComparison.OrdinalIgnoreCase));
 
-                if(NameRegex.IsMatch(guildName) && debug)
+                if (NameRegex.IsMatch(guildName) && debug)
                 {
                     await Logger.DebugLog($"Bad Name {guildName}");
                     isBad = true;
@@ -101,6 +103,26 @@ namespace Stormtility.events
             }
 
             return false;
+        }
+
+        private static async Task<bool> checkHoneyPot(DiscordMember member, DiscordMessage message) {
+            if (member.PermissionsIn(message.Channel!).HasPermission(DiscordPermission.Administrator))
+            {
+                return false;
+            }
+
+            if (message.Channel?.Id == 1557476848357867742) { return false; }
+            try
+            {
+                await member.BanAsync(TimeSpan.FromDays(7), "Honeypot - Kick (AUTO BAN)");
+                await member.UnbanAsync();
+                return true;
+            } catch(UnauthorizedException) {
+                return false;
+            } catch(Exception ex) {
+                await Logger.LOGGER(ex);
+                return false;
+            }
         }
 
         private static bool CheckMessageForNewLines(DiscordMember member, string messageContent)
@@ -578,7 +600,8 @@ namespace Stormtility.events
             bool isConsideredSpamPing = await CheckPingSpam(args.Message);
             await CheckSuggestion.IsValidSuggestion(sender, args.Message);
             bool isMultiLineMessage = CheckMessageForNewLines(member, args.Message.Content);
-            if(args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
+            if (args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
+            bool isHoneyPot = await checkHoneyPot(member, args.Message);
 
             if(args.Channel.Id == 1533206494181462137)
             {
