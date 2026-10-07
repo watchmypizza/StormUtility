@@ -111,7 +111,7 @@ namespace Stormtility.events
                 return false;
             }
 
-            if (message.Channel?.Id == 1557476848357867742) { return false; }
+            if (message.Channel?.Id != 1557476848357867742) { return false; } // IF NOT THEN RETURN FALSE. DO NOT MAKE SAME MISTAKE.
             try
             {
                 await member.BanAsync(TimeSpan.FromDays(7), "Honeypot - Kick (AUTO BAN)");
