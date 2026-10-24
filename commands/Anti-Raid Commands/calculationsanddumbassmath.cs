@@ -45,12 +45,8 @@ namespace Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath
             {
                 string currentCluster = elementEnumerator.GetTextElement();
 
-                int diacriticCount = currentCluster.Count(c => CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark);
-
-                if (diacriticCount > maxDiacriticsPerLetter)
-                {
-                    return true;
-                }
+                int totalDiacritics = text.Count(c => CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark);
+                if (totalDiacritics > maxDiacriticsPerLetter) return true;
             }
 
             return false;

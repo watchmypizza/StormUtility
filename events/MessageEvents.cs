@@ -105,7 +105,7 @@ namespace Stormtility.events
             return false;
         }
 
-        private static async Task<bool> checkHoneyPot(DiscordMember member, DiscordMessage message) {
+        private static async Task<bool> CheckHoneyPot(DiscordMember member, DiscordMessage message) {
             if (member.PermissionsIn(message.Channel!).HasPermission(DiscordPermission.Administrator))
             {
                 return false;
@@ -228,6 +228,11 @@ namespace Stormtility.events
         {
             try
             {
+                if (message.WebhookId is not null)
+                {
+                    return false;
+                }
+
                 if (message.Author!.IsBot)
                 {
                     return false;
@@ -247,8 +252,24 @@ namespace Stormtility.events
                 var matches = InviteRegex.Matches(builtCb);
 
                 List<string> whitelistedLinks = ["tenor", "klipy", "giphy", "medal", "youtube", "onlinesequencer"];
-                DiscordMember user = await message.Channel!.Guild.GetMemberAsync(message.Author.Id, true);
-                DiscordPermissions userChannelPerms = user.PermissionsIn(message.Channel);
+                DiscordMember? user = message.Author as DiscordMember;
+                if (user is null)
+                {
+                    try
+                    {
+                        user = await message.Channel!.Guild.GetMemberAsync(message.Author.Id);
+                    }
+                    catch (NotFoundException)
+                    {
+                        return false;
+                    }
+                    catch (Exception e)
+                    {
+                        await Logger.LOGGER(e);
+                        return false;
+                    }
+                }
+                DiscordPermissions userChannelPerms = user.PermissionsIn(message.Channel!);
                 bool hasMediaPerms = userChannelPerms.HasPermission(DiscordPermission.AttachFiles)
                   && userChannelPerms.HasPermission(DiscordPermission.EmbedLinks);
 
@@ -406,6 +427,7 @@ namespace Stormtility.events
 
         public static async Task Client_MessageUpdated(DiscordClient sender, MessageUpdatedEventArgs args)
         {
+            if (args.Message.WebhookId is not null) return;
             bool result = await DeleteAnyInvite(message: args.Message);
             var user = (DiscordUser)args.Author;
             if (args.Author.IsBot) return;
@@ -481,13 +503,10 @@ namespace Stormtility.events
                 return;
             }
 
-            // Figure out who said it
             DiscordUser user = message.Author;
 
-            // Figure out the content
             string content = message.Content;
 
-            // check if message is attachment, if yes, grab link and send link
             List<DiscordAttachment>? linksIfFound = message.Attachments?.ToList();
             if(linksIfFound != null)
             {
@@ -497,13 +516,10 @@ namespace Stormtility.events
                 }
             }
 
-            // Figure out channel
             DiscordChannel channel = message.Channel!;
 
-            // Compile content + channel
             string cc = $"In {channel!.Mention}: {content}";
 
-            // check if edited
             if(edited)
             {
                 cc = $"In {channel.Mention}: BEFORE: `{msgBefore}` AFTER: `{content}`";
@@ -522,10 +538,8 @@ namespace Stormtility.events
                 }
             }
 
-            // Get profile picture if exists of user
             string avatarUrl = user.GetAvatarUrl(MediaFormat.Auto) ?? user.DefaultAvatarUrl;
 
-            // Set webhook payload for wh2
             var payload = new
             {
                 content = cc,
@@ -555,10 +569,8 @@ namespace Stormtility.events
         {
             if (message.Author!.IsBot) return;
 
-            // Grab message content
             string content = message.Content;
 
-            // Split content using regex AND normal string splitting
             Match match = Regex.Match(content);
             if (!match.Success || !ulong.TryParse(match.Groups[1].Value, out ulong chId))
             {
@@ -593,6 +605,7 @@ namespace Stormtility.events
 
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreatedEventArgs args)
         {
+            if (args.Message.WebhookId is not null) return;
             bool result = await DeleteAnyInvite(message: args.Message);
             var user = args.Author;
             if (args.Author.IsBot) return;
@@ -601,7 +614,7 @@ namespace Stormtility.events
             await CheckSuggestion.IsValidSuggestion(sender, args.Message);
             bool isMultiLineMessage = CheckMessageForNewLines(member, args.Message.Content);
             if (args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
-            bool isHoneyPot = await checkHoneyPot(member, args.Message);
+            bool isHoneyPot = await CheckHoneyPot(member, args.Message);
 
             if(args.Channel.Id == 1533206494181462137)
             {

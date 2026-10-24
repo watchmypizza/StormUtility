@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<head>
+    <title>{{ member.name if member.name else placeholder.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+</head>
+<style>
+    ::-webkit-scrollbar { display: none; }
+    :root {
+        --bg-main: #0b0812;
+        --cards-sidebars: #15101f;
+        --elevated-surface: #21172f;
+        --electric-violet: #6d28d9;
+        --arc-light: #a78bfa;
+        --soft-white: #f0eaf8;
+        --muted-lavender: #a69aaf;
+        --rank-expendable: #71717a;
+        --rank-value: #7c3aed;
+        --rank-importance: #06b6d4;
+        --rank-employee: #6d6fd9;
+    }
+
+    .space-mono-regular {
+      font-family: "Space Mono", monospace;
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    .space-mono-bold {
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .space-mono-regular-italic {
+      font-family: "Space Mono", monospace;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .space-mono-bold-italic {
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    body {
+        min-height: 100vh;
+        justify-content: center;
+        align-content: center;
+        margin: 0;
+        background-color: var(--bg-main);
+    }
+
+    .foreground {
+        display: flex;
+        flex-direction:column;
+        position: relative;
+        margin: auto;
+        justify-self: center;
+        gap: 1rem;
+        align-self: center;
+        background-color: var(--elevated-surface);
+        border-radius: 10px;
+        padding: 2rem;
+    }
+
+    .memberpfp {
+        width: 128px;
+        height: 128px;
+        border-radius: 50%;
+        margin: auto;
+        flex-shrink: 0; /* contineu tmrw */
+    }
+
+    .roles {
+        background-color: rgba(109, 40, 217, .05);
+        display: flex;
+        flex-direction: row;
+        border-radius: 10px;
+        position: relative;
+        align-items: center;
+        justify-content: center;
+        color: var(--soft-white);
+        padding: 5px;
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+    }
+
+    .roleText {
+        font-family: "Space Mono", sans-serif;
+        font-weight: 400;
+        position: relative;
+        padding: 5px;
+        color: var(--rank-importance);
+    }
+
+    .roleIcon {
+        width: 96px;
+        height: 96px;
+    }
+
+    .profilepicture {
+        background-color: rgba(109, 40, 217, .05);
+        border-radius: 5px;
+        justify-items: center;
+        align-content: center;
+    }
+
+    .userInfo {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+        color: var(--soft-white);
+        font-family: "Space Mono", sans-serif;
+        font-weight: 400;
+        position: relative;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .username {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        padding: 5px;
+    }
+
+    .roles,
+    .profilepicture {
+        height: 138px;
+        display: flex;
+        padding: 5px;
+        margin: auto;
+        box-sizing: border-box;
+        border-radius: 10px;
+        width: 100%;
+    }
+
+    .statistics {
+        display: flex;
+        background-color: rgba(109, 40, 217, .05);
+        justify-items: center;
+        align-content: center;
+        position: relative;
+        padding: 5px;
+        color: var(--soft-white);
+        font-family: "Space Mono", sans-serif;
+        font-weight: 400;
+        gap: 1rem;
+    }
+
+    .totalMessagesSent {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        justify-items: center;
+        align-items: center;
+        margin: auto;
+        padding: 10px;
+    }
+
+    .messagesSent {
+        display: flex;
+        flex-direction: row;
+        justify-self: center;
+        align-self: center;
+    }
+    /* "{{ member.pfp if member.pfp else placeholder.pfp }}" */
+</style>
+<body>
+    <div class="foreground">
+        <div class="userInfo">
+            <div class="profilepicture">
+                <img class="memberpfp" src="{{ member.pfp }}" />
+                <span class="username">{{ member.name if member.name else NULL }}</span>
+            </div>
+            <div class="roles">
+                <img class="roleIcon" src="{{ url_for('static', filename='assets/' ~ member.role.image_path) }}"/>
+                <span class="roleText">{{ member.role.rank if member.role.rank else NULL }}</span>
+            </div>
+        </div>
+        <div class="statistics">
+            <div class="totalMessagesSent">
+                <!-- {{ member.messages if member.messages else NAN }} -->
+                <span class="messagesSent">{{ member.messages if member.messages else NAN }}</span>
+                <span class="totalSent">Messages sent in total</span>
+            </div>
+        </div>
+    </div>
+</body>

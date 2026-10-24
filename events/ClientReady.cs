@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Exceptions;
 using Stormtility.commands.TicketCommands;
 using Stormtility.Helpers;
 
@@ -68,19 +69,24 @@ namespace Stormtility.events
 
         private static async Task CycleBanners(DiscordClient client)
         {
-            using PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromHours(1));
+            using PeriodicTimer timer = new(TimeSpan.FromHours(1));
             do {
-                try {
+                string randFile = "";
+                try
+                {
                     var banners = Directory.GetFiles("Banners/");
 
                     int randIdx = Random.Shared.Next(banners.Length);
-                    string randFile = banners[randIdx];
+                    randFile = banners[randIdx];
                     using FileStream stream = new FileStream(randFile, FileMode.Open, FileAccess.Read);
 
                     await client.ModifyCurrentUserAsync(banner: stream);
-                } catch(DirectoryNotFoundException e)
+                }
+                catch (DirectoryNotFoundException e)
                 {
                     await Logger.LOGGER(e);
+                } catch(BadRequestException) {
+                    await Logger.ConsoleLog($"File {randFile} got rejected. Discord might be having a stroke");
                 } catch(Exception ex)
                 {
                     await Logger.LOGGER(ex);
