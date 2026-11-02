@@ -54,17 +54,13 @@ namespace Stormtility.events {
             string conn = "Data Source=tickets.db";
             string sql = "UPDATE tickets SET count = count + 1 WHERE type = @type";
             try {
-                using(var connection = new SqliteConnection(conn))
-                {
-                    await connection.OpenAsync();
+                using var connection = new SqliteConnection(conn);
+                await connection.OpenAsync();
 
-                    using(var command = new SqliteCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@type", ticketType.ToString());
-                        await command.ExecuteNonQueryAsync();
-                        return true;
-                    }
-                }
+                using var command = new SqliteCommand(sql, connection);
+                command.Parameters.AddWithValue("@type", ticketType.ToString());
+                await command.ExecuteNonQueryAsync();
+                return true;
             } catch(Exception e)
             {
                 await Logger.LOGGER(e);
@@ -78,20 +74,16 @@ namespace Stormtility.events {
 
             try
             {
-                using (var connection = new SqliteConnection(connectionString))
-                {
-                    string sql = "INSERT INTO activetickets (member, channelId) VALUES (@id, @channelId);";
+                using var connection = new SqliteConnection(connectionString);
+                string sql = "INSERT INTO activetickets (member, channelId) VALUES (@id, @channelId);";
 
-                    await connection.OpenAsync();
-                    using (var command = new SqliteCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@id", user.Id.ToString());
-                        command.Parameters.AddWithValue("@channelId", ticket.Id.ToString());
+                await connection.OpenAsync();
+                using var command = new SqliteCommand(sql, connection);
+                command.Parameters.AddWithValue("@id", user.Id.ToString());
+                command.Parameters.AddWithValue("@channelId", ticket.Id.ToString());
 
-                        int rows = await command.ExecuteNonQueryAsync();
-                        return rows > 0;
-                    }
-                }
+                int rows = await command.ExecuteNonQueryAsync();
+                return rows > 0;
             } catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -114,26 +106,22 @@ namespace Stormtility.events {
 
             try
             {
-                using(var conn = new SqliteConnection(sqlConn))
+                using var conn = new SqliteConnection(sqlConn);
+                await conn.OpenAsync();
+
+                string sql = "SELECT channelId FROM activetickets WHERE member = @id";
+
+                using var comm = new SqliteCommand(sql, conn);
+                comm.Parameters.AddWithValue("@id", user.Id.ToString());
+
+                var result = await comm.ExecuteScalarAsync();
+
+                if (result != null && ulong.TryParse(result.ToString(), out ulong channelId))
                 {
-                    await conn.OpenAsync();
-
-                    string sql = "SELECT channelId FROM activetickets WHERE member = @id";
-
-                    using (var comm = new SqliteCommand(sql, conn))
-                    {
-                        comm.Parameters.AddWithValue("@id", user.Id.ToString());
-
-                        var result = await comm.ExecuteScalarAsync();
-
-                        if(result != null && ulong.TryParse(result.ToString(), out ulong channelId))
-                        {
-                            return channelId;
-                        }
-                    }
-
-                    return 0;
+                    return channelId;
                 }
+
+                return 0;
             } catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -155,29 +143,25 @@ namespace Stormtility.events {
 
             try
             {
-                using (var connection = new SqliteConnection(connectionString))
+                using var connection = new SqliteConnection(connectionString);
+                await connection.OpenAsync();
+
+                string sql = "DELETE FROM activetickets WHERE channelId = @id RETURNING member, channelId;";
+
+                using (var command = new SqliteCommand(sql, connection))
                 {
-                    await connection.OpenAsync();
+                    command.Parameters.AddWithValue("@id", chid);
 
-                    string sql = "DELETE FROM activetickets WHERE channelId = @id RETURNING member, channelId;";
-
-                    using (var command = new SqliteCommand(sql, connection))
+                    using var reader = await command.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
                     {
-                        command.Parameters.AddWithValue("@id", chid);
+                        ulong.TryParse(reader["member"].ToString(), out ulong userId);
+                        ulong.TryParse(reader["channelId"].ToString(), out ulong channelId);
 
-                        using (var reader = await command.ExecuteReaderAsync())
-                        {
-                            if(await reader.ReadAsync())
-                            {
-                                ulong.TryParse(reader["member"].ToString(), out ulong userId);
-                                ulong.TryParse(reader["channelId"].ToString(), out ulong channelId);
-
-                                return(channelId, userId);
-                            }
-                        }
+                        return (channelId, userId);
                     }
-                    return (null, null);
                 }
+                return (null, null);
             } catch (Exception e)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -600,7 +584,7 @@ namespace Stormtility.events {
                         var confirmbtn = new DiscordButtonComponent(DiscordButtonStyle.Success, "confirmappeal", "Continue, create my in-game appeal.", false, new DiscordComponentEmoji("📨"));
                         var blacklistappeal = new DiscordButtonComponent(DiscordButtonStyle.Primary, "support", "Create a support ticket instead.", false, new DiscordComponentEmoji("❗"));
 
-                        await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("**Please remember that this selection is for**\n# In-Game Ban Appeals\n**If you wish to proceed, click the appropriate button.**").AsEphemeral().AddActionRowComponent(confirmbtn, blacklistappeal));
+                        await args.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("**Please remember that this selection is for**\n# Stormy's Spelling Bee\n**If you wish to proceed, click the appropriate button.**\n-# Please click support if your ticket is not about game appeals.").AsEphemeral().AddActionRowComponent(confirmbtn, blacklistappeal));
 
                     }
                 }
