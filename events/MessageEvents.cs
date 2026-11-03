@@ -605,6 +605,15 @@ namespace Stormtility.events
 
         public static async Task Client_MessageCreated(DiscordClient sender, MessageCreatedEventArgs args)
         {
+            if(args.Channel.Id == 1315142575857864846)
+            {
+                if(args.Message.MessageType == DiscordMessageType.AutoModerationAlert)
+                {
+                    var channels = await args.Guild.GetChannelsAsync();
+                    await AntiRaidActions([.. channels]);
+                }
+            }
+
             if (args.Message.WebhookId is not null) return;
             bool result = await DeleteAnyInvite(message: args.Message);
             var user = args.Author;
@@ -837,15 +846,6 @@ namespace Stormtility.events
                 if (staffRole) return;
                 if (args.Message.Attachments.Count <= 0) await args.Message.DeleteAsync();
                 else return;
-            }
-
-            if(args.Channel.Id == 1315142575857864846)
-            {
-                if(args.Message.MessageType == DiscordMessageType.AutoModerationAlert)
-                {
-                    var channels = await args.Guild.GetChannelsAsync();
-                    await AntiRaidActions([.. channels]);
-                }
             }
 
             if(args.Channel.Id == 1368208863018614866)
