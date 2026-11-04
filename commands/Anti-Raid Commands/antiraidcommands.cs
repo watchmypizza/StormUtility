@@ -217,7 +217,7 @@ namespace Stormtility.commands.Anti_Raid_Commands
                 if (channelsToSkip.Contains(channel.Id)) { continue; }
 
                 var getCurrentChannelSlowMode = channel.PerUserRateLimit;
-                existingSlowmodes.Add(channel.Id, getCurrentChannelSlowMode);
+                existingSlowmodes.TryAdd(channel.Id, getCurrentChannelSlowMode);
 
                 await channel.ModifyAsync(mod => mod.PerUserRateLimit = (int)duration.TotalSeconds);
                 await ctx.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent($"Modifying {channel.Mention}"));
