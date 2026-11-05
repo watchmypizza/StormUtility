@@ -254,7 +254,8 @@ namespace Stormtility.commands.UtilityCommands
 
         [Command("unafk")]
         [Description("Remove your AFK status")]
-        public async Task RemoveAFK(SlashCommandContext ctx) {
+        public async Task RemoveAFK(SlashCommandContext ctx)
+        {
             try
             {
                 afkList.Remove(ctx.User.Id);
@@ -267,7 +268,8 @@ namespace Stormtility.commands.UtilityCommands
                 await ctx.RespondAsync("Successfully removed you from the AFK list", true);
                 return;
             }
-            catch(UnauthorizedException) {
+            catch (UnauthorizedException)
+            {
                 await ctx.RespondAsync("Unable to modify user's nickname. Removed from list anyways.", true);
                 return;
             }
@@ -277,6 +279,30 @@ namespace Stormtility.commands.UtilityCommands
                 await Logger.LOGGER(e);
                 return;
             }
+        }
+
+        [Command("honeypot")]
+        [Description("Set the honeypot embed up.")]
+        public async Task HoneyPotEmbed(SlashCommandContext ctx) {
+            if (!ctx.Member!.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.Administrator))
+            {
+                await ctx.RespondAsync("You do not have permission to use this command.", true);
+                return;
+            }
+
+            DiscordGuildEmoji alarm = await ctx.Guild!.GetEmojiAsync(1567939024679735438);
+            DiscordRole blacklistRole = await ctx.Guild!.GetRoleAsync(1397404869702320260);
+
+            var embed = new DiscordEmbedBuilder()
+            {
+                Title = $"{alarm} DO NOT SEND MESSAGES IN THIS CHANNEL {alarm}",
+                Description = $"Doing so will **soft-ban** you!\n-# Kicking yourself whilst having the {blacklistRole.Mention} role, will not remove the blacklist role upon rejoining.",
+                Color = DiscordColor.DarkRed
+            };
+
+            await ctx.Channel.SendMessageAsync(embed);
+            await ctx.RespondAsync("Sent message!", true);
+            return;
         }
     }
 }
