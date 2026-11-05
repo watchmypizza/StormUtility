@@ -10,6 +10,8 @@ namespace Stormtility.events
 {
     public class ClientReady
     {
+        private static readonly ulong genChId = 1177078904863862866;
+
         public static async Task Client_Ready(DiscordClient sender, SessionCreatedEventArgs args)
         {
             await sender.UpdateStatusAsync(new DiscordActivity("Chasing 2026 EF5", DiscordActivityType.Playing), DiscordUserStatus.DoNotDisturb, DateTimeOffset.UtcNow);
@@ -19,13 +21,14 @@ namespace Stormtility.events
             _ = Task.Run(async () => await SyncAllOpenTickets(sender));
             _ = Task.Run(async () => await CycleBanners(sender));
             _ = Task.Run(async () => await StartServer());
+            _ = Task.Run(async () => await ScanSlowmode(sender));
 
             return;
         }
 
         private static async Task StartServer()
         {
-            ProcessStartInfo start = new ProcessStartInfo
+            ProcessStartInfo start = new()
             {
                 FileName = "python",
                 Arguments = "TranscriptServer/Server/app.py",
@@ -36,35 +39,39 @@ namespace Stormtility.events
                 CreateNoWindow = true
             };
 
-            using (Process process = new Process { StartInfo = start })
+            using Process process = new Process { StartInfo = start };
+            process.OutputDataReceived += (sender, e) =>
             {
-                process.OutputDataReceived += (sender, e) =>
+                if (!string.IsNullOrEmpty(e.Data))
                 {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        Console.WriteLine($"[Python Output]: {e.Data}");
-                    }
-                };
+                    Console.WriteLine($"[Python Output]: {e.Data}");
+                }
+            };
 
-                process.ErrorDataReceived += (sender, e) =>
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
                 {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        Console.WriteLine($"[Python Error]: {e.Data}");
-                    }
-                };
+                    Console.WriteLine($"[Python Error]: {e.Data}");
+                }
+            };
 
-                process.Start();
+            process.Start();
 
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
 
-                Console.WriteLine("Transcript Server is starting up in the background...");
+            Console.WriteLine("Transcript Server is starting up in the background...");
 
-                await process.WaitForExitAsync();
+            await process.WaitForExitAsync();
 
-                Console.WriteLine($"Python server exited with code: {process.ExitCode}");
-            }
+            Console.WriteLine($"Python server exited with code: {process.ExitCode}");
+        }
+
+        private static async Task ScanSlowmode(DiscordClient client) {
+            DiscordChannel channel = await client.GetChannelAsync(genChId);
+
+            SlowmodeHelper.Start(channel);
         }
 
         private static async Task CycleBanners(DiscordClient client)

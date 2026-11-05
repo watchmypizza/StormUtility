@@ -10,16 +10,12 @@ using Stormtility.commands.TicketCommands;
 using Stormtility.commands.UtilityCommands;
 using Stormtility.Helpers;
 
-
-// TODO:
-// - Implement reputation system
-
-
 namespace Stormtility
 {
     internal class Program
     {
         private static DiscordClient? Client { get; set; }
+
         public static string? webhookURL { get; set; }
         public static string? wbhurl2 { get; set; }
         public static string? nonce { get; set; }
@@ -57,6 +53,7 @@ namespace Stormtility
                 eventBuilder.HandleComponentInteractionCreated(events.InteractionCreated.Client_ComponentInteractionCreated);
                 eventBuilder.HandleMessageReactionAdded(events.ReactionEvents.Client_ReactionAddedEvent);
                 eventBuilder.HandleMessageReactionRemoved(events.ReactionEvents.Client_ReactionRemovedEvent);
+                eventBuilder.HandleTypingStarted(events.TypingEvents.Client_HandleTypingStarted);
             });
 
             builder.UseCommands(async (serviceProvider, extension) =>

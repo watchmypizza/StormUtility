@@ -625,6 +625,9 @@ namespace Stormtility.events
             if (args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
             bool isHoneyPot = await CheckHoneyPot(member, args.Message);
 
+            SlowmodeHelper.TryAdd(true, false);
+            SlowmodeHelper.MsgTrigger();
+
             if(args.Channel.Id == 1533206494181462137)
             {
                 await ReceiveMessageAndForwardToChannel(sender, args.Message);
