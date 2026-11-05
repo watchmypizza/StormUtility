@@ -14,6 +14,10 @@ namespace Stormtility.Helpers
 
         public static int TryAdd(bool? msg = false, bool? typing = false)
         {
+            if(genCh?.Id != 1177078904863862866) {
+                return 1;
+            }
+
             try
             {
                 if (msg == true)
@@ -40,14 +44,16 @@ namespace Stormtility.Helpers
         {
             try
             {
-                if (MessageThreshold[0] <= MessagesSent || PeopleTyping >= TypingThreshold[0])
+                if (MessageThreshold[1] <= MessagesSent || PeopleTyping >= TypingThreshold[1])
+                {
+                    _ = genCh!.ModifyAsync(m => m.PerUserRateLimit = 10);
+                }
+                else if (MessageThreshold[0] <= MessagesSent || PeopleTyping >= TypingThreshold[0])
                 {
                     _ = genCh!.ModifyAsync(m => m.PerUserRateLimit = 5);
                 }
-                else if (MessageThreshold[1] <= MessagesSent || PeopleTyping >= TypingThreshold[1])
+                else
                 {
-                    _ = genCh!.ModifyAsync(m => m.PerUserRateLimit = 10);
-                } else {
                     _ = genCh!.ModifyAsync(m => m.PerUserRateLimit = 0);
                 }
 
