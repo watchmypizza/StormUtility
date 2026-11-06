@@ -42,6 +42,11 @@ namespace Stormtility.Helpers {
         public static int ResetTime(DiscordMessage message) {
             try
             {
+                if (message.ChannelId != genCh!.Id)
+                {
+                    return 1;
+                }
+
                 DateTimeOffset timeSent = message.CreationTimestamp;
                 LastMessage = timeSent;
 
