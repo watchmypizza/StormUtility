@@ -283,7 +283,8 @@ namespace Stormtility.commands.UtilityCommands
 
         [Command("honeypot")]
         [Description("Set the honeypot embed up.")]
-        public async Task HoneyPotEmbed(SlashCommandContext ctx) {
+        public async Task HoneyPotEmbed(SlashCommandContext ctx)
+        {
             if (!ctx.Member!.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.Administrator))
             {
                 await ctx.RespondAsync("You do not have permission to use this command.", true);
@@ -302,6 +303,19 @@ namespace Stormtility.commands.UtilityCommands
 
             await ctx.Channel.SendMessageAsync(embed);
             await ctx.RespondAsync("Sent message!", true);
+            return;
+        }
+
+        [Command("testautochatrevive")]
+        public async Task Testautochatreview(SlashCommandContext ctx)
+        {
+            if (!ctx.Member!.PermissionsIn(ctx.Channel).HasPermission(DiscordPermission.Administrator))
+            {
+                await ctx.RespondAsync("You do not have permission to use this command.", true);
+                return;
+            }
+
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("<@&1405236449938374766> || ** [[ AUTOMATIC CHAT REVIVE ]]\n-# If you'd like to disable this, visit <id:customize>").AsEphemeral());
             return;
         }
     }

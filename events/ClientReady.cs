@@ -11,6 +11,7 @@ namespace Stormtility.events
     public class ClientReady
     {
         private static readonly ulong genChId = 1177078904863862866;
+        private static readonly ulong chRvId = 1405236449938374766;
 
         public static async Task Client_Ready(DiscordClient sender, SessionCreatedEventArgs args)
         {
@@ -22,6 +23,7 @@ namespace Stormtility.events
             _ = Task.Run(async () => await CycleBanners(sender));
             _ = Task.Run(async () => await StartServer());
             _ = Task.Run(async () => await ScanSlowmode(sender));
+            _ = Task.Run(async () => await StartChatRevHelper(sender));
 
             return;
         }
@@ -68,10 +70,20 @@ namespace Stormtility.events
             Console.WriteLine($"Python server exited with code: {process.ExitCode}");
         }
 
-        private static async Task ScanSlowmode(DiscordClient client) {
+        private static async Task ScanSlowmode(DiscordClient client)
+        {
             DiscordChannel channel = await client.GetChannelAsync(genChId);
 
             SlowmodeHelper.Start(channel);
+        }
+
+        private static async Task StartChatRevHelper(DiscordClient client)
+        {
+            DiscordGuild guild = await client.GetGuildAsync(1177078904176001204); // stormy server guild id
+            DiscordRole chatRevive = await guild.GetRoleAsync(chRvId);
+            DiscordChannel channel = await client.GetChannelAsync(genChId);
+
+            ChatReviveHelper.Start(chatRevive, channel);
         }
 
         private static async Task CycleBanners(DiscordClient client)

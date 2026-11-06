@@ -628,6 +628,8 @@ namespace Stormtility.events
             SlowmodeHelper.TryAdd(args.Channel, msg: true);
             SlowmodeHelper.MsgTrigger();
 
+            ChatReviveHelper.ResetTime(args.Message);
+
             if(args.Channel.Id == 1533206494181462137)
             {
                 await ReceiveMessageAndForwardToChannel(sender, args.Message);

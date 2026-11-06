@@ -4,12 +4,8 @@ using DSharpPlus.Exceptions;
 namespace Stormtility.Helpers
 {
     public class SlowmodeHelper {
-        // How often the level is re-checked while no events are coming in.
-        // This only lets the slowmode decay during silence; escalation happens live on every event.
         public static readonly int ScanningThreshold = 10;
 
-        // Activity is measured over a rolling window instead of cumulative counters,
-        // so old activity ages out on its own and nothing needs to be "reset".
         private static readonly TimeSpan MeasureWindow = TimeSpan.FromSeconds(30);
 
         private static readonly List<int> MessageThreshold = [25, 50];
@@ -46,12 +42,10 @@ namespace Stormtility.Helpers
                         if (userId == 0) {
                             return 1;
                         }
-                        // One entry per person: repeated typing events from the same user don't stack.
                         TypingPeople[userId] = now;
                     }
                 }
 
-                // Typing events don't have a matching MsgTrigger call site, so refresh here.
                 if (typing == true) {
                     Evaluate();
                 }
@@ -104,7 +98,6 @@ namespace Stormtility.Helpers
                     desired = SlowmodeLevels[0];
                 }
 
-                // Only touch the API when the level actually changes.
                 if (desired == lastAppliedSlowmode) {
                     return;
                 }
@@ -158,8 +151,8 @@ namespace Stormtility.Helpers
             using PeriodicTimer timer = new(TimeSpan.FromSeconds(ScanningThreshold));
             try
             {
-                while (await timer.WaitForNextTickAsync(cts.Token)) {
-                    // Windowed counts age out by themselves; this tick just lets the level step down.
+                while (await timer.WaitForNextTickAsync(cts.Token))
+                {
                     Evaluate();
                 }
             } catch (OperationCanceledException) {
