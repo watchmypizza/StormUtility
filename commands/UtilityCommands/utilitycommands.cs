@@ -315,7 +315,7 @@ namespace Stormtility.commands.UtilityCommands
                 return;
             }
 
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("<@&1405236449938374766> || ** [[ AUTOMATIC CHAT REVIVE ]]\n-# If you'd like to disable this, visit <id:customize>").AsEphemeral());
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent("<@&1405236449938374766> \\|\\| [[ AUTOMATIC CHAT REVIVE ]]\n-# If you'd like to disable this, visit <id:customize>").AsEphemeral());
             return;
         }
     }
