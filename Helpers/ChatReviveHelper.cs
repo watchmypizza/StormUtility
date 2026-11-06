@@ -30,7 +30,7 @@ namespace Stormtility.Helpers {
         {
             try
             {
-                await genCh!.SendMessageAsync(new DiscordMessageBuilder().WithContent(ChatReviveRole!.Mention + " ** [[ AUTOMATIC CHAT REVIVE ]]\n-# If you'd like to disable this, visit <id:customize>").WithAllowedMentions(Mentions.All));
+                await genCh!.SendMessageAsync(new DiscordMessageBuilder().WithContent(ChatReviveRole!.Mention + " \\|\\| [[ AUTOMATIC CHAT REVIVE ]]\n-# If you'd like to disable this, visit <id:customize>").WithAllowedMentions(Mentions.All));
             }
             catch (Exception e)
             {
