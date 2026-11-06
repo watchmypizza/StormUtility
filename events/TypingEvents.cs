@@ -7,7 +7,7 @@ namespace Stormtility.events {
         public static async Task Client_HandleTypingStarted(DiscordClient sender, TypingStartedEventArgs args) {
             if (args.User.IsBot) return;
 
-            SlowmodeHelper.TryAdd(typing: true);
+            SlowmodeHelper.TryAdd(args.Channel, typing: true, userId: args.User.Id);
         }
     }
 }
