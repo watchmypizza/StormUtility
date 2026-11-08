@@ -24,6 +24,7 @@ namespace Stormtility.events
             _ = Task.Run(async () => await StartServer());
             _ = Task.Run(async () => await ScanSlowmode(sender));
             _ = Task.Run(async () => await StartChatRevHelper(sender));
+            _ = Task.Run(async () => await LinkHelper.StartCacheRefresh());
 
             return;
         }

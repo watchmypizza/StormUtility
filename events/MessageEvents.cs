@@ -127,7 +127,7 @@ namespace Stormtility.events
 
         private static bool CheckMessageForNewLines(DiscordMember member, string messageContent)
         {
-            if(member.Roles.Any(r => r.Id == 1374444948228931661)) // level 5 role id
+            if (member.Roles.Any(r => r.Id == 1374444948228931661)) // level 5 role id
             {
                 return false;
             }
@@ -623,6 +623,7 @@ namespace Stormtility.events
             await CheckSuggestion.IsValidSuggestion(sender, args.Message);
             bool isMultiLineMessage = CheckMessageForNewLines(member, args.Message.Content);
             if (args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
+            if(LinkHelper.IsBlacklisted(args.Message.Content)) { await args.Message.DeleteAsync(); }
             bool isHoneyPot = await CheckHoneyPot(member, args.Message);
 
             SlowmodeHelper.TryAdd(args.Channel, msg: true);

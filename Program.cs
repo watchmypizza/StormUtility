@@ -4,6 +4,7 @@ using Stormtility.commands;
 using Stormtility.commands.Anti_Raid_Commands;
 using Stormtility.commands.Booster_Commands;
 using Stormtility.commands.EntertainmentCommands;
+using Stormtility.commands.Link_Commands;
 using Stormtility.commands.Staff_Commands;
 using Stormtility.commands.TestingCommands;
 using Stormtility.commands.TicketCommands;
@@ -67,7 +68,8 @@ namespace Stormtility
                     typeof(MuteCounter),
                     typeof(FunCommands),
                     typeof(BoosterCommands),
-                    typeof(StaffCommands)
+                    typeof(StaffCommands),
+                    typeof(LinkCommands)
                 ]);
 
                 extension.AddCommands([typeof(TestCommands)], 1349792051134468156);
