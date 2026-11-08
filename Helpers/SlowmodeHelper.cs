@@ -31,8 +31,6 @@ namespace Stormtility.Helpers
                         return 1;
                     }
 
-                    if(genCh.PerUserRateLimit >= 120) { return 1; }
-
                     DateTimeOffset now = DateTimeOffset.UtcNow;
                     PruneOlderThan(now - MeasureWindow);
 
@@ -79,7 +77,8 @@ namespace Stormtility.Helpers
 
             lock (Gate)
             {
-                if (genCh is null) {
+                if (genCh is null || genCh.PerUserRateLimit >= 120)
+                {
                     return;
                 }
 
