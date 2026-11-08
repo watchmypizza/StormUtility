@@ -8,7 +8,7 @@ namespace Stormtility.commands.Anti_Raid_Commands.AntiRaidAutoCompleteHandler
     {
         public ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext ctx)
         {
-            var userInput = ctx.Options?.ToString() ?? string.Empty;
+            var userInput = ctx.UserInput ?? string.Empty;
 
             var choices = new List<DiscordAutoCompleteChoice>(2) { new("true", true), new("false", false) };
             var results = choices.Where(choice => choice.Name.StartsWith(userInput, StringComparison.OrdinalIgnoreCase)).Take(2);

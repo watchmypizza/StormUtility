@@ -1,6 +1,7 @@
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
 using Stormtility.commands.Anti_Raid_Commands.calculationsanddumbassmath;
 
 namespace Stormtility.commands.TicketCommands
@@ -24,9 +25,9 @@ namespace Stormtility.commands.TicketCommands
         public ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext ctx)
         {
             var files = LoadTranscriptFiles();
-            var userInput = ctx.Options?.ToString() ?? string.Empty;
+            var userInput = ctx.UserInput ?? string.Empty;
 
-            var result = files.OrderBy(x => Calculationsanddumbassmath.LevenshteinRatio(x, userInput)).Take(3).Select(x => new DiscordAutoCompleteChoice(x, x));
+            var result = files.Where(file => file.StartsWith(userInput, StringComparison.OrdinalIgnoreCase)).Select(file => new DiscordAutoCompleteChoice(file, file));
 
             return ValueTask.FromResult(result);
         }

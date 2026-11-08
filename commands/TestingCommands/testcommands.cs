@@ -1,19 +1,19 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using DSharpPlus;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
 
 namespace Stormtility.commands.TestingCommands
 {
     [Command("testing")]
     public class TestCommands
     {
-        [SlashCommand("filetest", "Test command to test if inputting files like screenshots works")]
         [Command("filetest")]
         [Description("please help me")]
-        public async Task FileTest(SlashCommandContext ctx, [Parameter("file")][Description("Input file to test")]DiscordAttachment file)
+        public async Task FileTest(SlashCommandContext ctx, [Parameter("file")][Description("Input file to test")] DiscordAttachment file)
         {
             using var http = new HttpClient();
             using var ms = new MemoryStream();
@@ -24,7 +24,6 @@ namespace Stormtility.commands.TestingCommands
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddFile(file.FileName ?? "noFileName", ms));
         }
 
-        [SlashCommand("verificationTest", "Test if verification works")]
         [Command("verificationtest")]
         [Description("this is unbearable")]
         public async Task VerificationTest(SlashCommandContext ctx)
@@ -32,9 +31,9 @@ namespace Stormtility.commands.TestingCommands
             DiscordButtonComponent button = new(DiscordButtonStyle.Primary, "openVerifyModal", "Verify");
             var embed = new DiscordEmbedBuilder()
             {
-                Title="Verification",
-                Description="Codes are valid for 1 minute before expiration for each user.",
-                Color=DiscordColor.Orange
+                Title = "Verification",
+                Description = "Codes are valid for 1 minute before expiration for each user.",
+                Color = DiscordColor.Orange
             };
             DiscordChannel channel = ctx.Interaction.Channel;
             await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed).AddActionRowComponent(button));
@@ -42,16 +41,15 @@ namespace Stormtility.commands.TestingCommands
             return;
         }
 
-        [SlashCommand("testmodal", "Test modal preview")]
         [Command("testmodal")]
         [Description("was it commandcontext? fuck")]
         public async Task ModalTest(SlashCommandContext ctx, [Parameter("title")][Description("Title of the modal")] string title, [Parameter("TextInput1")][Description("First text input")] string textInput1, [Parameter("TextInput2")][Description("Second text input")] string? textInput2 = "")
         {
-            if(textInput2 == null || textInput2 == string.Empty)
+            if (textInput2 == null || textInput2 == string.Empty)
             {
                 DiscordModalBuilder modal = new DiscordModalBuilder()
                                                                 .WithTitle(title)
-                                                                .AddTextInput(new DiscordTextInputComponent("exampleModalText1", required: true,style: DiscordTextInputStyle.Short), textInput1);
+                                                                .AddTextInput(new DiscordTextInputComponent("exampleModalText1", required: true, style: DiscordTextInputStyle.Short), textInput1);
 
                 await ctx.RespondWithModalAsync(modal);
                 return;
@@ -68,7 +66,6 @@ namespace Stormtility.commands.TestingCommands
             }
         }
 
-        [SlashCommand("honeypot", "Set the honeypot automation up")]
         [Command("honeypot")]
         [Description("no clue why i registered this")]
         public async Task HoneyPot(SlashCommandContext ctx)
@@ -85,7 +82,6 @@ namespace Stormtility.commands.TestingCommands
             return;
         }
 
-        [SlashCommand("ticketmodal", "Test ticketmodal lmaoz")]
         [Command("ticketmodal")]
         [Description("my sanity is gone")]
         public async Task TicketModal(SlashCommandContext ctx)
@@ -149,7 +145,8 @@ namespace Stormtility.commands.TestingCommands
 
         [Command("embedTest")]
         [Description("Get the embed structure")]
-        public async Task EmbedStructure(SlashCommandContext ctx) {
+        public async Task EmbedStructure(SlashCommandContext ctx)
+        {
             var embed = new DiscordEmbedBuilder
             {
                 Title = "Hi",
@@ -166,10 +163,97 @@ namespace Stormtility.commands.TestingCommands
                     WriteIndented = true
                 }
             );
-            await msg.ModifyAsync(ms => {
+            await msg.ModifyAsync(ms =>
+            {
                 ms.Content = serialized?.ToString() ?? "";
             });
             return;
+        }
+
+        private static Dictionary<ulong, (string, string, string, DateTime, bool)> warnList = new();
+        private static readonly HttpClient client = new();
+
+        [Command("warntest")]
+        public async Task WarnTest(
+            SlashCommandContext ctx,
+            [Parameter("user")][Description("The user to issue the warning to.")] DiscordMember member,
+            [Parameter("reason")][Description("The reason for the warning.")] String reason,
+            [Parameter("proof")][Description("The proof to attach to the case.")] DiscordAttachment proof,
+            [Parameter("severity")][Description("How severe the warning is. Low = 1 Mo | Mid = 2 Mo | High = 3 Mo")][SlashAutoCompleteProvider<WarnAutoCompleteHandler.AutoComplete>] string severity
+        )
+        {
+            if (!ctx.Member!.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers))
+            {
+                await ctx.RespondAsync("You do not have the required permissions to execute this command.");
+                return;
+            }
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = $"You have been warned in {ctx.Interaction.Guild?.Name ?? "Unknown Server"}",
+                Color = DiscordColor.Red,
+            };
+            embed.WithThumbnail(ctx.Interaction.Guild!.IconUrl);
+            switch (severity.ToLower())
+            {
+                case "low":
+                    warnList.TryAdd(member.Id, (reason, severity, proof.Url ?? "No URL found", DateTime.UtcNow.AddMonths(1), false));
+                    embed.AddField("Reason", reason, false);
+                    embed.AddField("Severity", severity, false);
+                    embed.AddField("Proof", proof.Url ?? "No URL found", false);
+                    embed.AddField("Expires", DateTime.UtcNow.AddMonths(1).ToString("g"));
+                    break;
+                case "mid":
+                    warnList.TryAdd(member.Id, (reason, severity, proof.Url ?? "No URL found", DateTime.UtcNow.AddMonths(2), false));
+                    embed.AddField("Reason", reason, false);
+                    embed.AddField("Severity", severity, false);
+                    embed.AddField("Proof", proof.Url ?? "No URL found", false);
+                    embed.AddField("Expires", DateTime.UtcNow.AddMonths(2).ToString("g"));
+                    break;
+                case "high":
+                    warnList.TryAdd(member.Id, (reason, severity, proof.Url ?? "No URL found", DateTime.UtcNow.AddMonths(3), false));
+                    embed.AddField("Reason", reason, false);
+                    embed.AddField("Severity", severity, false);
+                    embed.AddField("Proof", proof.Url ?? "No URL found", false);
+                    embed.AddField("Expires", DateTime.UtcNow.AddMonths(3).ToString("g"));
+                    break;
+                default:
+                    await ctx.RespondAsync("Unknown severity.", true);
+                    return;
+            }
+
+            await ctx.RespondAsync("Warn has been added to user.", true);
+
+            await member.SendMessageAsync(embed);
+
+            return;
+        }
+
+        [Command("showwarntest")]
+        public async Task ShowWarnTest(SlashCommandContext ctx, [Parameter("Member")][Description("The member to show warnings of")]DiscordMember member) {
+            if (!ctx.Member!.PermissionsIn(ctx.Interaction.Channel).HasPermission(DiscordPermission.ModerateMembers))
+            {
+                await ctx.RespondAsync("You do not have the required permissions to execute this command.", true);
+                return;
+            }
+
+            if (warnList.TryGetValue(member.Id, out var warning))
+            {
+                var (reason, severity, proofUrl, issued, expired) = warning;
+            } else {
+                await ctx.RespondAsync("This user has no warnings.", true);
+                return;
+            }
+
+            var embed = new DiscordEmbedBuilder()
+            {
+                Title = $"Warnings for {member.Username}",
+                Color = DiscordColor.Red
+            };
+
+            embed.AddField(warning.Item4.ToString("g"), $"{warning.Item1}\n———\nSeverity: {warning.Item2}\nProof: {warning.Item3}\nExpired: {(warning.Item5 ? DiscordEmoji.FromUnicode("✅") : DiscordEmoji.FromUnicode("❌"))}", false);
+
+            await ctx.RespondAsync(embed, true);
         }
     }
 }
