@@ -30,7 +30,6 @@ namespace Stormtility.Helpers
                 {
                     return true;
                 }
-                return false;
             }
             return false;
         }

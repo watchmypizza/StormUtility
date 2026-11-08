@@ -26,9 +26,12 @@ namespace Stormtility.Helpers
             {
                 lock (Gate)
                 {
-                    if (genCh is null || channel.Id != genCh.Id || msg != true && typing != true) {
+                    if (genCh is null || channel.Id != genCh.Id || msg != true && typing != true)
+                    {
                         return 1;
                     }
+
+                    if(genCh.PerUserRateLimit >= 120) { return 1; }
 
                     DateTimeOffset now = DateTimeOffset.UtcNow;
                     PruneOlderThan(now - MeasureWindow);
