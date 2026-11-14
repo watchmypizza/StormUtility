@@ -335,13 +335,11 @@ namespace Stormtility.commands.TicketCommands
         [Command("add")]
         [Description("Add a user to the current ticket")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
-        public async Task AddUser(SlashCommandContext ctx, [Parameter("user")][Description("The user to add to the ticket.")] DiscordUser user)
+        public async Task AddUser(SlashCommandContext ctx, [Parameter("user")][Description("The user to add to the ticket.")] DiscordMember member)
         {
             var check = await PermissionCheck(ctx);
 
             if (!check) { return; }
-
-            var member = (DiscordMember)user;
 
             var channelName = ctx.Interaction.Channel.Name;
             string[] ticketTypes = ["support", "appeal", "speedtypist", "exploiter"];
@@ -410,13 +408,11 @@ namespace Stormtility.commands.TicketCommands
         [Command("remove")]
         [Description("Remove a user from the current ticket.")]
         [AllowedProcessors(typeof(SlashCommandProcessor))]
-        public async Task RemoveUser(SlashCommandContext ctx, [Parameter("User")][Description("The user to remove")] DiscordUser user)
+        public async Task RemoveUser(SlashCommandContext ctx, [Parameter("User")][Description("The user to remove")] DiscordMember member)
         {
             var check = await PermissionCheck(ctx);
 
             if (!check) { return; }
-
-            var member = (DiscordMember)user;
 
             var channelName = ctx.Interaction.Channel.Name;
             string[] ticketTypes = ["support", "appeal", "speedtypist", "exploiter"];
