@@ -445,7 +445,7 @@ namespace Stormtility.events
                 DiscordChannel channelLog = await args.Guild.GetChannelAsync(1315142575857864846);
                 DiscordMember suki = await args.Guild.GetMemberAsync(845103036317433867);
                 await channelLog.SendMessageAsync(new DiscordMessageBuilder().WithContent(suki.Mention).WithAllowedMentions(Mentions.All));
-                await channelLog.SendMessageAsync($"`{args.Message.Content.ToString()}` sent by {args.Message.Author!.Mention}\nMessage before edited was `{args.MessageBefore.Content}`");
+                await channelLog.SendMessageAsync($"```diff\n- {args.MessageBefore.Content}\n+ {args.Message.Content}```\n Sent by {args.Message.Author!.Mention}");
                 await args.Message.DeleteAsync();
             }
 
@@ -522,11 +522,11 @@ namespace Stormtility.events
 
             if(edited)
             {
-                cc = $"In {channel.Mention}: BEFORE: `{msgBefore}` AFTER: `{content}`";
+                cc = $"In {channel.Mention}:\n```diff\n- {msgBefore}\n+ {content}```";
             }
             else if(deleted)
             {
-                cc = $"In {channel.Mention}: DELETED: `{content}`";
+                cc = $"In {channel.Mention}:\n```diff\n- {content}```";
             }
             else if(isReaction)
             {
