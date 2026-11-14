@@ -518,7 +518,7 @@ namespace Stormtility.events
 
             DiscordChannel channel = message.Channel!;
 
-            string cc = $"In {channel!.Mention}: {content}";
+            string cc = $"In {channel!.Mention}:\n```diff\n+ {content}```";
 
             if(edited)
             {
