@@ -625,6 +625,7 @@ namespace Stormtility.events
             if (args.Channel.Id != 1533206494181462137) { await RouteMessages(args.Message); }
             if(LinkHelper.IsBlacklisted(args.Message.Content)) { await args.Message.DeleteAsync(); }
             bool isHoneyPot = await CheckHoneyPot(member, args.Message);
+            await MessageEventsHelper.CheckBigText(args.Message);
 
             SlowmodeHelper.TryAdd(args.Channel, msg: true);
             SlowmodeHelper.MsgTrigger();
